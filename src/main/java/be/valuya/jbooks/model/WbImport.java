@@ -9,7 +9,7 @@ import java.util.List;
 public class WbImport {
 
     private List<WbClientSupplier> wbClientSupplierList;
-    private List<WbInternalOperation> wbInternalOperationList;
+    private List<WbEntry> wbEntries;
     private List<WbGenericWarningResolution> genericWarningResolutions;
     private List<WbSpecificWarningResolution> specificWarningResolutions;
 
@@ -21,12 +21,12 @@ public class WbImport {
         this.wbClientSupplierList = wbClientSupplierList;
     }
 
-    public List<WbInternalOperation> getWbInternalOperationList() {
-        return wbInternalOperationList;
+    public List<WbEntry> getWbEntries() {
+        return wbEntries;
     }
 
-    public void setWbInternalOperationList(List<WbInternalOperation> wbInternalOperationList) {
-        this.wbInternalOperationList = wbInternalOperationList;
+    public void setWbEntries(List<WbEntry> wbEntries) {
+        this.wbEntries = wbEntries;
     }
 
     public List<WbGenericWarningResolution> getGenericWarningResolutions() {

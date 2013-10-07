@@ -11,7 +11,7 @@ package be.valuya.jbooks.model;
  * @author Yannick Majoros
  * <yannick@valuya.be>
  */
-public enum WbVatCat implements WbValue<String> {
+public enum WbVatCat implements WbValue {
 
     INDETERMINATE("1"),
     ZERO_RATED("2"),

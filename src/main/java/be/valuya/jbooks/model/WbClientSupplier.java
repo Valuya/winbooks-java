@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
+ * Winbooks client or supplier.
  *
  * @author Yannick
  */
@@ -23,7 +24,7 @@ public class WbClientSupplier {
     private String payCode;
     private String telNumber;
     private String faxNumber;
-    private String bnkAccnt;
+    private String bankAccount;
     private String zipCode;
     private String city;
     private String defltPost;
@@ -34,15 +35,7 @@ public class WbClientSupplier {
     private String currency;
     private String lastRemLev;
     private Date lastRemDat;
-    private double totDeb1 = 0.0;
-    private double totCre1 = 0.0;
-    private double totDebTmp1 = 0.0;
-    private double totCreTmp1 = 0.0;
-    private double totDeb2 = 0.0;
-    private double totCre2 = 0.0;
-    private double totDebTmp2 = 0.0;
-    private double totCreTmp2 = 0.0;
-    private List<WbCustomClientAttribute> wbkCustomClientAttributes;
+    private List<WbCustomClientAttribute> wbCustomClientAttributes;
     private boolean locked;
     private WbMemoType wbMemoType;
     private boolean doc;
@@ -159,12 +152,12 @@ public class WbClientSupplier {
         this.faxNumber = faxNumber;
     }
 
-    public String getBnkAccnt() {
-        return bnkAccnt;
+    public String getBankAccount() {
+        return bankAccount;
     }
 
-    public void setBnkAccnt(String bnkAccnt) {
-        this.bnkAccnt = bnkAccnt;
+    public void setBankAccount(String bankAccount) {
+        this.bankAccount = bankAccount;
     }
 
     public String getZipCode() {
@@ -247,76 +240,12 @@ public class WbClientSupplier {
         this.lastRemDat = lastRemDat;
     }
 
-    public double getTotDeb1() {
-        return totDeb1;
+    public List<WbCustomClientAttribute> getWbCustomClientAttributes() {
+        return wbCustomClientAttributes;
     }
 
-    public void setTotDeb1(double totDeb1) {
-        this.totDeb1 = totDeb1;
-    }
-
-    public double getTotCre1() {
-        return totCre1;
-    }
-
-    public void setTotCre1(double totCre1) {
-        this.totCre1 = totCre1;
-    }
-
-    public double getTotDebTmp1() {
-        return totDebTmp1;
-    }
-
-    public void setTotDebTmp1(double totDebTmp1) {
-        this.totDebTmp1 = totDebTmp1;
-    }
-
-    public double getTotCreTmp1() {
-        return totCreTmp1;
-    }
-
-    public void setTotCreTmp1(double totCreTmp1) {
-        this.totCreTmp1 = totCreTmp1;
-    }
-
-    public double getTotDeb2() {
-        return totDeb2;
-    }
-
-    public void setTotDeb2(double totDeb2) {
-        this.totDeb2 = totDeb2;
-    }
-
-    public double getTotCre2() {
-        return totCre2;
-    }
-
-    public void setTotCre2(double totCre2) {
-        this.totCre2 = totCre2;
-    }
-
-    public double getTotDebTmp2() {
-        return totDebTmp2;
-    }
-
-    public void setTotDebTmp2(double totDebTmp2) {
-        this.totDebTmp2 = totDebTmp2;
-    }
-
-    public double getTotCreTmp2() {
-        return totCreTmp2;
-    }
-
-    public void setTotCreTmp2(double totCreTmp2) {
-        this.totCreTmp2 = totCreTmp2;
-    }
-
-    public List<WbCustomClientAttribute> getWbkCustomClientAttributes() {
-        return wbkCustomClientAttributes;
-    }
-
-    public void setWbkCustomClientAttributes(List<WbCustomClientAttribute> wbkCustomClientAttributes) {
-        this.wbkCustomClientAttributes = wbkCustomClientAttributes;
+    public void setWbCustomClientAttributes(List<WbCustomClientAttribute> wbCustomClientAttributes) {
+        this.wbCustomClientAttributes = wbCustomClientAttributes;
     }
 
     public boolean isLocked() {

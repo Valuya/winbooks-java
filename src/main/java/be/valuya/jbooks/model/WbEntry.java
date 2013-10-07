@@ -7,21 +7,23 @@ import java.util.Date;
  *
  * @author Yannick
  */
-public class WbInternalOperation {
+public class WbEntry implements Cloneable {
 
     private WbDocType wbDocType;
-    private String wbDbkCode;
+    private String dbkCode;
     private WbDbkType wbDbkType;
     private String docNumber;
+    private WbDocOrderType wbDocOrderType = WbDocOrderType.NUMBER;
     /**
      * Winbooks doc: Ce champs peut rester à blanc. Il est automatiquement complété lors de l’import.
      *
      * Il retient l’ordre d’encodage des imputations pour les financiers et OD. Il commence à ‘001’ pour chaque nouveau
      * document et est incrémenté de 1 ( ex : 001,002,003, … ) Dans le cas d’un financier, l’ensemble des imputations
      * passées sur un numéro d’extrait (DOCNUMBER) donne lieu à l’enregistrement d’une ou deux imputations sur le compte
-     * centralisateur de ce journal financier : - une imputation avec le total des mouvements passés au débit du compte
-     * centralisateur - une imputation avec le total des mouvements passés au crédit du compte centralisateur Les
-     * imputations sur ce compte centralisateur ont un docorder = ‘999’ et ‘998’
+     * centralisateur de ce journal financier : <br/>
+     * - une imputation avec le total des mouvements passés au débit du compte centralisateur<br/>
+     * - une imputation avec le total des mouvements passés au crédit du compte centralisateur<br/>
+     * Les imputations sur ce compte centralisateur ont un docorder = ‘999’ et ‘998’
      *
      * Le DOCORDER reste vide pour les autres journaux ( ventes, achats, notes de crédit )
      */
@@ -102,8 +104,8 @@ public class WbInternalOperation {
     private String vatImput;
     private BigDecimal currAmount;
     private String currCode;
-    private double curEurBase;
-    private double curRate;
+    private BigDecimal curEurBase;
+    private BigDecimal curRate;
     /**
      * Winbooks doc: Informations pour le lettrage
      */
@@ -118,8 +120,6 @@ public class WbInternalOperation {
     private WbMemoType memoType;
     private boolean doc;
     private WbDocStatus docStatus;
-    private String dicFrom;
-    private String codaKey;
 
     public WbDocType getWbDocType() {
         return wbDocType;
@@ -129,12 +129,12 @@ public class WbInternalOperation {
         this.wbDocType = wbDocType;
     }
 
-    public String getWbDbkCode() {
-        return wbDbkCode;
+    public String getDbkCode() {
+        return dbkCode;
     }
 
-    public void setWbDbkCode(String wbDbkCode) {
-        this.wbDbkCode = wbDbkCode;
+    public void setDbkCode(String dbkCode) {
+        this.dbkCode = dbkCode;
     }
 
     public WbDbkType getWbDbkType() {
@@ -143,6 +143,14 @@ public class WbInternalOperation {
 
     public void setWbDbkType(WbDbkType wbDbkType) {
         this.wbDbkType = wbDbkType;
+    }
+
+    public WbDocOrderType getWbDocOrderType() {
+        return wbDocOrderType;
+    }
+
+    public void setWbDocOrderType(WbDocOrderType wbDocOrderType) {
+        this.wbDocOrderType = wbDocOrderType;
     }
 
     public String getDocNumber() {
@@ -297,19 +305,19 @@ public class WbInternalOperation {
         this.currCode = currCode;
     }
 
-    public double getCurEurBase() {
+    public BigDecimal getCurEurBase() {
         return curEurBase;
     }
 
-    public void setCurEurBase(double curEurBase) {
+    public void setCurEurBase(BigDecimal curEurBase) {
         this.curEurBase = curEurBase;
     }
 
-    public double getCurRate() {
+    public BigDecimal getCurRate() {
         return curRate;
     }
 
-    public void setCurRate(double curRate) {
+    public void setCurRate(BigDecimal curRate) {
         this.curRate = curRate;
     }
 
@@ -377,19 +385,12 @@ public class WbInternalOperation {
         this.docStatus = docStatus;
     }
 
-    public String getDicFrom() {
-        return dicFrom;
-    }
-
-    public void setDicFrom(String dicFrom) {
-        this.dicFrom = dicFrom;
-    }
-
-    public String getCodaKey() {
-        return codaKey;
-    }
-
-    public void setCodaKey(String codaKey) {
-        this.codaKey = codaKey;
+    @Override
+    public WbEntry clone() {
+        try {
+            return (WbEntry) super.clone();
+        } catch (CloneNotSupportedException cloneNotSupportedException) {
+            throw new IllegalStateException(cloneNotSupportedException);
+        }
     }
 }

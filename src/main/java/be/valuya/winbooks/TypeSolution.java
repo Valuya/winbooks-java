@@ -1,7 +1,5 @@
 package be.valuya.winbooks  ;
 
-import com4j.*;
-
 /**
  */
 public enum TypeSolution {

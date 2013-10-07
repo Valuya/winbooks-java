@@ -4,7 +4,7 @@ package be.valuya.jbooks.model;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public enum WbDocStatus implements WbValue<Integer> {
+public enum WbDocStatus implements WbValue {
 
     NO_IMPUT_FOR_REMINDER(1);
     private int value;
@@ -14,7 +14,7 @@ public enum WbDocStatus implements WbValue<Integer> {
     }
 
     @Override
-    public Integer getValue() {
-        return value;
+    public String getValue() {
+        return Integer.toString(value);
     }
 }

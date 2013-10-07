@@ -24,7 +24,7 @@ package be.valuya.jbooks.model;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public enum WbDocType implements WbValue<Integer> {
+public enum WbDocType implements WbValue {
 
     IMPUT_CLIENT(1),
     IMPUT_SUPPLIER(2),
@@ -37,7 +37,7 @@ public enum WbDocType implements WbValue<Integer> {
     }
 
     @Override
-    public Integer getValue() {
-        return value;
+    public String getValue() {
+        return Integer.toString(value);
     }
 }

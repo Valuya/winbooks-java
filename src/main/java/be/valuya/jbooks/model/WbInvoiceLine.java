@@ -1,5 +1,7 @@
 package be.valuya.jbooks.model;
 
+import java.math.BigDecimal;
+
 /**
  *
  * @author Yannick Majoros <yannick@valuya.be>
@@ -7,10 +9,9 @@ package be.valuya.jbooks.model;
 public class WbInvoiceLine implements Cloneable {
 
     private String description;
-    private Double eVat;
-    private Double vat;
-    private Double vatRate = 21.0;
-    private String vatCode;
+    private BigDecimal eVat;
+    private BigDecimal vat;
+    private BigDecimal vatRate;
     private String accountGl = "700000";
 
     public String getDescription() {
@@ -21,36 +22,28 @@ public class WbInvoiceLine implements Cloneable {
         this.description = description;
     }
 
-    public Double getEVat() {
+    public BigDecimal getEVat() {
         return eVat;
     }
 
-    public void setEVat(Double eVat) {
+    public void setEVat(BigDecimal eVat) {
         this.eVat = eVat;
     }
 
-    public Double getVatRate() {
+    public BigDecimal getVatRate() {
         return vatRate;
     }
 
-    public void setVatRate(Double vatRate) {
+    public void setVatRate(BigDecimal vatRate) {
         this.vatRate = vatRate;
     }
 
-    public Double getVat() {
+    public BigDecimal getVat() {
         return vat;
     }
 
-    public void setVat(Double vat) {
+    public void setVat(BigDecimal vat) {
         this.vat = vat;
-    }
-
-    public String getVatCode() {
-        return vatCode;
-    }
-
-    public void setVatCode(String vatCode) {
-        this.vatCode = vatCode;
     }
 
     public String getAccountGl() {
@@ -69,5 +62,4 @@ public class WbInvoiceLine implements Cloneable {
             throw new RuntimeException(ex);
         }
     }
-
 }

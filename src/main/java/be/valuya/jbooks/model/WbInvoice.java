@@ -1,6 +1,5 @@
 package be.valuya.jbooks.model;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -10,27 +9,32 @@ import java.util.List;
  */
 public class WbInvoice {
 
-    private WbDocType docType = WbDocType.IMPUT_CLIENT;
+    private WbDocType wbDocType = WbDocType.IMPUT_CLIENT;
+    private String dbkCode;
     private String ref;
-    private String book;
-    private Double eVat;
-    private Double vat;
     private Date date;
     private Date dueDate;
-    private String clientRef;
     private WbClientSupplier wbClientSupplier;
     private String accountGl = "400000";
     private String description;
     private String commStruct;
     private Date periodDate;
-    private List<WbInvoiceLine> invoiceLines = new ArrayList<WbInvoiceLine>();
+    private List<WbInvoiceLine> invoiceLines;
 
-    public WbDocType getDocType() {
-        return docType;
+    public WbDocType getWbDocType() {
+        return wbDocType;
     }
 
-    public void setDocType(WbDocType docType) {
-        this.docType = docType;
+    public void setWbDocType(WbDocType wbDocType) {
+        this.wbDocType = wbDocType;
+    }
+
+    public String getDbkCode() {
+        return dbkCode;
+    }
+
+    public void setDbkCode(String dbkCode) {
+        this.dbkCode = dbkCode;
     }
 
     public String getRef() {
@@ -39,30 +43,6 @@ public class WbInvoice {
 
     public void setRef(String ref) {
         this.ref = ref;
-    }
-
-    public String getBook() {
-        return book;
-    }
-
-    public void setBook(String book) {
-        this.book = book;
-    }
-
-    public Double geteVat() {
-        return eVat;
-    }
-
-    public void seteVat(Double eVat) {
-        this.eVat = eVat;
-    }
-
-    public Double getVat() {
-        return vat;
-    }
-
-    public void setVat(Double vat) {
-        this.vat = vat;
     }
 
     public Date getDate() {
@@ -79,14 +59,6 @@ public class WbInvoice {
 
     public void setDueDate(Date dueDate) {
         this.dueDate = dueDate;
-    }
-
-    public String getClientRef() {
-        return clientRef;
-    }
-
-    public void setClientRef(String clientRef) {
-        this.clientRef = clientRef;
     }
 
     public WbClientSupplier getWbClientSupplier() {

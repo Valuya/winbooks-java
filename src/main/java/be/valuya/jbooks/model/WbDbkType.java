@@ -10,7 +10,7 @@ package be.valuya.jbooks.model;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public enum WbDbkType implements WbValue<Integer> {
+public enum WbDbkType implements WbValue {
 
     PURCHASE(0),
     CREDIT_NOTE_PURCHASE(1),
@@ -25,7 +25,7 @@ public enum WbDbkType implements WbValue<Integer> {
     }
 
     @Override
-    public Integer getValue() {
-        return value;
+    public String getValue() {
+        return Integer.toString(value);
     }
 }
