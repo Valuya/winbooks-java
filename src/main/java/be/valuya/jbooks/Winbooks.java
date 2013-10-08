@@ -1,7 +1,5 @@
 package be.valuya.jbooks;
 
-import be.valuya.jbooks.util.WbValueFormat;
-import be.valuya.jbooks.util.WbFatalError;
 import be.valuya.csv.CsvHandler;
 import be.valuya.jbooks.exception.WinbooksError;
 import be.valuya.jbooks.exception.WinbooksException;
@@ -32,6 +30,8 @@ import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.jbooks.model.WbSpecificWarningResolution;
 import be.valuya.jbooks.model.WbVatCat;
 import be.valuya.jbooks.model.WbWarning;
+import be.valuya.jbooks.util.WbFatalError;
+import be.valuya.jbooks.util.WbValueFormat;
 import be.valuya.winbooks.ClassFactory;
 import be.valuya.winbooks.TypeSolution;
 import be.valuya.winbooks.WinbooksObject___v0;
@@ -735,6 +735,15 @@ public class Winbooks {
         return wbEntries;
     }
 
+    public List<WbEntry> convertInvoicesToEntries(List<WbInvoice> wbInvoices, boolean singleLine) {
+        List<WbEntry> allWbEntries = new ArrayList<>();
+        for (WbInvoice wbInvoice : wbInvoices) {
+            List<WbEntry> wbEntries = convertInvoiceToEntries(wbInvoice, singleLine);
+            allWbEntries.addAll(wbEntries);
+        }
+        return allWbEntries;
+    }
+
     public WbBookYear getBookYear(Date periodDate) {
         Calendar calendar = GregorianCalendar.getInstance();
         calendar.setTime(periodDate);
@@ -809,4 +818,5 @@ public class Winbooks {
         wbImportResult.setWbWarnings(wbWarnings);
         return wbImportResult;
     }
+
 }
