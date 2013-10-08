@@ -1,4 +1,4 @@
-package be.valuya.jbooks;
+package be.valuya.jbooks.util;
 
 import com4j.tlbimp.driver.Main;
 

@@ -1,5 +1,7 @@
 package be.valuya.jbooks;
 
+import be.valuya.jbooks.util.WbValueFormat;
+import be.valuya.jbooks.util.WbFatalError;
 import be.valuya.csv.CsvHandler;
 import be.valuya.jbooks.exception.WinbooksError;
 import be.valuya.jbooks.exception.WinbooksException;

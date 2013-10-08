@@ -1,6 +1,6 @@
 package be.valuya.jbooks.model;
 
-import be.valuya.jbooks.WbFatalError;
+import be.valuya.jbooks.util.WbFatalError;
 import java.util.List;
 
 /**

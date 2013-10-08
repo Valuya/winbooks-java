@@ -1,4 +1,4 @@
-package be.valuya.jbooks;
+package be.valuya.jbooks.util;
 
 import be.valuya.jbooks.model.WbValue;
 import java.text.FieldPosition;

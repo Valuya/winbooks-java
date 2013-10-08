@@ -1,5 +1,7 @@
 package be.valuya.jbooks;
 
+import be.valuya.jbooks.util.WbFatalError;
+import be.valuya.jbooks.model.factory.WbClientSupplierFactory;
 import be.valuya.jbooks.model.WbBookYear;
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;

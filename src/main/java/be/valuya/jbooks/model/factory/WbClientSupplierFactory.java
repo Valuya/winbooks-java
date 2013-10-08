@@ -1,4 +1,4 @@
-package be.valuya.jbooks;
+package be.valuya.jbooks.model.factory;
 
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbCustomClientAttribute;
