@@ -1,7 +1,5 @@
 package be.valuya.jbooks;
 
-import be.valuya.jbooks.util.WbFatalError;
-import be.valuya.jbooks.model.factory.WbClientSupplierFactory;
 import be.valuya.jbooks.model.WbBookYear;
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;
@@ -13,7 +11,10 @@ import be.valuya.jbooks.model.WbInvoice;
 import be.valuya.jbooks.model.WbInvoiceLine;
 import be.valuya.jbooks.model.WbLanguage;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.jbooks.model.WbVatCode;
 import be.valuya.jbooks.model.WbWarning;
+import be.valuya.jbooks.model.factory.WbClientSupplierFactory;
+import be.valuya.jbooks.util.WbFatalError;
 import be.valuya.winbooks.TypeSolution;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -83,8 +84,17 @@ public class WinbooksTest {
     @Test
     public void testGetInternalVatCode() {
         BigDecimal vatRate = BigDecimal.valueOf(2100, 2);
-        String internalVatCode = winbooks.getInternalVatCode(vatRate, WbClientSupplierType.CLIENT, WbLanguage.FRENCH);
-        Assert.assertNotNull(internalVatCode);
+        WbVatCode wbVatCode = winbooks.getInternalVatCode(vatRate, WbClientSupplierType.CLIENT, WbLanguage.FRENCH);
+        Assert.assertNotNull(wbVatCode);
+        
+        String account1 = wbVatCode.getAccount1();
+        Assert.assertEquals("451000", account1);
+        
+        BigDecimal wbVatRate = wbVatCode.getVatRate();
+        Assert.assertTrue(vatRate.compareTo(wbVatRate) == 0);
+        
+        String internalVatCode = wbVatCode.getInternalVatCode();
+        Assert.assertEquals("211400", internalVatCode);
     }
 
     @Test

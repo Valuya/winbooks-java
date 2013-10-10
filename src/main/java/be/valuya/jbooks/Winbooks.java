@@ -29,10 +29,12 @@ import be.valuya.jbooks.model.WbMemoType;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.jbooks.model.WbSpecificWarningResolution;
 import be.valuya.jbooks.model.WbVatCat;
+import be.valuya.jbooks.model.WbVatCode;
 import be.valuya.jbooks.model.WbWarning;
 import be.valuya.jbooks.util.WbFatalError;
 import be.valuya.jbooks.util.WbValueFormat;
 import be.valuya.winbooks.ClassFactory;
+import be.valuya.winbooks.LangueforVat;
 import be.valuya.winbooks.TypeSolution;
 import be.valuya.winbooks.WinbooksObject___v0;
 import be.valuya.winbooks._BookYear;
@@ -82,6 +84,10 @@ import java.util.Set;
 public class Winbooks {
 
     private final WinbooksObject___v0 winbooksCom;
+    /**
+     * Book year override, will replace book year for dates, period, ... (e.g. demo is limited to some book years).
+     */
+    private Integer bookYearOverride;
 
     public Winbooks() {
         winbooksCom = ClassFactory.createWinbooksObject();
@@ -314,15 +320,30 @@ public class Winbooks {
         return wbWarning;
     }
 
-    public String getInternalVatCode(BigDecimal vatRate, WbClientSupplierType wbClientSupplierType, WbLanguage wbLanguage) {
+    public WbVatCode getInternalVatCode(BigDecimal vatRate, WbClientSupplierType wbClientSupplierType, WbLanguage wbLanguage) {
         _Param param = winbooksCom.param();
         int vatRateInt = vatRate.intValue();
         String vatRateStr = Integer.toString(vatRateInt);
         String clientSupplierTypeStr = wbClientSupplierType.getValue();
         String langStr = wbLanguage.getValue();
         Holder<String> langHolder = new Holder<>(langStr);
-        String internalVatCode = param.vatInternalCode(vatRateStr, clientSupplierTypeStr, langHolder);
-        return internalVatCode;
+
+        String internalVatCode = param.vatInternalCode(vatRateStr, clientSupplierTypeStr, langHolder).trim();
+        String vatAcc1 = param.vatAcc1(internalVatCode).trim();
+        String vatAcc2 = param.vatAcc2(internalVatCode).trim();
+        LangueforVat langueforVat = wbLanguage.getLangueforVat();
+        String externalVatCode = (String) param.vatExternalCode(internalVatCode, langueforVat);
+        Double vatRateDouble = (Double) param.vatRate(internalVatCode);
+        BigDecimal internalVatRate = BigDecimal.valueOf(vatRateDouble);
+
+        WbVatCode wbVatCode = new WbVatCode();
+        wbVatCode.setInternalVatCode(internalVatCode);
+        wbVatCode.setAccount1(vatAcc1);
+        wbVatCode.setAccount2(vatAcc2);
+        wbVatCode.setExternalVatCode(externalVatCode);
+        wbVatCode.setVatRate(internalVatRate);
+
+        return wbVatCode;
     }
 
     public String getDllVersion() {
@@ -649,7 +670,11 @@ public class Winbooks {
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(invoiceDate);
             periodInt = calendar.get(Calendar.MONTH) + 1;
+            int year = calendar.get(Calendar.YEAR);
             WbBookYear wbBookYear = getBookYear(periodDate);
+            if (wbBookYear == null) {
+                throw new WinbooksException(WinbooksError.NO_BOOKYEAR, "No bookyear found for this year: " + year);
+            }
             bookYear = wbBookYear.getIndex();
         } else {
             periodInt = 1;
@@ -693,7 +718,8 @@ public class Winbooks {
             clientWbEntry.setAmountEur(minEVat);
             clientWbEntry.setVatBase(BigDecimal.ZERO);
             clientWbEntry.setVatTax(BigDecimal.ZERO);
-            String internalVatCode = getInternalVatCode(vatRate, wbClientSupplierType, WbLanguage.FRENCH);
+            WbVatCode wbVatCode = getInternalVatCode(vatRate, wbClientSupplierType, WbLanguage.FRENCH);
+            String internalVatCode = wbVatCode.getInternalVatCode();
             clientWbEntry.setVatImput(internalVatCode);
             clientWbEntry.setDocOrder(docOrder);
             String lineDescription = wbInvoiceLine.getDescription();
@@ -707,22 +733,27 @@ public class Winbooks {
         }
 
         for (WbInvoiceLine wbInvoiceLine : regroupedInvoiceLines) {
+            BigDecimal eVat = wbInvoiceLine.getEVat();
+            BigDecimal vat = wbInvoiceLine.getVat();
+            BigDecimal minVat = vat.negate();
+            BigDecimal vatRate = wbInvoiceLine.getVatRate();
+            WbVatCode wbVatCode = getInternalVatCode(vatRate, wbClientSupplierType, WbLanguage.FRENCH);
+            String internalVatCode = wbVatCode.getInternalVatCode();
+            String vatAccount = wbVatCode.getAccount1();
+            String description = wbInvoice.getDescription();
+
             WbEntry vatWbEntry = mainEntry.clone();
             vatWbEntry.setDoc(false);
             vatWbEntry.setWbDocType(WbDocType.IMPUT_GENERAL);
             vatWbEntry.setWbDocOrderType(WbDocOrderType.VAT);
-            BigDecimal eVat = wbInvoiceLine.getEVat();
-            BigDecimal vat = wbInvoiceLine.getVat();
             vatWbEntry.setVatBase(eVat);
-            BigDecimal minVat = vat.negate();
             vatWbEntry.setAmountEur(minVat);
             vatWbEntry.setVatTax(BigDecimal.ZERO);
-            BigDecimal vatRate = wbInvoiceLine.getVatRate();
-            String internalVatCode = getInternalVatCode(vatRate, wbClientSupplierType, WbLanguage.FRENCH);
             vatWbEntry.setVatCode(internalVatCode);
-            vatWbEntry.setComment(MessageFormat.format("{0} (tva)", wbInvoice.getDescription()));
-            vatWbEntry.setAccountGl("451000");
+            vatWbEntry.setComment(MessageFormat.format("{0} (tva)", description));
+            vatWbEntry.setAccountGl(vatAccount);
             vatWbEntry.setWbDocType(WbDocType.IMPUT_GENERAL);
+
             wbEntries.add(vatWbEntry);
         }
 
@@ -747,7 +778,12 @@ public class Winbooks {
     public WbBookYear getBookYear(Date periodDate) {
         Calendar calendar = GregorianCalendar.getInstance();
         calendar.setTime(periodDate);
-        int year = calendar.get(Calendar.YEAR);
+        int year;
+        if (bookYearOverride == null) {
+            year = calendar.get(Calendar.YEAR);;
+        } else {
+            year = bookYearOverride;
+        }
         String yearStr = Integer.toString(year);
 
         List<WbBookYear> bookYears = getBookYears();
@@ -817,6 +853,10 @@ public class Winbooks {
         wbImportResult.setWbFatalErrors(wbFatalErrors);
         wbImportResult.setWbWarnings(wbWarnings);
         return wbImportResult;
+    }
+
+    public void setBookYearOverride(Integer bookYearOverride) {
+        this.bookYearOverride = bookYearOverride;
     }
 
 }
