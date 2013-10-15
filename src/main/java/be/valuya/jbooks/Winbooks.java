@@ -424,6 +424,12 @@ public class Winbooks {
         CsvHandler csvHandler = new CsvHandler();
         for (WbClientSupplier wbClientSupplier : wbClientSupplierList) {
             String number = wbClientSupplier.getNumber();
+            if (number == null || number.isEmpty()) {
+                throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "La référence client ne peut pas être vide");
+            }
+            if (!number.matches("[a-zA-Z0-9]+")) {
+                throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "La référence client ne peut contenir que des chiffres et des lettres");
+            }
 
             String address1 = wbClientSupplier.getAddress1();
             String address2 = wbClientSupplier.getAddress2();
@@ -433,7 +439,7 @@ public class Winbooks {
             String city = wbClientSupplier.getCity();
             String civName1 = wbClientSupplier.getCivName1();
             String civName2 = wbClientSupplier.getCivName2();
-            String country = wbClientSupplier.getCountry();
+            String countryCode = wbClientSupplier.getCountryCode();
             String currency = wbClientSupplier.getCurrency();
             String defltPost = wbClientSupplier.getDefltPost();
             String faxNumber = wbClientSupplier.getFaxNumber();
@@ -462,7 +468,7 @@ public class Winbooks {
             csvHandler.putValue("ADDRESS1", address1);
             csvHandler.putValue("ADDRESS2", address2);
             csvHandler.putValue("VATCAT", wbValueFormat, wbVatCat);
-            csvHandler.putValue("COUNTRY", country);
+            csvHandler.putValue("COUNTRY", countryCode);
             csvHandler.putValue("VATNUMBER", vatNumber);
             csvHandler.putValue("PAYCODE", payCode);
             csvHandler.putValue("TELNUMBER", telNumber);
@@ -704,7 +710,9 @@ public class Winbooks {
             BigDecimal vatRate = wbInvoiceLine.getVatRate();
             BigDecimal vat = wbInvoiceLine.getVat();
 
-            eVatTot = eVatTot.add(eVat);
+            BigDecimal newEvatTot = eVatTot.add(eVat);
+            System.out.println(eVatTot + " + " + eVat + " = " + newEvatTot);
+            eVatTot = newEvatTot;
             vatTot = vatTot.add(vat);
 
             WbEntry clientWbEntry = mainEntry.clone();
@@ -797,7 +805,7 @@ public class Winbooks {
     }
 
     private List<WbInvoiceLine> regroupInvoiceLines(List<WbInvoiceLine> wbInvoiceLines) {
-        LinkedHashMap<BigDecimal, WbInvoiceLine> vatRateInvoiceLineMap = new LinkedHashMap<>();
+        Map<BigDecimal, WbInvoiceLine> vatRateInvoiceLineMap = new LinkedHashMap<>();
         for (WbInvoiceLine wbInvoiceLine : wbInvoiceLines) {
             BigDecimal vatRate = wbInvoiceLine.getVatRate();
             WbInvoiceLine groupWbInvoiceLine = vatRateInvoiceLineMap.get(vatRate);
@@ -812,7 +820,7 @@ public class Winbooks {
                 groupWbInvoiceLine.setVatRate(vatRate);
                 groupWbInvoiceLine.setVat(BigDecimal.ZERO);
 
-                vatRateInvoiceLineMap.put(vatRate, wbInvoiceLine);
+                vatRateInvoiceLineMap.put(vatRate, groupWbInvoiceLine);
             }
             BigDecimal groupEVat = groupWbInvoiceLine.getEVat();
             BigDecimal eVat = wbInvoiceLine.getEVat();

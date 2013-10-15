@@ -2,6 +2,7 @@ package be.valuya.jbooks.model;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Winbooks client or supplier.
@@ -19,7 +20,7 @@ public class WbClientSupplier {
     private String address1;
     private String address2;
     private WbVatCat wbVatCat;
-    private String country;
+    private String countryCode;
     private String vatNumber;
     private String payCode;
     private String telNumber;
@@ -112,12 +113,12 @@ public class WbClientSupplier {
         this.wbVatCat = wbVatCat;
     }
 
-    public String getCountry() {
-        return country;
+    public String getCountryCode() {
+        return countryCode;
     }
 
-    public void setCountry(String country) {
-        this.country = country;
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 
     public String getVatNumber() {
@@ -270,5 +271,27 @@ public class WbClientSupplier {
 
     public void setDoc(boolean doc) {
         this.doc = doc;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 89 * hash + Objects.hashCode(this.number);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final WbClientSupplier other = (WbClientSupplier) obj;
+        if (!Objects.equals(this.number, other.number)) {
+            return false;
+        }
+        return true;
     }
 }

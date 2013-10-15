@@ -11,6 +11,14 @@ public class WbGenericWarningResolution {
     private String code;
     private TypeSolution typeSolution;
 
+    public WbGenericWarningResolution() {
+    }
+
+    public WbGenericWarningResolution(String code, TypeSolution typeSolution) {
+        this.code = code;
+        this.typeSolution = typeSolution;
+    }
+
     public String getCode() {
         return code;
     }
