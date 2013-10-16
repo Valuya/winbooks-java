@@ -10,8 +10,6 @@ public class WbImport {
 
     private List<WbClientSupplier> wbClientSupplierList;
     private List<WbEntry> wbEntries;
-    private List<WbGenericWarningResolution> genericWarningResolutions;
-    private List<WbSpecificWarningResolution> specificWarningResolutions;
 
     public List<WbClientSupplier> getWbClientSupplierList() {
         return wbClientSupplierList;
@@ -29,19 +27,4 @@ public class WbImport {
         this.wbEntries = wbEntries;
     }
 
-    public List<WbGenericWarningResolution> getGenericWarningResolutions() {
-        return genericWarningResolutions;
-    }
-
-    public void setGenericWarningResolutions(List<WbGenericWarningResolution> genericWarningResolutions) {
-        this.genericWarningResolutions = genericWarningResolutions;
-    }
-
-    public List<WbSpecificWarningResolution> getSpecificWarningResolutions() {
-        return specificWarningResolutions;
-    }
-
-    public void setSpecificWarningResolutions(List<WbSpecificWarningResolution> specificWarningResolutions) {
-        this.specificWarningResolutions = specificWarningResolutions;
-    }
 }

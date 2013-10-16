@@ -289,9 +289,6 @@ public class WbClientSupplier {
             return false;
         }
         final WbClientSupplier other = (WbClientSupplier) obj;
-        if (!Objects.equals(this.number, other.number)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.number, other.number);
     }
 }

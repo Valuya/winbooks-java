@@ -54,9 +54,6 @@ public class WbFatalError {
         if ((this.code == null) ? (other.code != null) : !this.code.equals(other.code)) {
             return false;
         }
-        if ((this.target == null) ? (other.target != null) : !this.target.equals(other.target)) {
-            return false;
-        }
-        return true;
+        return !((this.target == null) ? (other.target != null) : !this.target.equals(other.target));
     }
 }

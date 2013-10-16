@@ -6,7 +6,7 @@ import be.valuya.winbooks.TypeSolution;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public class WbSpecificWarningResolution {
+public class WbSpecificMitigation {
 
     private WbWarning warning;
     private TypeSolution typeSolution;

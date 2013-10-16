@@ -4,7 +4,6 @@ import be.valuya.jbooks.model.WbBookYear;
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;
 import be.valuya.jbooks.model.WbEntry;
-import be.valuya.jbooks.model.WbGenericWarningResolution;
 import be.valuya.jbooks.model.WbImport;
 import be.valuya.jbooks.model.WbImportResult;
 import be.valuya.jbooks.model.WbInvoice;
@@ -62,7 +61,7 @@ public class WinbooksTest {
             System.out.println(" code: " + wbWarning.getCode());
             System.out.println(" description: " + wbWarning.getDescription());
             System.out.println(" target: " + wbWarning.getTarget());
-            Set<TypeSolution> typeSolutions = wbWarning.getTypeSolutions();
+            Set<TypeSolution> typeSolutions = wbWarning.getTypesSolutions();
             System.out.println(" type solutions: " + typeSolutions);
         }
 
@@ -81,18 +80,31 @@ public class WinbooksTest {
         }
     }
 
+    /**
+     * List<WbGenericMitigation> genericWarningResolutions = new ArrayList<>(); WbGenericMitigation
+     * wbGenericWarningResolution1 = new WbGenericMitigation(); wbGenericWarningResolution1.setCode("SEQ_RUPT");
+     * wbGenericWarningResolution1.setTypeSolution(TypeSolution.wbAccept);
+     * genericWarningResolutions.add(wbGenericWarningResolution1); WbGenericMitigation wbGenericWarningResolution2 = new
+     * WbGenericMitigation(); wbGenericWarningResolution2.setCode("OUT_DAT");
+     * wbGenericWarningResolution2.setTypeSolution(TypeSolution.wbAccept);
+     * genericWarningResolutions.add(wbGenericWarningResolution2);
+     *
+     * WbMitigation wbMitigation = new WbMitigation(null, genericWarningResolutions);
+     * wbImport.setWbMitigation(wbMitigation);
+     */
+
     @Test
     public void testGetInternalVatCode() {
         BigDecimal vatRate = BigDecimal.valueOf(2100, 2);
         WbVatCode wbVatCode = winbooks.getInternalVatCode(vatRate, WbClientSupplierType.CLIENT, WbLanguage.FRENCH);
         Assert.assertNotNull(wbVatCode);
-        
+
         String account1 = wbVatCode.getAccount1();
         Assert.assertEquals("451000", account1);
-        
+
         BigDecimal wbVatRate = wbVatCode.getVatRate();
         Assert.assertTrue(vatRate.compareTo(wbVatRate) == 0);
-        
+
         String internalVatCode = wbVatCode.getInternalVatCode();
         Assert.assertEquals("211400", internalVatCode);
     }
@@ -154,7 +166,7 @@ public class WinbooksTest {
         wbClientSupplier1.setZipCode("1348");
         wbClientSupplier1.setCity("Louvain-la-Neuve");
         wbClientSupplier1.setCivName1("Mr");
-        wbClientSupplier1.setCountry("BE");
+        wbClientSupplier1.setCountryCode("BE");
         wbClientSupplier1.setTelNumber("0498707213");
         wbClientSupplier1.setNumber("DUPONT");
         //importData(...)
@@ -180,16 +192,7 @@ public class WinbooksTest {
         WbImport wbImport = new WbImport();
         wbImport.setWbClientSupplierList(wbClientSupplierList);
         wbImport.setWbEntries(wbEntries);
-        List<WbGenericWarningResolution> genericWarningResolutions = new ArrayList<>();
-        WbGenericWarningResolution wbGenericWarningResolution1 = new WbGenericWarningResolution();
-        wbGenericWarningResolution1.setCode("SEQ_RUPT");
-        wbGenericWarningResolution1.setTypeSolution(TypeSolution.wbAccept);
-        genericWarningResolutions.add(wbGenericWarningResolution1);
-        WbGenericWarningResolution wbGenericWarningResolution2 = new WbGenericWarningResolution();
-        wbGenericWarningResolution2.setCode("OUT_DAT");
-        wbGenericWarningResolution2.setTypeSolution(TypeSolution.wbAccept);
-        genericWarningResolutions.add(wbGenericWarningResolution2);
-        wbImport.setGenericWarningResolutions(genericWarningResolutions);
+
         return wbImport;
     }
 }

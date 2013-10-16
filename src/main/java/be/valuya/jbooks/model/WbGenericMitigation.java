@@ -6,15 +6,15 @@ import be.valuya.winbooks.TypeSolution;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public class WbGenericWarningResolution {
+public class WbGenericMitigation {
 
     private String code;
     private TypeSolution typeSolution;
 
-    public WbGenericWarningResolution() {
+    public WbGenericMitigation() {
     }
 
-    public WbGenericWarningResolution(String code, TypeSolution typeSolution) {
+    public WbGenericMitigation(String code, TypeSolution typeSolution) {
         this.code = code;
         this.typeSolution = typeSolution;
     }

@@ -1,6 +1,7 @@
 package be.valuya.jbooks.model;
 
 import be.valuya.winbooks.TypeSolution;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -12,7 +13,8 @@ public class WbWarning {
     private String code;
     private String target;
     private String description;
-    private Set<TypeSolution> typeSolutions;
+    private Set<TypeSolution> typesSolutions;
+    private boolean mitigated;
 
     public String getCode() {
         return code;
@@ -38,19 +40,27 @@ public class WbWarning {
         this.description = description;
     }
 
-    public Set<TypeSolution> getTypeSolutions() {
-        return typeSolutions;
+    public Set<TypeSolution> getTypesSolutions() {
+        return typesSolutions;
     }
 
-    public void setTypeSolutions(Set<TypeSolution> typeSolutions) {
-        this.typeSolutions = typeSolutions;
+    public void setTypesSolutions(Set<TypeSolution> typesSolutions) {
+        this.typesSolutions = typesSolutions;
+    }
+
+    public boolean isMitigated() {
+        return mitigated;
+    }
+
+    public void setMitigated(boolean mitigated) {
+        this.mitigated = mitigated;
     }
 
     @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 97 * hash + (this.code != null ? this.code.hashCode() : 0);
-        hash = 97 * hash + (this.target != null ? this.target.hashCode() : 0);
+        int hash = 5;
+        hash = 79 * hash + Objects.hashCode(this.code);
+        hash = 79 * hash + Objects.hashCode(this.target);
         return hash;
     }
 
@@ -63,12 +73,10 @@ public class WbWarning {
             return false;
         }
         final WbWarning other = (WbWarning) obj;
-        if ((this.code == null) ? (other.code != null) : !this.code.equals(other.code)) {
+        if (!Objects.equals(this.code, other.code)) {
             return false;
         }
-        if ((this.target == null) ? (other.target != null) : !this.target.equals(other.target)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.target, other.target);
     }
+
 }

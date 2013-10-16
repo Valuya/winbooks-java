@@ -19,15 +19,16 @@ import be.valuya.jbooks.model.WbDocType;
 import static be.valuya.jbooks.model.WbDocType.IMPUT_CLIENT;
 import static be.valuya.jbooks.model.WbDocType.IMPUT_SUPPLIER;
 import be.valuya.jbooks.model.WbEntry;
-import be.valuya.jbooks.model.WbGenericWarningResolution;
+import be.valuya.jbooks.model.WbGenericMitigation;
 import be.valuya.jbooks.model.WbImport;
 import be.valuya.jbooks.model.WbImportResult;
 import be.valuya.jbooks.model.WbInvoice;
 import be.valuya.jbooks.model.WbInvoiceLine;
 import be.valuya.jbooks.model.WbLanguage;
 import be.valuya.jbooks.model.WbMemoType;
+import be.valuya.jbooks.model.WbMitigation;
 import be.valuya.jbooks.model.WbPeriod;
-import be.valuya.jbooks.model.WbSpecificWarningResolution;
+import be.valuya.jbooks.model.WbSpecificMitigation;
 import be.valuya.jbooks.model.WbVatCat;
 import be.valuya.jbooks.model.WbVatCode;
 import be.valuya.jbooks.model.WbWarning;
@@ -174,11 +175,9 @@ public class Winbooks {
         return wbImportResult;
     }
 
-    public WbImportResult importData(WbImport wbImport) {
+    public WbImportResult importData(WbImport wbImport, WbMitigation wbMitigation) {
         _Import internalImport = testImportInternal(wbImport);
-        List<WbGenericWarningResolution> genericWarningResolutions = wbImport.getGenericWarningResolutions();
-        List<WbSpecificWarningResolution> specificWarningResolutions = wbImport.getSpecificWarningResolutions();
-        mitigateWarnings(internalImport, genericWarningResolutions, specificWarningResolutions);
+        mitigateWarnings(internalImport, wbMitigation);
 
         short executeResult = internalImport.execute();
         String lastErrorMessage = winbooksCom.lastErrorMessage();
@@ -254,10 +253,13 @@ public class Winbooks {
         return wbFatalErrors;
     }
 
-    private void mitigateWarnings(_Import wbImport, List<WbGenericWarningResolution> genericWarningResolutions, List<WbSpecificWarningResolution> specificWarningResolutions) {
+    private void mitigateWarnings(_Import wbImport, WbMitigation wbMitigation) {
+        List<WbGenericMitigation> wbGenericMitigations = wbMitigation.getWbGenericMitigations();
+        List<WbSpecificMitigation> wbSpecificMitigations = wbMitigation.getWbSpecificMitigations();
 
-        if (genericWarningResolutions != null) {
-            for (WbGenericWarningResolution genericWarningResolution : genericWarningResolutions) {
+        // generic mitigation (not invoice-specific)
+        if (wbGenericMitigations != null) {
+            for (WbGenericMitigation genericWarningResolution : wbGenericMitigations) {
                 String code = genericWarningResolution.getCode();
                 TypeSolution typeSolution = genericWarningResolution.getTypeSolution();
                 _ErrorCode internalErrorCode = wbImport.errorCodes(code);
@@ -265,15 +267,18 @@ public class Winbooks {
             }
         }
 
+        // create a map of specific mitigations
+        // key type has code+target as identity
         Map<WbWarning, TypeSolution> specificWarningResolutionMap = new HashMap<>();
-        if (specificWarningResolutions != null) {
-            for (WbSpecificWarningResolution specificWarningResolution : specificWarningResolutions) {
+        if (wbSpecificMitigations != null) {
+            for (WbSpecificMitigation specificWarningResolution : wbSpecificMitigations) {
                 WbWarning wbWarning = specificWarningResolution.getWarning();
                 TypeSolution typeSolution = specificWarningResolution.getTypeSolution();
                 specificWarningResolutionMap.put(wbWarning, typeSolution);
             }
         }
 
+        // iterate over warnings and apply specific resolutions
         _Warnings internalWarnings = wbImport.warnings();
         short warningCount = internalWarnings.count();
         for (short i = 0; i < warningCount; i++) {
@@ -283,7 +288,6 @@ public class Winbooks {
             Holder<TypeSolution> typeSolutionHolder = new Holder<>(typeSolution);
             internalWarning.setResolution(typeSolutionHolder);
         }
-
     }
 
     private WbFatalError convertInternalFatalError(_FatalError internalFatalError, _Import wbImport) {
@@ -315,7 +319,7 @@ public class Winbooks {
         WbWarning wbWarning = new WbWarning();
         wbWarning.setCode(code);
         wbWarning.setTarget(param);
-        wbWarning.setTypeSolutions(typeSolutions);
+        wbWarning.setTypesSolutions(typeSolutions);
         wbWarning.setDescription(description);
         return wbWarning;
     }
@@ -788,7 +792,7 @@ public class Winbooks {
         calendar.setTime(periodDate);
         int year;
         if (bookYearOverride == null) {
-            year = calendar.get(Calendar.YEAR);;
+            year = calendar.get(Calendar.YEAR);
         } else {
             year = bookYearOverride;
         }
