@@ -30,6 +30,7 @@ import org.junit.Test;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
+//@Ignore
 public class WinbooksTest {
 
     private Winbooks winbooks;
@@ -39,7 +40,7 @@ public class WinbooksTest {
         winbooks = new Winbooks();
         winbooks.login("SYSTEM", "", WbLanguage.FRENCH);
         winbooks.openDossier("PARFILUX");
-        winbooks.openBookYear("Ex. 2003");
+        winbooks.openBookYear("Ex. 2012");
     }
 
     @Test
@@ -151,10 +152,10 @@ public class WinbooksTest {
 
     @Test
     public void testGetBookYear() {
-        Date date = new Date(103, Calendar.JANUARY, 2);
+        Date date = new Date(112, Calendar.JANUARY, 2);
         WbBookYear wbBookYear = winbooks.getBookYear(date);
         String bookYearStr = wbBookYear.getShortName();
-        Assert.assertTrue(bookYearStr.contains("2003"));
+        Assert.assertTrue(bookYearStr.contains("2012"));
         Assert.assertNotNull(wbBookYear);
     }
 
@@ -184,8 +185,8 @@ public class WinbooksTest {
         wbInvoice.setInvoiceLines(wbInvoiceLines);
         wbInvoice.setWbClientSupplier(wbClientSupplier1);
         wbInvoice.setDbkCode("VENTES");
-        wbInvoice.setRef("20039001");
-        Date date = new Date(103, Calendar.JANUARY, 2);
+        wbInvoice.setRef("20129001");
+        Date date = new Date(112, Calendar.JANUARY, 2);
         wbInvoice.setDate(date);
         wbInvoice.setDescription("test invoice");
         List<WbEntry> wbEntries = winbooks.convertInvoiceToEntries(wbInvoice, true);

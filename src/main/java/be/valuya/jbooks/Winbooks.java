@@ -330,7 +330,8 @@ public class Winbooks {
         String vatRateStr = Integer.toString(vatRateInt);
         String clientSupplierTypeStr = wbClientSupplierType.getValue();
         String langStr = wbLanguage.getValue();
-        Holder<String> langHolder = new Holder<>(langStr);
+        // ATTENTION: Winbooks DLL sometimes crashes (then works again randomly) when putting anythig else here
+        Holder<String> langHolder = new Holder<>();
 
         String internalVatCode = param.vatInternalCode(vatRateStr, clientSupplierTypeStr, langHolder).trim();
         String vatAcc1 = param.vatAcc1(internalVatCode).trim();
@@ -671,29 +672,23 @@ public class Winbooks {
         if (periodDate == null) {
             periodDate = invoiceDate;
         }
-        int periodInt;
         int bookYear;
         if (periodDate == null) {
             periodDate = invoiceDate;
         }
-        if (periodDate != null) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(invoiceDate);
-            periodInt = calendar.get(Calendar.MONTH) + 1;
-            int year = calendar.get(Calendar.YEAR);
-            WbBookYear wbBookYear = getBookYear(periodDate);
-            if (wbBookYear == null) {
-                throw new WinbooksException(WinbooksError.NO_BOOKYEAR, "No bookyear found for this year: " + year);
-            }
-            bookYear = wbBookYear.getIndex();
-        } else {
-            periodInt = 1;
-            bookYear = 1;
+        if (periodDate == null) {
+            String message = MessageFormat.format("Pas de période pour facture {0}", invoiceRef);
+            throw new WinbooksException(WinbooksError.NO_PERIOD, message);
         }
+        String periodInternalCode = getPeriodInternalCode(periodDate);
+        WbBookYear wbBookYear = getBookYear(periodDate);
+        if (wbBookYear == null) {
+            String message = MessageFormat.format("Pas d'exercice pour cette année: {0,date,short}, facture {1}", periodDate, invoiceRef);
+            throw new WinbooksException(WinbooksError.NO_BOOKYEAR, message);
+        }
+        bookYear = wbBookYear.getIndex();
         mainEntry.setBookYear(Integer.toString(bookYear));
-        DecimalFormat decimalFormat = new DecimalFormat("00");
-        String periodStr = decimalFormat.format(periodInt);
-        mainEntry.setPeriod(periodStr);
+        mainEntry.setPeriod(periodInternalCode);
         mainEntry.setDocNumber(invoiceRef);
         mainEntry.setDocOrder(1);
         String commStruct = wbInvoice.getCommStruct();
@@ -776,6 +771,22 @@ public class Winbooks {
         mainEntry.setVatTax(vatTot);
 
         return wbEntries;
+    }
+
+    private String getPeriodInternalCode(Date periodDate) {
+        String periodInternalCode;
+        _Param param = winbooksCom.param();
+        Date effectiveDate;
+        if (this.bookYearOverride != null) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(periodDate);
+            calendar.set(Calendar.YEAR, bookYearOverride);
+            effectiveDate = calendar.getTime();
+        } else {
+            effectiveDate = periodDate;
+        }
+        periodInternalCode = param.periodInternalCode(effectiveDate);
+        return periodInternalCode;
     }
 
     public List<WbEntry> convertInvoicesToEntries(List<WbInvoice> wbInvoices, boolean singleLine) {
