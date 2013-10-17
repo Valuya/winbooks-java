@@ -8,7 +8,7 @@ import java.util.Set;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public class WbWarning {
+public class WbWarning implements WbError {
 
     private String code;
     private String target;
@@ -16,26 +16,32 @@ public class WbWarning {
     private Set<TypeSolution> typesSolutions;
     private boolean mitigated;
 
+    @Override
     public String getCode() {
         return code;
     }
 
+    @Override
     public void setCode(String code) {
         this.code = code;
     }
 
+    @Override
     public String getTarget() {
         return target;
     }
 
+    @Override
     public void setTarget(String target) {
         this.target = target;
     }
 
+    @Override
     public String getDescription() {
         return description;
     }
 
+    @Override
     public void setDescription(String description) {
         this.description = description;
     }

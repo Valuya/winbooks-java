@@ -14,6 +14,7 @@ public enum WbClientSupplierType implements WbValue {
         this.value = value;
     }
 
+    @Override
     public String getValue() {
         return value;
     }

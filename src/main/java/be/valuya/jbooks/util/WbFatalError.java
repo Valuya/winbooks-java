@@ -1,35 +1,43 @@
 package be.valuya.jbooks.util;
 
+import be.valuya.jbooks.model.WbError;
+
 /**
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public class WbFatalError {
+public class WbFatalError implements WbError {
 
     private String code;
     private String target;
     private String description;
 
+    @Override
     public String getCode() {
         return code;
     }
 
+    @Override
     public void setCode(String code) {
         this.code = code;
     }
 
+    @Override
     public String getTarget() {
         return target;
     }
 
+    @Override
     public void setTarget(String target) {
         this.target = target;
     }
 
+    @Override
     public String getDescription() {
         return description;
     }
 
+    @Override
     public void setDescription(String description) {
         this.description = description;
     }
