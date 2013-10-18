@@ -1,7 +1,7 @@
 package be.valuya.jbooks.model;
 
+import be.valuya.winbooks.TypeSolution;
 import java.io.Serializable;
-import java.util.List;
 
 /**
  *
@@ -9,31 +9,40 @@ import java.util.List;
  */
 public class WbMitigation implements Serializable {
 
-    public List<WbSpecificMitigation> wbSpecificMitigations;
-    public List<WbGenericMitigation> wbGenericMitigations;
+    private String code;
+    private String target;
+    private TypeSolution typeSolution;
 
     public WbMitigation() {
     }
 
-    public WbMitigation(List<WbSpecificMitigation> wbSpecificMitigations, List<WbGenericMitigation> wbGenericMitigations) {
-        this.wbSpecificMitigations = wbSpecificMitigations;
-        this.wbGenericMitigations = wbGenericMitigations;
+    public WbMitigation(String code, String target, TypeSolution typeSolution) {
+        this.code = code;
+        this.target = target;
+        this.typeSolution = typeSolution;
     }
 
-    public List<WbSpecificMitigation> getWbSpecificMitigations() {
-        return wbSpecificMitigations;
+    public String getTarget() {
+        return target;
     }
 
-    public void setWbSpecificMitigations(List<WbSpecificMitigation> wbSpecificMitigations) {
-        this.wbSpecificMitigations = wbSpecificMitigations;
+    public void setTarget(String target) {
+        this.target = target;
     }
 
-    public List<WbGenericMitigation> getWbGenericMitigations() {
-        return wbGenericMitigations;
+    public String getCode() {
+        return code;
     }
 
-    public void setWbGenericMitigations(List<WbGenericMitigation> wbGenericMitigations) {
-        this.wbGenericMitigations = wbGenericMitigations;
+    public void setCode(String code) {
+        this.code = code;
     }
 
+    public TypeSolution getTypeSolution() {
+        return typeSolution;
+    }
+
+    public void setTypeSolution(TypeSolution typeSolution) {
+        this.typeSolution = typeSolution;
+    }
 }

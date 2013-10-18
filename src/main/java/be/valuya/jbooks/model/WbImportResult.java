@@ -1,5 +1,6 @@
 package be.valuya.jbooks.model;
 
+import be.valuya.jbooks.exception.WinbooksError;
 import be.valuya.jbooks.util.WbFatalError;
 import java.util.List;
 
@@ -9,8 +10,26 @@ import java.util.List;
  */
 public class WbImportResult {
 
+    private WinbooksError winbooksError;
+    private String errorMessage;
     private List<WbWarning> wbWarnings;
     private List<WbFatalError> wbFatalErrors;
+
+    public WinbooksError getWinbooksError() {
+        return winbooksError;
+    }
+
+    public void setWinbooksError(WinbooksError winbooksError) {
+        this.winbooksError = winbooksError;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
 
     public List<WbWarning> getWbWarnings() {
         return wbWarnings;

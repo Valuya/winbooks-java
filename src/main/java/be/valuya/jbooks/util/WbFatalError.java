@@ -12,6 +12,20 @@ public class WbFatalError implements WbError {
     private String target;
     private String description;
 
+    public WbFatalError() {
+    }
+
+    public WbFatalError(String code, String target) {
+        this.code = code;
+        this.target = target;
+    }
+
+    public WbFatalError(String code, String target, String description) {
+        this.code = code;
+        this.target = target;
+        this.description = description;
+    }
+
     @Override
     public String getCode() {
         return code;

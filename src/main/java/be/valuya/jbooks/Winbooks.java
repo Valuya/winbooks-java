@@ -3,7 +3,6 @@ package be.valuya.jbooks;
 import be.valuya.csv.CsvHandler;
 import be.valuya.jbooks.exception.WinbooksError;
 import be.valuya.jbooks.exception.WinbooksException;
-import be.valuya.jbooks.exception.WinbooksExportException;
 import be.valuya.jbooks.exception.WinbooksInitException;
 import be.valuya.jbooks.exception.WinbooksLoginException;
 import be.valuya.jbooks.exception.WinbooksOpenBookyearException;
@@ -19,7 +18,6 @@ import be.valuya.jbooks.model.WbDocType;
 import static be.valuya.jbooks.model.WbDocType.IMPUT_CLIENT;
 import static be.valuya.jbooks.model.WbDocType.IMPUT_SUPPLIER;
 import be.valuya.jbooks.model.WbEntry;
-import be.valuya.jbooks.model.WbGenericMitigation;
 import be.valuya.jbooks.model.WbImport;
 import be.valuya.jbooks.model.WbImportResult;
 import be.valuya.jbooks.model.WbInvoice;
@@ -28,7 +26,6 @@ import be.valuya.jbooks.model.WbLanguage;
 import be.valuya.jbooks.model.WbMemoType;
 import be.valuya.jbooks.model.WbMitigation;
 import be.valuya.jbooks.model.WbPeriod;
-import be.valuya.jbooks.model.WbSpecificMitigation;
 import be.valuya.jbooks.model.WbVatCat;
 import be.valuya.jbooks.model.WbVatCode;
 import be.valuya.jbooks.model.WbWarning;
@@ -175,29 +172,43 @@ public class Winbooks {
         return wbImportResult;
     }
 
-    public WbImportResult importData(WbImport wbImport, WbMitigation wbMitigation) {
+    public WbImportResult importData(WbImport wbImport, List<WbMitigation> wbMitigations) {
+        return importData(wbImport, wbMitigations, false);
+    }
+
+    public WbImportResult importData(WbImport wbImport, List<WbMitigation> wbMitigations, boolean throwException) {
         _Import internalImport = testImportInternal(wbImport);
-        mitigateWarnings(internalImport, wbMitigation);
+        mitigateWarnings(internalImport, wbMitigations);
+        WbImportResult wbImportResult = createImportResult(internalImport);
 
         short executeResult = internalImport.execute();
-        String lastErrorMessage = winbooksCom.lastErrorMessage();
-        switch (executeResult) {
-            case 0:
-                break;
-            case 1:
-                throw new WinbooksExportException(WinbooksError.UNTESTED, lastErrorMessage);
-            case 2:
-                throw new WinbooksExportException(WinbooksError.UNRESOLVED_WARNINGS, lastErrorMessage);
-            case 3:
-                throw new WinbooksExportException(WinbooksError.FATAL_ERRORS, lastErrorMessage);
-            case 4:
-                throw new WinbooksExportException(WinbooksError.RESOLUTION_UNSYCHRONIZED, lastErrorMessage);
-            default:
-                throw new WinbooksExportException(WinbooksError.UNKNOWN_ERROR, lastErrorMessage);
+        WinbooksError winbooksError = getWinbooksErrorForImportResult(executeResult);
+        if (throwException) {
+            String errorMessage = winbooksCom.lastErrorMessage();
+            wbImportResult.setWinbooksError(winbooksError);
+            wbImportResult.setErrorMessage(errorMessage);
         }
 
-        WbImportResult wbImportResult = createImportResult(internalImport);
         return wbImportResult;
+    }
+
+    private WinbooksError getWinbooksErrorForImportResult(short executeResult) {
+        WinbooksError winbooksError;
+        switch (executeResult) {
+            case 0:
+                winbooksError = null;
+            case 1:
+                winbooksError = WinbooksError.UNTESTED;
+            case 2:
+                winbooksError = WinbooksError.UNRESOLVED_WARNINGS;
+            case 3:
+                winbooksError = WinbooksError.FATAL_ERRORS;
+            case 4:
+                winbooksError = WinbooksError.RESOLUTION_UNSYCHRONIZED;
+            default:
+                winbooksError = WinbooksError.UNKNOWN_ERROR;
+        }
+        return winbooksError;
     }
 
     private void checkBooleanResult(boolean result) {
@@ -253,15 +264,17 @@ public class Winbooks {
         return wbFatalErrors;
     }
 
-    private void mitigateWarnings(_Import wbImport, WbMitigation wbMitigation) {
-        List<WbGenericMitigation> wbGenericMitigations = wbMitigation.getWbGenericMitigations();
-        List<WbSpecificMitigation> wbSpecificMitigations = wbMitigation.getWbSpecificMitigations();
-
+    private void mitigateWarnings(_Import wbImport, List<WbMitigation> wbMitigations) {
         // generic mitigation (not invoice-specific)
-        if (wbGenericMitigations != null) {
-            for (WbGenericMitigation genericWarningResolution : wbGenericMitigations) {
-                String code = genericWarningResolution.getCode();
-                TypeSolution typeSolution = genericWarningResolution.getTypeSolution();
+        if (wbMitigations != null) {
+            for (WbMitigation wbMitigation : wbMitigations) {
+                String target = wbMitigation.getTarget();
+                if (target != null) {
+                    // specific mitigation, skip now
+                    continue;
+                }
+                String code = wbMitigation.getCode();
+                TypeSolution typeSolution = wbMitigation.getTypeSolution();
                 _ErrorCode internalErrorCode = wbImport.errorCodes(code);
                 internalErrorCode.setResolution(typeSolution);
             }
@@ -270,10 +283,12 @@ public class Winbooks {
         // create a map of specific mitigations
         // key type has code+target as identity
         Map<WbWarning, TypeSolution> specificWarningResolutionMap = new HashMap<>();
-        if (wbSpecificMitigations != null) {
-            for (WbSpecificMitigation specificWarningResolution : wbSpecificMitigations) {
-                WbWarning wbWarning = specificWarningResolution.getWarning();
-                TypeSolution typeSolution = specificWarningResolution.getTypeSolution();
+        if (wbMitigations != null) {
+            for (WbMitigation wbMitigation : wbMitigations) {
+                String code = wbMitigation.getCode();
+                String target = wbMitigation.getTarget();
+                WbWarning wbWarning = new WbWarning(code, target);
+                TypeSolution typeSolution = wbMitigation.getTypeSolution();
                 specificWarningResolutionMap.put(wbWarning, typeSolution);
             }
         }

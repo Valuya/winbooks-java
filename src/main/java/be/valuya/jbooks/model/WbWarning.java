@@ -1,6 +1,7 @@
 package be.valuya.jbooks.model;
 
 import be.valuya.winbooks.TypeSolution;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Set;
 
@@ -8,13 +9,27 @@ import java.util.Set;
  *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-public class WbWarning implements WbError {
+public class WbWarning implements WbError, Serializable {
 
     private String code;
     private String target;
     private String description;
     private Set<TypeSolution> typesSolutions;
     private boolean mitigated;
+
+    public WbWarning() {
+    }
+
+    public WbWarning(String code, String target) {
+        this.code = code;
+        this.target = target;
+    }
+
+    public WbWarning(String code, String target, String description) {
+        this.code = code;
+        this.target = target;
+        this.description = description;
+    }
 
     @Override
     public String getCode() {
