@@ -29,6 +29,7 @@ import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.jbooks.model.WbVatCat;
 import be.valuya.jbooks.model.WbVatCode;
 import be.valuya.jbooks.model.WbWarning;
+import be.valuya.jbooks.model.WbWarningResolution;
 import be.valuya.jbooks.util.WbFatalError;
 import be.valuya.jbooks.util.WbValueFormat;
 import be.valuya.winbooks.ClassFactory;
@@ -63,17 +64,16 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.EnumSet;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Hello world!
@@ -116,6 +116,10 @@ public class Winbooks {
             default:
                 throw new WinbooksLoginException(WinbooksError.UNKNOWN_ERROR, lastErrorMessage);
         }
+    }
+
+    public void close() {
+        winbooksCom.closeDossier();
     }
 
     public short openDossier(String shortName) {
@@ -178,23 +182,28 @@ public class Winbooks {
 
     public WbImportResult importData(WbImport wbImport, List<WbMitigation> wbMitigations, boolean throwException) {
         _Import internalImport = testImportInternal(wbImport);
+        // mitigation
         mitigateWarnings(internalImport, wbMitigations);
-        WbImportResult wbImportResult = createImportResult(internalImport);
-
+        // import
         short executeResult = internalImport.execute();
-        WinbooksError winbooksError = getWinbooksErrorForImportResult(executeResult);
-        if (throwException) {
-            String errorMessage = winbooksCom.lastErrorMessage();
-            wbImportResult.setWinbooksError(winbooksError);
-            wbImportResult.setErrorMessage(errorMessage);
+
+        // process result
+        WinbooksError winbooksError = getWinbooksErrorForInternalImportResult(executeResult);
+        String errorMessage = winbooksCom.lastErrorMessage();
+        if (winbooksError != null && throwException) {
+            throw new WinbooksException(winbooksError, errorMessage);
         }
+
+        WbImportResult wbImportResult = createImportResult(internalImport);
+        wbImportResult.setWinbooksError(winbooksError);
+        wbImportResult.setErrorMessage(errorMessage);
 
         return wbImportResult;
     }
 
-    private WinbooksError getWinbooksErrorForImportResult(short executeResult) {
+    private WinbooksError getWinbooksErrorForInternalImportResult(short internalImportResult) {
         WinbooksError winbooksError;
-        switch (executeResult) {
+        switch (internalImportResult) {
             case 0:
                 winbooksError = null;
             case 1:
@@ -321,22 +330,37 @@ public class Winbooks {
         String code = internalWarning.code();
         String param = internalWarning.param();
         _ErrorCode internalErrorCode = wbImport.errorCodes(code);
-        String concatenedAllowableAction = internalErrorCode.allowableActions();
-        String[] allowableActionStrArray = concatenedAllowableAction.split(" ");
-        Set<TypeSolution> typeSolutions = EnumSet.noneOf(TypeSolution.class);
-        for (String allowableActionStr : allowableActionStrArray) {
-            if (allowableActionStr != null && !allowableActionStr.isEmpty()) {
-                TypeSolution typeSolution = TypeSolution.valueOf(allowableActionStr);
-                typeSolutions.add(typeSolution);
-            }
+        List<WbWarningResolution> wbWarningResolutions = new ArrayList<>();
+        List<TypeSolution> typesSolutions = getTypesSolutions(internalErrorCode);
+        for (TypeSolution typeSolution : typesSolutions) {
+            WbWarningResolution wbWarningResolution = convertTypeSolution(typeSolution);
+            wbWarningResolutions.add(wbWarningResolution);
         }
         String description = internalErrorCode.description();
         WbWarning wbWarning = new WbWarning();
         wbWarning.setCode(code);
         wbWarning.setTarget(param);
-        wbWarning.setTypesSolutions(typeSolutions);
+
+        wbWarning.setWbWarningResolutions(wbWarningResolutions);
         wbWarning.setDescription(description);
         return wbWarning;
+    }
+
+    private List<TypeSolution> getTypesSolutions(_ErrorCode internalErrorCode) {
+        String concatenedAllowableAction = internalErrorCode.allowableActions();
+        String[] allowableActionArray = concatenedAllowableAction.split(" ");
+        List<String> allowableActions = Arrays.asList(allowableActionArray);
+        List<TypeSolution> typesSolutions = new ArrayList<>();
+        for (String allowableAction : allowableActions) {
+            if (!allowableAction.isEmpty()) {
+                TypeSolution typeSolution = TypeSolution.valueOf(allowableAction);
+                typesSolutions.add(typeSolution);
+            }
+        }
+        if (!typesSolutions.contains(TypeSolution.wbReplace)) {
+            typesSolutions.add(TypeSolution.wbReplace);
+        }
+        return typesSolutions;
     }
 
     public WbVatCode getInternalVatCode(BigDecimal vatRate, WbClientSupplierType wbClientSupplierType, WbLanguage wbLanguage) {
@@ -895,6 +919,44 @@ public class Winbooks {
 
     public void setBookYearOverride(Integer bookYearOverride) {
         this.bookYearOverride = bookYearOverride;
+    }
+
+    // TODO: i18n
+    private WbWarningResolution convertTypeSolution(TypeSolution typeSolution) {
+        String description;
+        switch (typeSolution) {
+            case wbToResolve:
+                description = "Résoudre";
+                break;
+            case wbAccept:
+                description = "Accepter";
+                break;
+            case wbReplace:
+                description = "Remplacer";
+                break;
+            case wbBlankRecord:
+                description = "Mise à blanc";
+                break;
+            case wbIgnore:
+                description = "Ignorer";
+                break;
+            case WbDontCopy:
+                description = "Ne pas copier";
+                break;
+            case wbEraseAll:
+                description = "Tout effacer";
+                break;
+            case wbInformation:
+                description = "Information";
+                break;
+            default:
+                throw new AssertionError(typeSolution.name());
+
+        }
+        WbWarningResolution wbWarningResolution = new WbWarningResolution();
+        wbWarningResolution.setTypeSolution(typeSolution);
+        wbWarningResolution.setDescription(description);
+        return wbWarningResolution;
     }
 
 }

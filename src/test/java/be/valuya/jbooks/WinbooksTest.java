@@ -12,16 +12,15 @@ import be.valuya.jbooks.model.WbLanguage;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.jbooks.model.WbVatCode;
 import be.valuya.jbooks.model.WbWarning;
+import be.valuya.jbooks.model.WbWarningResolution;
 import be.valuya.jbooks.model.factory.WbClientSupplierFactory;
 import be.valuya.jbooks.util.WbFatalError;
-import be.valuya.winbooks.TypeSolution;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,8 +61,8 @@ public class WinbooksTest {
             System.out.println(" code: " + wbWarning.getCode());
             System.out.println(" description: " + wbWarning.getDescription());
             System.out.println(" target: " + wbWarning.getTarget());
-            Set<TypeSolution> typeSolutions = wbWarning.getTypesSolutions();
-            System.out.println(" type solutions: " + typeSolutions);
+            List<WbWarningResolution> wbWarningResolutions = wbWarning.getWbWarningResolutions();
+            System.out.println(" resolutions: " + wbWarningResolutions);
         }
 
         List<WbFatalError> wbFatalErrors = wbImportResult.getWbFatalErrors();

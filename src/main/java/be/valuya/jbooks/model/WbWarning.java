@@ -1,9 +1,8 @@
 package be.valuya.jbooks.model;
 
-import be.valuya.winbooks.TypeSolution;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  *
@@ -14,7 +13,7 @@ public class WbWarning implements WbError, Serializable {
     private String code;
     private String target;
     private String description;
-    private Set<TypeSolution> typesSolutions;
+    private List<WbWarningResolution> wbWarningResolutions;
     private boolean mitigated;
 
     public WbWarning() {
@@ -61,12 +60,12 @@ public class WbWarning implements WbError, Serializable {
         this.description = description;
     }
 
-    public Set<TypeSolution> getTypesSolutions() {
-        return typesSolutions;
+    public List<WbWarningResolution> getWbWarningResolutions() {
+        return wbWarningResolutions;
     }
 
-    public void setTypesSolutions(Set<TypeSolution> typesSolutions) {
-        this.typesSolutions = typesSolutions;
+    public void setWbWarningResolutions(List<WbWarningResolution> wbWarningResolutions) {
+        this.wbWarningResolutions = wbWarningResolutions;
     }
 
     public boolean isMitigated() {
