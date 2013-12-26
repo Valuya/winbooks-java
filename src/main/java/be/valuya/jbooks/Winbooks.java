@@ -86,6 +86,8 @@ public class Winbooks {
      * Book year override, will replace book year for dates, period, ... (e.g. demo is limited to some book years).
      */
     private Integer bookYearOverride;
+    private String bookYearNameOverride;
+    private String dossierOverride;
 
     public Winbooks() {
         winbooksCom = ClassFactory.createWinbooksObject();
@@ -123,7 +125,12 @@ public class Winbooks {
     }
 
     public short openDossier(String shortName) {
-        short result = winbooksCom.openDossier(shortName);
+        short result;
+        if (dossierOverride != null) {
+            result = winbooksCom.openDossier(dossierOverride);
+        } else {
+            result = winbooksCom.openDossier(shortName);
+        }
         String lastErrorMessage = winbooksCom.lastErrorMessage();
         switch (result) {
             case 0:
@@ -151,7 +158,12 @@ public class Winbooks {
     }
 
     public short openBookYear(String bookYearShortName) {
-        short result = winbooksCom.openBookYear(bookYearShortName);
+        short result;
+        if (bookYearNameOverride != null) {
+            result = winbooksCom.openBookYear(bookYearNameOverride);
+        } else {
+            result = winbooksCom.openBookYear(bookYearShortName);
+        }
         String lastErrorMessage = winbooksCom.lastErrorMessage();
         switch (result) {
             case 0:
@@ -471,8 +483,9 @@ public class Winbooks {
             if (number == null || number.isEmpty()) {
                 throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "La référence client ne peut pas être vide");
             }
-            if (!number.matches("[a-zA-Z0-9]+")) {
-                throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "La référence client ne peut contenir que des chiffres et des lettres");
+            if (!number.matches("[a-zA-Z0-9_]+")) {
+                String message = MessageFormat.format("La référence client ne peut contenir que des chiffres et des lettres - ''{0}''", number);
+                throw new WinbooksException(WinbooksError.USER_FILE_ERROR, message);
             }
 
             String address1 = wbClientSupplier.getAddress1();
@@ -917,10 +930,6 @@ public class Winbooks {
         return wbImportResult;
     }
 
-    public void setBookYearOverride(Integer bookYearOverride) {
-        this.bookYearOverride = bookYearOverride;
-    }
-
     // TODO: i18n
     private WbWarningResolution convertTypeSolution(TypeSolution typeSolution) {
         String description;
@@ -957,6 +966,30 @@ public class Winbooks {
         wbWarningResolution.setTypeSolution(typeSolution);
         wbWarningResolution.setDescription(description);
         return wbWarningResolution;
+    }
+
+    public Integer getBookYearOverride() {
+        return bookYearOverride;
+    }
+
+    public void setBookYearOverride(Integer bookYearOverride) {
+        this.bookYearOverride = bookYearOverride;
+    }
+
+    public String getBookYearNameOverride() {
+        return bookYearNameOverride;
+    }
+
+    public void setBookYearNameOverride(String bookYearNameOverride) {
+        this.bookYearNameOverride = bookYearNameOverride;
+    }
+
+    public String getDossierOverride() {
+        return dossierOverride;
+    }
+
+    public void setDossierOverride(String dossierOverride) {
+        this.dossierOverride = dossierOverride;
     }
 
 }
