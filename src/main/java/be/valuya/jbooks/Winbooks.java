@@ -38,6 +38,7 @@ import be.valuya.winbooks.TypeSolution;
 import be.valuya.winbooks.WinbooksObject___v0;
 import be.valuya.winbooks._BookYear;
 import be.valuya.winbooks._BookYears;
+import be.valuya.winbooks._Comptes;
 import be.valuya.winbooks._ErrorCode;
 import be.valuya.winbooks._FatalError;
 import be.valuya.winbooks._FatalErrors;
@@ -47,8 +48,7 @@ import be.valuya.winbooks._Import;
 import be.valuya.winbooks._Param;
 import be.valuya.winbooks._Period;
 import be.valuya.winbooks._Periods;
-import be.valuya.winbooks._Tables;
-import be.valuya.winbooks._TablesUser;
+import be.valuya.winbooks._Transactions;
 import be.valuya.winbooks._Warning;
 import be.valuya.winbooks._Warnings;
 import com4j.Holder;
@@ -462,12 +462,25 @@ public class Winbooks {
     }
 
     public void doStuff() {
-        _Tables tables = winbooksCom.tables();
-        _TablesUser catCustomer = tables.zipCode();
-        _Fields fields2 = catCustomer.fields();
-        short fieldCount = fields2.count();
+//        _Dossiers dossiers = winbooksCom.companies();
+//        short dossierCount = dossiers.count();
+//        for (short dossierIndex = 0; dossierIndex < dossierCount; dossierIndex++) {
+//            _Dossier dossier = dossiers.item(dossierIndex);
+//            System.out.println(dossier.name());
+//        }
+        
+        _Transactions accountTrans = winbooksCom.accountTrans();
+        _Fields fields = accountTrans.fields();
+        
+        _Comptes comptes = winbooksCom.customers();
+//        _Fields fields = comptes.fields();
+        
+//        _Tables tables = winbooksCom.tables();
+//        _TablesUser catCustomer = tables.diaries();
+//        _Fields fields = catCustomer.fields();
+        short fieldCount = fields.count();
         for (short fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
-            _Field field = fields2.item(Short.toString(fieldIndex));
+            _Field field = fields.item(Short.toString(fieldIndex));
             String name = field.name();
             System.out.println("field: " + name);
         }
@@ -735,7 +748,7 @@ public class Winbooks {
         String periodInternalCode = getPeriodInternalCode(periodDate);
         WbBookYear wbBookYear = getBookYear(periodDate);
         if (wbBookYear == null) {
-            String message = MessageFormat.format("Pas d'exercice pour cette année: {0,date,short}, facture {1}", periodDate, invoiceRef);
+            String message = MessageFormat.format("Pas d''exercice pour cette année: {0,date,short}, facture {1}", periodDate, invoiceRef);
             throw new WinbooksException(WinbooksError.NO_BOOKYEAR, message);
         }
         bookYear = wbBookYear.getIndex();
