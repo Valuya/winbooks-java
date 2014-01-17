@@ -15,8 +15,6 @@ import be.valuya.jbooks.model.WbDbkType;
 import be.valuya.jbooks.model.WbDocOrderType;
 import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbDocType;
-import static be.valuya.jbooks.model.WbDocType.IMPUT_CLIENT;
-import static be.valuya.jbooks.model.WbDocType.IMPUT_SUPPLIER;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbImport;
 import be.valuya.jbooks.model.WbImportResult;
@@ -701,20 +699,7 @@ public class Winbooks {
         }
         String dbkCode = wbInvoice.getDbkCode();
 
-        WbDbkType wbDbkType;
-        switch (wbDocType) {
-            case IMPUT_CLIENT: {
-                wbDbkType = WbDbkType.SALE;
-                break;
-            }
-            case IMPUT_SUPPLIER: {
-                wbDbkType = WbDbkType.PURCHASE;
-                break;
-            }
-            default: {
-                wbDbkType = WbDbkType.MISC;
-            }
-        }
+        WbDbkType wbDbkType = wbInvoice.getWbDbkType();
 
         WbClientSupplierType wbClientSupplierType = wbClientSupplier.getWbClientSupplierType();
 
@@ -824,7 +809,6 @@ public class Winbooks {
             vatWbEntry.setVatCode(internalVatCode);
             vatWbEntry.setComment(MessageFormat.format("{0} (tva)", description));
             vatWbEntry.setAccountGl(vatAccount);
-            vatWbEntry.setWbDocType(WbDocType.IMPUT_GENERAL);
 
             wbEntries.add(vatWbEntry);
         }

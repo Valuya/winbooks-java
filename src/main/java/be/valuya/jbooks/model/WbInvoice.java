@@ -10,6 +10,7 @@ import java.util.List;
 public class WbInvoice {
 
     private WbDocType wbDocType = WbDocType.IMPUT_CLIENT;
+    private WbDbkType wbDbkType;
     private String dbkCode;
     private String ref;
     private Date date;
@@ -27,6 +28,14 @@ public class WbInvoice {
 
     public void setWbDocType(WbDocType wbDocType) {
         this.wbDocType = wbDocType;
+    }
+
+    public WbDbkType getWbDbkType() {
+        return wbDbkType;
+    }
+
+    public void setWbDbkType(WbDbkType wbDbkType) {
+        this.wbDbkType = wbDbkType;
     }
 
     public String getDbkCode() {
