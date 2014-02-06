@@ -43,6 +43,11 @@ public class WinbooksTest {
     }
 
     @Test
+    public void bla() {
+        winbooks.doStuff();
+    }
+    
+    @Test
     public void testImportDataTest() {
         WbImport wbImport = createTestWbImport();
 
@@ -95,7 +100,7 @@ public class WinbooksTest {
 
     @Test
     public void testGetInternalVatCode() {
-        BigDecimal vatRate = BigDecimal.valueOf(2100, 2);
+        BigDecimal vatRate = BigDecimal.valueOf(2100, 4);
         WbVatCode wbVatCode = winbooks.getInternalVatCode(vatRate, WbClientSupplierType.CLIENT, WbLanguage.FRENCH);
         Assert.assertNotNull(wbVatCode);
 
@@ -103,7 +108,7 @@ public class WinbooksTest {
         Assert.assertEquals("451000", account1);
 
         BigDecimal wbVatRate = wbVatCode.getVatRate();
-        Assert.assertTrue(vatRate.compareTo(wbVatRate) == 0);
+        Assert.assertTrue(vatRate.multiply(BigDecimal.valueOf(100)).compareTo(wbVatRate) == 0);
 
         String internalVatCode = wbVatCode.getInternalVatCode();
         Assert.assertEquals("211400", internalVatCode);
@@ -151,10 +156,10 @@ public class WinbooksTest {
 
     @Test
     public void testGetBookYear() {
-        Date date = new Date(112, Calendar.JANUARY, 2);
+        Date date = new Date(113, Calendar.JANUARY, 2);
         WbBookYear wbBookYear = winbooks.getBookYear(date);
         String bookYearStr = wbBookYear.getShortName();
-        Assert.assertTrue(bookYearStr.contains("2012"));
+        Assert.assertTrue(bookYearStr.contains("2013"));
         Assert.assertNotNull(wbBookYear);
     }
 
@@ -184,8 +189,8 @@ public class WinbooksTest {
         wbInvoice.setInvoiceLines(wbInvoiceLines);
         wbInvoice.setWbClientSupplier(wbClientSupplier1);
         wbInvoice.setDbkCode("VENTES");
-        wbInvoice.setRef("20129001");
-        Date date = new Date(112, Calendar.JANUARY, 2);
+        wbInvoice.setRef("20139001");
+        Date date = new Date(113, Calendar.JANUARY, 2);
         wbInvoice.setDate(date);
         wbInvoice.setDescription("test invoice");
         List<WbEntry> wbEntries = winbooks.convertInvoiceToEntries(wbInvoice, true);

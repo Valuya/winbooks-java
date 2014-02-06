@@ -216,14 +216,19 @@ public class Winbooks {
         switch (internalImportResult) {
             case 0:
                 winbooksError = null;
+                break;
             case 1:
                 winbooksError = WinbooksError.UNTESTED;
+                break;
             case 2:
                 winbooksError = WinbooksError.UNRESOLVED_WARNINGS;
+                break;
             case 3:
                 winbooksError = WinbooksError.FATAL_ERRORS;
+                break;
             case 4:
                 winbooksError = WinbooksError.RESOLUTION_UNSYCHRONIZED;
+                break;
             default:
                 winbooksError = WinbooksError.UNKNOWN_ERROR;
         }
@@ -262,7 +267,6 @@ public class Winbooks {
         for (short i = 1; i <= warningCount; i++) {
             _Warning internalWarning = internalWarnings.item(i);
             WbWarning wbWarning = convertInternalWarning(internalWarning, wbImport);
-
             wbWarnings.add(wbWarning);
         }
 
@@ -289,7 +293,7 @@ public class Winbooks {
             for (WbMitigation wbMitigation : wbMitigations) {
                 String target = wbMitigation.getTarget();
                 if (target != null) {
-                    // specific mitigation, skip now
+                    // specific mitigation, handle later
                     continue;
                 }
                 String code = wbMitigation.getCode();
@@ -306,8 +310,12 @@ public class Winbooks {
             for (WbMitigation wbMitigation : wbMitigations) {
                 String code = wbMitigation.getCode();
                 String target = wbMitigation.getTarget();
+                if (target == null) {
+                    continue; // generic resolution, already handled
+                }
                 WbWarning wbWarning = new WbWarning(code, target);
                 TypeSolution typeSolution = wbMitigation.getTypeSolution();
+                System.out.println(MessageFormat.format("Specific resolution for ---{0}---/---{1}---", wbWarning.getCode(), wbWarning.getTarget()));
                 specificWarningResolutionMap.put(wbWarning, typeSolution);
             }
         }
@@ -315,30 +323,34 @@ public class Winbooks {
         // iterate over warnings and apply specific resolutions
         _Warnings internalWarnings = wbImport.warnings();
         short warningCount = internalWarnings.count();
-        for (short i = 0; i < warningCount; i++) {
+        for (short i = 1; i <= warningCount; i++) {
             _Warning internalWarning = internalWarnings.item(i);
             WbWarning wbWarning = convertInternalWarning(internalWarning, wbImport);
             TypeSolution typeSolution = specificWarningResolutionMap.get(wbWarning);
-            Holder<TypeSolution> typeSolutionHolder = new Holder<>(typeSolution);
-            internalWarning.setResolution(typeSolutionHolder);
+            if (typeSolution != null) {
+                Holder<TypeSolution> typeSolutionHolder = new Holder<>(typeSolution);
+                internalWarning.setResolution(typeSolutionHolder);
+            } else {
+                System.out.println(MessageFormat.format("No resolution for ---{0}---/---{1}---", wbWarning.getCode(), wbWarning.getTarget()));
+            }
         }
     }
 
     private WbFatalError convertInternalFatalError(_FatalError internalFatalError, _Import wbImport) {
         String code = internalFatalError.code();
-        String param = internalFatalError.param();
+        String target = internalFatalError.param();
+        target = trim(target);
         _ErrorCode internalErrorCode = wbImport.errorCodes(code);
         String description = internalErrorCode.description();
-        WbFatalError wbFatalError = new WbFatalError();
-        wbFatalError.setCode(code);
-        wbFatalError.setTarget(param);
-        wbFatalError.setDescription(description);
+        WbFatalError wbFatalError = new WbFatalError(code, target, description);
         return wbFatalError;
     }
 
     private WbWarning convertInternalWarning(_Warning internalWarning, _Import wbImport) {
         String code = internalWarning.code();
-        String param = internalWarning.param();
+        code = trim(code);
+        String target = internalWarning.param();
+        target = trim(target);
         _ErrorCode internalErrorCode = wbImport.errorCodes(code);
         List<WbWarningResolution> wbWarningResolutions = new ArrayList<>();
         List<TypeSolution> typesSolutions = getTypesSolutions(internalErrorCode);
@@ -347,18 +359,16 @@ public class Winbooks {
             wbWarningResolutions.add(wbWarningResolution);
         }
         String description = internalErrorCode.description();
-        WbWarning wbWarning = new WbWarning();
-        wbWarning.setCode(code);
-        wbWarning.setTarget(param);
+        description = trim(description);
 
+        WbWarning wbWarning = new WbWarning(code, target, description);
         wbWarning.setWbWarningResolutions(wbWarningResolutions);
-        wbWarning.setDescription(description);
         return wbWarning;
     }
 
     private List<TypeSolution> getTypesSolutions(_ErrorCode internalErrorCode) {
         String concatenedAllowableAction = internalErrorCode.allowableActions();
-        String[] allowableActionArray = concatenedAllowableAction.split(" ");
+        String[] allowableActionArray = concatenedAllowableAction.split(",");
         List<String> allowableActions = Arrays.asList(allowableActionArray);
         List<TypeSolution> typesSolutions = new ArrayList<>();
         for (String allowableAction : allowableActions) {
@@ -375,7 +385,7 @@ public class Winbooks {
 
     public WbVatCode getInternalVatCode(BigDecimal vatRate, WbClientSupplierType wbClientSupplierType, WbLanguage wbLanguage) {
         _Param param = winbooksCom.param();
-        int vatRateInt = vatRate.intValue();
+        int vatRateInt = vatRate.multiply(BigDecimal.valueOf(100)).intValue();
         String vatRateStr = Integer.toString(vatRateInt);
         String clientSupplierTypeStr = wbClientSupplierType.getValue();
         String langStr = wbLanguage.getValue();
@@ -466,13 +476,13 @@ public class Winbooks {
 //            _Dossier dossier = dossiers.item(dossierIndex);
 //            System.out.println(dossier.name());
 //        }
-        
+
         _Transactions accountTrans = winbooksCom.accountTrans();
         _Fields fields = accountTrans.fields();
-        
+
         _Comptes comptes = winbooksCom.customers();
 //        _Fields fields = comptes.fields();
-        
+
 //        _Tables tables = winbooksCom.tables();
 //        _TablesUser catCustomer = tables.diaries();
 //        _Fields fields = catCustomer.fields();
@@ -989,4 +999,10 @@ public class Winbooks {
         this.dossierOverride = dossierOverride;
     }
 
+    private String trim(String str) {
+        if (str == null) {
+            return null;
+        }
+        return str.trim();
+    }
 }
