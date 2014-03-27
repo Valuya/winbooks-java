@@ -19,6 +19,10 @@ public class WbInvoice {
     private String accountGl = "400000";
     private String description;
     private String commStruct;
+    // fill those 2 for period / book year as expected by Winbooks
+    private String periodStr;
+    private String bookYearStr;
+    // optionnally fill this one instead of period / bookYearStr
     private Date periodDate;
     private List<WbInvoiceLine> invoiceLines;
 
@@ -100,6 +104,22 @@ public class WbInvoice {
 
     public void setCommStruct(String commStruct) {
         this.commStruct = commStruct;
+    }
+
+    public String getPeriodStr() {
+        return periodStr;
+    }
+
+    public void setPeriodStr(String periodStr) {
+        this.periodStr = periodStr;
+    }
+
+    public String getBookYearStr() {
+        return bookYearStr;
+    }
+
+    public void setBookYearStr(String bookYearStr) {
+        this.bookYearStr = bookYearStr;
     }
 
     public Date getPeriodDate() {

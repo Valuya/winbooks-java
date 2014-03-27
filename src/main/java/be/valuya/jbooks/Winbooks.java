@@ -728,27 +728,11 @@ public class Winbooks {
         mainEntry.setDbkCode(dbkCode);
         mainEntry.setWbDbkType(wbDbkType);
 
-        Date periodDate = wbInvoice.getPeriodDate();
-        if (periodDate == null) {
-            periodDate = invoiceDate;
-        }
-        int bookYear;
-        if (periodDate == null) {
-            periodDate = invoiceDate;
-        }
-        if (periodDate == null) {
-            String message = MessageFormat.format("Pas de période pour facture {0}", invoiceRef);
-            throw new WinbooksException(WinbooksError.NO_PERIOD, message);
-        }
-        String periodInternalCode = getPeriodInternalCode(periodDate);
-        WbBookYear wbBookYear = getBookYear(periodDate);
-        if (wbBookYear == null) {
-            String message = MessageFormat.format("Pas d''exercice pour cette année: {0,date,short}, facture {1}", periodDate, invoiceRef);
-            throw new WinbooksException(WinbooksError.NO_BOOKYEAR, message);
-        }
-        bookYear = wbBookYear.getIndex();
-        mainEntry.setBookYear(Integer.toString(bookYear));
-        mainEntry.setPeriod(periodInternalCode);
+        String periodStr = calcPeriodStr(wbInvoice);
+        String bookYearStr = calcBookYearStr(wbInvoice);
+
+        mainEntry.setBookYear(bookYearStr);
+        mainEntry.setPeriod(periodStr);
         mainEntry.setDocNumber(invoiceRef);
         mainEntry.setDocOrder(1);
         String commStruct = wbInvoice.getCommStruct();
@@ -1005,4 +989,50 @@ public class Winbooks {
         }
         return str.trim();
     }
+
+    private String calcPeriodStr(WbInvoice wbInvoice) {
+        String periodStr = wbInvoice.getPeriodStr();
+        if (periodStr != null) {
+            periodStr = periodStr.trim();
+            if (!periodStr.isEmpty()) {
+                return periodStr;
+            }
+        }
+        Date periodDate = calcPeriodDate(wbInvoice);
+        return getPeriodInternalCode(periodDate);
+    }
+
+    private String calcBookYearStr(WbInvoice wbInvoice) {
+        String bookYearStr = wbInvoice.getBookYearStr();
+        if (bookYearStr != null) {
+            bookYearStr = bookYearStr.trim();
+            if (!bookYearStr.isEmpty()) {
+                return bookYearStr;
+            }
+        }
+        Date periodDate = calcPeriodDate(wbInvoice);
+        WbBookYear wbBookYear = getBookYear(periodDate);
+        if (wbBookYear == null) {
+            String invoiceRef = wbInvoice.getRef();
+            String message = MessageFormat.format("Pas d''exercice pour cette année: {0,date,short}, facture {1}", periodDate, invoiceRef);
+            throw new WinbooksException(WinbooksError.NO_BOOKYEAR, message);
+        }
+        int bookYear = wbBookYear.getIndex();
+        return Integer.toString(bookYear);
+    }
+
+    private Date calcPeriodDate(WbInvoice wbInvoice) {
+        Date periodDate = wbInvoice.getPeriodDate();
+        if (periodDate == null) {
+            Date invoiceDate = wbInvoice.getDate();
+            periodDate = invoiceDate;
+        }
+        if (periodDate == null) {
+            String invoiceRef = wbInvoice.getRef();
+            String message = MessageFormat.format("Pas de période pour facture {0}", invoiceRef);
+            throw new WinbooksException(WinbooksError.NO_PERIOD, message);
+        }
+        return periodDate;
+    }
+
 }
