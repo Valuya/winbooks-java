@@ -850,8 +850,12 @@ public class Winbooks {
         } else {
             year = bookYearOverride;
         }
-        String yearStr = Integer.toString(year);
+        return getBookYear(year);
+    }
 
+    public WbBookYear getBookYear(int year) {
+        String yearStr = Integer.toString(year);
+        
         List<WbBookYear> bookYears = getBookYears();
         for (WbBookYear wbBookYear : bookYears) {
             String shortName = wbBookYear.getShortName();
