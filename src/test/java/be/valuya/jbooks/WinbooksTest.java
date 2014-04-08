@@ -156,10 +156,10 @@ public class WinbooksTest {
 
     @Test
     public void testGetBookYear() {
-        Date date = new Date(113, Calendar.JANUARY, 2);
+        Date date = new Date(112, Calendar.JANUARY, 2);
         WbBookYear wbBookYear = winbooks.getBookYear(date);
         String bookYearStr = wbBookYear.getShortName();
-        Assert.assertTrue(bookYearStr.contains("2013"));
+        Assert.assertTrue(bookYearStr.contains("2012"));
         Assert.assertNotNull(wbBookYear);
     }
 

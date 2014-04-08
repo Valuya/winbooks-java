@@ -155,6 +155,11 @@ public class Winbooks {
         return result;
     }
 
+    public short openBookYear(WbBookYear bookYear) {
+        String bookYearShortName = bookYear.getShortName();
+        return openBookYear(bookYearShortName);
+    }
+    
     public short openBookYear(String bookYearShortName) {
         short result;
         if (bookYearNameOverride != null) {
