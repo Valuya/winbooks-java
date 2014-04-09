@@ -159,7 +159,7 @@ public class Winbooks {
         String bookYearShortName = bookYear.getShortName();
         return openBookYear(bookYearShortName);
     }
-    
+
     public short openBookYear(String bookYearShortName) {
         short result;
         if (bookYearNameOverride != null) {
@@ -734,9 +734,7 @@ public class Winbooks {
         mainEntry.setWbDbkType(wbDbkType);
 
         String periodStr = calcPeriodStr(wbInvoice);
-        String bookYearStr = calcBookYearStr(wbInvoice);
 
-        mainEntry.setBookYear(bookYearStr);
         mainEntry.setPeriod(periodStr);
         mainEntry.setDocNumber(invoiceRef);
         mainEntry.setDocOrder(1);
@@ -860,7 +858,7 @@ public class Winbooks {
 
     public WbBookYear getBookYear(int year) {
         String yearStr = Integer.toString(year);
-        
+
         List<WbBookYear> bookYears = getBookYears();
         for (WbBookYear wbBookYear : bookYears) {
             String shortName = wbBookYear.getShortName();
@@ -1011,7 +1009,14 @@ public class Winbooks {
         return getPeriodInternalCode(periodDate);
     }
 
-    private String calcBookYearStr(WbInvoice wbInvoice) {
+    /**
+     * Calculate the value of "bookYear" field to use in an invoice, which is the string representation of its index in
+     * book year list. Not mandatory, better open a book year and let Winbooks use it.
+     *
+     * @param wbInvoice
+     * @return
+     */
+    public String calcInvoiceBookYearStr(WbInvoice wbInvoice) {
         String bookYearStr = wbInvoice.getBookYearStr();
         if (bookYearStr != null) {
             bookYearStr = bookYearStr.trim();
