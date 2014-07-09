@@ -2,6 +2,8 @@ package be.valuya.csv;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +24,7 @@ public class CsvHandler {
     private Charset charset = Charset.forName("iso-8859-1");
     private final Map<String, Integer> headerIndexMap = new HashMap<>();
     private boolean writeHeaders = true;
+    private boolean correctBadEncoding = true;
 
     public CsvHandler() {
         CsvHeader csvHeader = new CsvHeader();
@@ -152,10 +155,23 @@ public class CsvHandler {
         List<String> lines = renderLines();
         try (BufferedWriter bufferedWriter = Files.newBufferedWriter(path, charset)) {
             for (String line : lines) {
-                bufferedWriter.write(line);
+                String correctedLine = correctForCharset(line);
+
+                bufferedWriter.write(correctedLine);
                 bufferedWriter.write("\r\n");
             }
         }
+    }
+
+    public String correctForCharset(String originalStr) {
+        if (!correctBadEncoding) {
+            return originalStr;
+        }
+
+        ByteBuffer encodedByteBuffer = charset.encode(originalStr);
+        CharBuffer encodedCharBuffer = charset.decode(encodedByteBuffer);
+        String correctedLine = encodedCharBuffer.toString();
+        return correctedLine;
     }
 
     private CsvLine getLastCsvLine() {
@@ -193,5 +209,13 @@ public class CsvHandler {
 
     public void setWriteHeaders(boolean writeHeaders) {
         this.writeHeaders = writeHeaders;
+    }
+
+    public boolean isCorrectBadEncoding() {
+        return correctBadEncoding;
+    }
+
+    public void setCorrectBadEncoding(boolean correctBadEncoding) {
+        this.correctBadEncoding = correctBadEncoding;
     }
 }
