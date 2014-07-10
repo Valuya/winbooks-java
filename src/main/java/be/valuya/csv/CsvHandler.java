@@ -62,7 +62,7 @@ public class CsvHandler {
 
     public void addValue(String valueStr) {
         List<String> lastLineCsvValues = getLastLineValues();
-        
+
         String escapedValueStr = escapeQuotes(valueStr);
 
         lastLineCsvValues.add(escapedValueStr);
@@ -171,6 +171,9 @@ public class CsvHandler {
     }
 
     private String escapeQuotes(String originalStr) {
+        if (originalStr == null) {
+            return null;
+        }
         return originalStr.replace("\"", quoteReplacementStr);
     }
 
