@@ -25,7 +25,7 @@ public class CsvHandler {
     private final Map<String, Integer> headerIndexMap = new HashMap<>();
     private boolean writeHeaders = true;
     private boolean correctBadEncoding = true;
-    private String quoteReplacementStr = "*";
+    private String quoteReplacementStr = "'";
 
     public CsvHandler() {
         CsvHeader csvHeader = new CsvHeader();
@@ -62,7 +62,10 @@ public class CsvHandler {
 
     public void addValue(String valueStr) {
         List<String> lastLineCsvValues = getLastLineValues();
-        lastLineCsvValues.add(valueStr);
+        
+        String escapedValueStr = escapeQuotes(valueStr);
+
+        lastLineCsvValues.add(escapedValueStr);
     }
 
     public <T> void addValue(Format format, T value) {
@@ -159,7 +162,6 @@ public class CsvHandler {
                 String correctedLine = line;
 
                 correctedLine = correctForCharset(line);
-                correctedLine = escapeQuotes(line);
 
                 bufferedWriter.write(correctedLine);
                 bufferedWriter.write("\r\n");
