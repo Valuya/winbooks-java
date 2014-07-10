@@ -25,7 +25,7 @@ public class CsvHandler {
     private final Map<String, Integer> headerIndexMap = new HashMap<>();
     private boolean writeHeaders = true;
     private boolean correctBadEncoding = true;
-    private String quoteReplacementStr = "'";
+    private String quoteReplacementStr = "*";
 
     public CsvHandler() {
         CsvHeader csvHeader = new CsvHeader();
