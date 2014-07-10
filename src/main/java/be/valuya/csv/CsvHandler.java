@@ -86,7 +86,8 @@ public class CsvHandler {
             lastLineCsvValues.add(null);
             lastLineSize++;
         }
-        lastLineCsvValues.set(columnIndex, value);
+        String escapedValue = escapeQuotes(value);
+        lastLineCsvValues.set(columnIndex, escapedValue);
     }
 
     public <T> void putValue(String header, Format format, T value) {
