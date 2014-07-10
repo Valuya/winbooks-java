@@ -25,6 +25,7 @@ public class CsvHandler {
     private final Map<String, Integer> headerIndexMap = new HashMap<>();
     private boolean writeHeaders = true;
     private boolean correctBadEncoding = true;
+    private String quoteReplacementStr = "'";
 
     public CsvHandler() {
         CsvHeader csvHeader = new CsvHeader();
@@ -155,12 +156,19 @@ public class CsvHandler {
         List<String> lines = renderLines();
         try (BufferedWriter bufferedWriter = Files.newBufferedWriter(path, charset)) {
             for (String line : lines) {
-                String correctedLine = correctForCharset(line);
+                String correctedLine = line;
+
+                correctedLine = correctForCharset(line);
+                correctedLine = escapeQuotes(line);
 
                 bufferedWriter.write(correctedLine);
                 bufferedWriter.write("\r\n");
             }
         }
+    }
+
+    private String escapeQuotes(String originalStr) {
+        return originalStr.replace("\"", quoteReplacementStr);
     }
 
     public String correctForCharset(String originalStr) {
@@ -218,4 +226,13 @@ public class CsvHandler {
     public void setCorrectBadEncoding(boolean correctBadEncoding) {
         this.correctBadEncoding = correctBadEncoding;
     }
+
+    public String getQuoteReplacementStr() {
+        return quoteReplacementStr;
+    }
+
+    public void setQuoteReplacementStr(String quoteReplacementStr) {
+        this.quoteReplacementStr = quoteReplacementStr;
+    }
+
 }
