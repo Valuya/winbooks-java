@@ -857,6 +857,9 @@ public class Winbooks {
     }
 
     public WbBookYear getBookYear(int year) {
+        if (bookYearOverride != null) {
+            year = bookYearOverride;
+        }
         String yearStr = Integer.toString(year);
 
         List<WbBookYear> bookYears = getBookYears();
