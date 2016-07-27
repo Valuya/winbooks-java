@@ -1,5 +1,6 @@
-package be.valuya.jbooks.model;
+package be.valuya.winbooks.util;
 
+import be.valuya.jbooks.model.WbError;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;

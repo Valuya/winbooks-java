@@ -1,8 +1,8 @@
 package be.valuya.jbooks;
 
 import be.valuya.csv.CsvHandler;
-import be.valuya.jbooks.exception.WinbooksError;
-import be.valuya.jbooks.exception.WinbooksException;
+import be.valuya.winbooks.domain.error.WinbooksError;
+import be.valuya.winbooks.domain.error.WinbooksException;
 import be.valuya.jbooks.exception.WinbooksInitException;
 import be.valuya.jbooks.exception.WinbooksLoginException;
 import be.valuya.jbooks.exception.WinbooksOpenBookyearException;
@@ -17,18 +17,13 @@ import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbDocType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbImport;
-import be.valuya.jbooks.model.WbImportResult;
 import be.valuya.jbooks.model.WbInvoice;
 import be.valuya.jbooks.model.WbInvoiceLine;
-import be.valuya.jbooks.model.WbLanguage;
 import be.valuya.jbooks.model.WbMemoType;
-import be.valuya.jbooks.model.WbMitigation;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.jbooks.model.WbVatCat;
 import be.valuya.jbooks.model.WbVatCode;
-import be.valuya.jbooks.model.WbWarning;
-import be.valuya.jbooks.model.WbWarningResolution;
-import be.valuya.jbooks.util.WbFatalError;
+import be.valuya.winbooks.domain.error.WbFatalError;
 import be.valuya.jbooks.util.WbValueFormat;
 import be.valuya.winbooks.ClassFactory;
 import be.valuya.winbooks.LangueforVat;
@@ -49,6 +44,11 @@ import be.valuya.winbooks._Periods;
 import be.valuya.winbooks._Transactions;
 import be.valuya.winbooks._Warning;
 import be.valuya.winbooks._Warnings;
+import be.valuya.winbooks.util.WbImportResult;
+import be.valuya.winbooks.util.WbLanguage;
+import be.valuya.winbooks.util.WbMitigation;
+import be.valuya.winbooks.util.WbWarning;
+import be.valuya.winbooks.util.WbWarningResolution;
 import com4j.Holder;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -81,7 +81,8 @@ public class Winbooks {
 
     private final WinbooksObject___v0 winbooksCom;
     /**
-     * Book year override, will replace book year for dates, period, ... (e.g. demo is limited to some book years).
+     * Book year override, will replace book year for dates, period, ... (e.g.
+     * demo is limited to some book years).
      */
     private Integer bookYearOverride;
     private String bookYearNameOverride;
@@ -1013,8 +1014,9 @@ public class Winbooks {
     }
 
     /**
-     * Calculate the value of "bookYear" field to use in an invoice, which is the string representation of its index in
-     * book year list. Not mandatory, better open a book year and let Winbooks use it.
+     * Calculate the value of "bookYear" field to use in an invoice, which is
+     * the string representation of its index in book year list. Not mandatory,
+     * better open a book year and let Winbooks use it.
      *
      * @param wbInvoice
      * @return

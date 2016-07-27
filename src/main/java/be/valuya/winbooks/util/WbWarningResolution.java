@@ -1,4 +1,4 @@
-package be.valuya.jbooks.model;
+package be.valuya.winbooks.util;
 
 import be.valuya.winbooks.TypeSolution;
 

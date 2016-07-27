@@ -1,5 +1,6 @@
-package be.valuya.jbooks.model;
+package be.valuya.winbooks.util;
 
+import be.valuya.jbooks.model.WbValue;
 import be.valuya.winbooks.LangueforVat;
 
 /**
@@ -10,6 +11,7 @@ public enum WbLanguage implements WbValue {
 
     FRENCH("F", LangueforVat.wbFrench),
     DUTCH("N", LangueforVat.wbNetherland);
+
     private final String value;
     private final LangueforVat langueforVat;
 

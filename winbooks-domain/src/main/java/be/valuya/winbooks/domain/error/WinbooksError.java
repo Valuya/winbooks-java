@@ -1,4 +1,4 @@
-package be.valuya.jbooks.exception;
+package be.valuya.winbooks.domain.error;
 
 /**
  *

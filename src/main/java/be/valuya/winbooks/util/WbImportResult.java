@@ -1,7 +1,8 @@
-package be.valuya.jbooks.model;
+package be.valuya.winbooks.util;
 
-import be.valuya.jbooks.exception.WinbooksError;
-import be.valuya.jbooks.util.WbFatalError;
+import be.valuya.winbooks.util.WbWarning;
+import be.valuya.winbooks.domain.error.WbFatalError;
+import be.valuya.winbooks.domain.error.WinbooksError;
 import java.util.List;
 
 /**

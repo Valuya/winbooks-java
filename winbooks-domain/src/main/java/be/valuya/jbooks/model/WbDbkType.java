@@ -1,5 +1,7 @@
 package be.valuya.jbooks.model;
 
+import java.util.stream.Stream;
+
 /**
  * 0 = Achat<br/>
  * 1 = Note de crédit sur achat<br/>
@@ -18,14 +20,26 @@ public enum WbDbkType implements WbValue {
     CREDIT_NOTE_SALE(3),
     FINANCE(4),
     MISC(5);
-    private int value;
 
-    private WbDbkType(int value) {
-        this.value = value;
+    private final int code;
+
+    private WbDbkType(int code) {
+        this.code = code;
     }
 
     @Override
     public String getValue() {
-        return Integer.toString(value);
+        return Integer.toString(code);
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public static WbDbkType fromCode(int code) {
+        return Stream.of(WbDbkType.values())
+                .filter(wbDbkType -> wbDbkType.code == code)
+                .findAny()
+                .orElseThrow(IllegalArgumentException::new);
     }
 }

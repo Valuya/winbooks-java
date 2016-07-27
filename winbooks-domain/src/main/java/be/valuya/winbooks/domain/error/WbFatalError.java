@@ -1,4 +1,4 @@
-package be.valuya.jbooks.util;
+package be.valuya.winbooks.domain.error;
 
 import be.valuya.jbooks.model.WbError;
 

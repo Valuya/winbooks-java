@@ -1,5 +1,9 @@
 package be.valuya.jbooks.exception;
 
+import be.valuya.winbooks.domain.error.WinbooksException;
+import be.valuya.winbooks.domain.error.WinbooksError;
+
+
 /**
  *
  * @author Yannick Majoros <yannick@valuya.be>
