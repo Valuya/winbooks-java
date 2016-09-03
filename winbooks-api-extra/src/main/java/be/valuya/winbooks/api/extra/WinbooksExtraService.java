@@ -78,8 +78,8 @@ public class WinbooksExtraService {
 
     private Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         try {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-        String baseName = winbooksFileConfiguration.getBaseName();
+            Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+            String baseName = winbooksFileConfiguration.getBaseName();
             String fileName = baseName + "_" + tableName + ".dbf";
             Path tablePath = Files.find(baseFolderPath, 1,
                     (path, attr) -> path.getFileName().toString().equalsIgnoreCase(fileName))
@@ -91,7 +91,7 @@ public class WinbooksExtraService {
             return tablePath;
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
-    }
+        }
     }
 
     private void dumpDbfRecord(DbfRecord dbfRecord) {
