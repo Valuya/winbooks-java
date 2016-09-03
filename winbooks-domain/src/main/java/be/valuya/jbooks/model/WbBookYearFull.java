@@ -80,4 +80,9 @@ public class WbBookYearFull {
     public void setPeriods(int periods) {
         this.periods = periods;
     }
+
+    @Override
+    public String toString() {
+        return "WbBookYearFull{" + "index=" + index + ", yearBeginInt=" + yearBeginInt + ", yearEndInt=" + yearEndInt + ", shortName=" + shortName + ", longName=" + longName + ", startDate=" + startDate + ", endDate=" + endDate + ", periods=" + periods + '}';
+    }
 }

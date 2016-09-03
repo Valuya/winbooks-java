@@ -42,6 +42,12 @@ public class WinbooksExtraServiceTest {
     }
 
     @Test
+    public void testStreamBookYears() throws Exception {
+        winbooksExtraService.streamBookYears(winbooksFileConfiguration)
+                .forEach(System.out::println);
+    }
+
+    @Test
     public void testAccountTotal() {
         Date startDate = new Date(2016, 03, 01);
         Date endDate = new Date(2017, 01, 01);
