@@ -1,26 +1,19 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
-import be.valuya.jbooks.model.WbBookYear;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
-import com.sun.nio.file.ExtendedOpenOption;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 import net.iryndin.jdbf.core.DbfRecord;
 

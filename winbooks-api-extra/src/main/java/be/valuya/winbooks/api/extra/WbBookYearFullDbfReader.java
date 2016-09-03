@@ -3,6 +3,7 @@ package be.valuya.winbooks.api.extra;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
+import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,11 +26,8 @@ public class WbBookYearFullDbfReader {
             String periodsStr = dbfRecord.getString("PERIODS");
             int periods = Integer.valueOf(periodsStr);
 
-            String yearBeginStr = dbfRecord.getString("YEAR_BEGIN");
-            int yearStartInt = Integer.valueOf(yearBeginStr);
-
-            String yearEndStr = dbfRecord.getString("YEAR_END");
-            int yearEndInt = Integer.valueOf(yearEndStr);
+            int yearStartInt = readYearField(dbfRecord, "YEAR_BEGIN");
+            int yearEndInt = readYearField(dbfRecord, "YEAR_END");
 
             String longName = dbfRecord.getString("YEAR_CPT");
             String shortName = dbfRecord.getString("YEAR_SHORT");
@@ -54,6 +52,14 @@ public class WbBookYearFullDbfReader {
         } catch (ParseException parseException) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
         }
+    }
+
+    private int readYearField(DbfRecord dbfRecord, String fieldName) {
+        byte[] yearStartBytes = dbfRecord.getBytes(fieldName);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(yearStartBytes);
+        int invertedBytesInt = byteBuffer.getInt();
+        int yearStartInt = Integer.reverseBytes(invertedBytesInt);
+        return yearStartInt;
     }
 
     private static LocalDate convertDateToLocalDate(Date date) {
