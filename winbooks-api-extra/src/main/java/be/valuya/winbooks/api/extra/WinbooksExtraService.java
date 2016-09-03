@@ -1,6 +1,8 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
+import be.valuya.jbooks.model.WbBookYear;
+import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
@@ -40,6 +42,15 @@ public class WinbooksExtraService {
     public Stream<WbAccount> streamAcf(InputStream inputStream, Charset charset) {
         return DbfUtils.streamDbf(inputStream, charset)
                 .map(new WbAccountDbfReader()::readWbAccountFromAcfDbfRecord);
+    }
+
+    public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
+        return streamTable(winbooksFileConfiguration, "SLBKY", new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
+    }
+
+    public Stream<WbBookYearFull> streamBookYears(InputStream inputStream, Charset charset) {
+        return DbfUtils.streamDbf(inputStream, charset)
+                .map(new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
     }
 
     public <T> Stream<T> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, Function<DbfRecord, T> readFunction) {
