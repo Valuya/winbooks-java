@@ -3,6 +3,7 @@ package be.valuya.winbooks.api.extra;
 import be.valuya.jbooks.model.WbAccount;
 import java.math.BigDecimal;
 import java.util.Optional;
+import net.iryndin.jdbf.core.DbfField;
 import net.iryndin.jdbf.core.DbfRecord;
 
 /**
@@ -52,7 +53,10 @@ public class WbAccountDbfReader {
         String accBnbDb = dbfRecord.getString("ACCBNBDB");
         String accBnbCd = dbfRecord.getString("ACCBNBCD");
         String f28150 = dbfRecord.getString("F28150");
-        String defDed = dbfRecord.getString("DEFDED");
+        DbfField defDedFieldNullable = dbfRecord.getField("DEFDED");
+        String defDed = Optional.ofNullable(defDedFieldNullable)
+                .map(defDefField -> dbfRecord.getString("DEFDED"))
+                .orElse(null);
         WbAccount wbAccount = new WbAccount();
         wbAccount.setAccountNumber(accountNumber);
         wbAccount.setName11(name11);
