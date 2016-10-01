@@ -24,7 +24,7 @@ public class DbfUtils {
             return streamDbf(dbfReader, charset)
                     .onClose(() -> closeDbfReader(dbfReader));
         } catch (IOException exception) {
-            throw new DbfException("DBF read error", exception);
+            throw new DbfException("DBF_EXTENSION read error", exception);
         }
     }
 
@@ -32,7 +32,7 @@ public class DbfUtils {
         try {
             dbfReader.close();
         } catch (IOException exception) {
-            throw new DbfException("DBF close error", exception);
+            throw new DbfException("DBF_EXTENSION close error", exception);
         }
     }
 

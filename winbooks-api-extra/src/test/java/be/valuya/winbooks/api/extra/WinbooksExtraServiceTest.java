@@ -27,11 +27,13 @@ public class WinbooksExtraServiceTest {
     public void setup() {
         winbooksExtraService = new WinbooksExtraService();
 
-        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\valuya");
+//        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\valuya");
+        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\bd");
 
         winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(baseFolderPath);
-        winbooksFileConfiguration.setBaseName("valuya");
+        //winbooksFileConfiguration.setBaseName("valuya");
+        winbooksFileConfiguration.setBaseName("bd");
     }
 
     @Test
