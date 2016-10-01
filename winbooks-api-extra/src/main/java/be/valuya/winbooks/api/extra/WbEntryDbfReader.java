@@ -64,8 +64,9 @@ public class WbEntryDbfReader {
             Date dueDate = dbfRecord.getDate("DUEDATE");
             String matchNo = dbfRecord.getString("MATCHNO");
             WbMemoType memoType = Optional.ofNullable(dbfRecord.getString("MEMOTYPE"))
-                    .map(WbMemoType::valueOf)
-                    .orElse(null);
+                    .map(Integer::valueOf)
+                    .map(WbMemoType::fromCode)
+                    .orElse(WbMemoType.MEMO);
             Date oldDate = dbfRecord.getDate("OLDDATE");
             String period = dbfRecord.getString("PERIOD");
             BigDecimal vatBase = dbfRecord.getBigDecimal("VATBASE");

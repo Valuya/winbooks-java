@@ -49,13 +49,14 @@ public class WinbooksExtraServiceTest {
 
     @Test
     public void testAccountTotal() {
-        Date startDate = new Date(2016, 03, 01);
+        Date startDate = new Date(2013, 03, 01);
         Date endDate = new Date(2017, 01, 01);
         TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
                 .filter(wbEntry -> wbEntry.getAccountGl() != null)
+                .filter(wbEntry -> wbEntry.getAccountGl().substring(0,2).equals("17"))
                 .collect(
                         Collectors.groupingBy(
                                 wbEntry -> wbEntry.getAccountGl().substring(0, 2),
