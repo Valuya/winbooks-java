@@ -109,7 +109,6 @@ public class WinbooksExtraService {
         InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, tableName);
         Charset charset = winbooksFileConfiguration.getCharset();
         return DbfUtils.streamDbf(tableInputStream, charset)
-                .onClose(() -> closeInputStream(tableInputStream))
                 .map(readFunction);
     }
 
