@@ -5,6 +5,7 @@ import be.valuya.jbooks.model.WbEntry;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
@@ -32,8 +33,8 @@ public class WinbooksExtraServiceTest {
 
         winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(baseFolderPath);
-        //winbooksFileConfiguration.setBaseName("valuya");
         winbooksFileConfiguration.setBaseName("bd");
+//        winbooksFileConfiguration.setBaseName("bd");
     }
 
     @Test
@@ -51,14 +52,16 @@ public class WinbooksExtraServiceTest {
 
     @Test
     public void testAccountTotal() {
-        Date startDate = new Date(2013, 03, 01);
-        Date endDate = new Date(2017, 01, 01);
+        Date startDate = new Date(116, Calendar.JANUARY, 01);
+        Date endDate = new Date(117, Calendar.JANUARY, 01);
         TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
+                .filter(wbEntry -> wbEntry.getComment() != null && wbEntry.getComment().equals("LOYER 20/06-19/07/2016"))
                 .filter(wbEntry -> wbEntry.getAccountGl() != null)
-                .filter(wbEntry -> wbEntry.getAccountGl().substring(0,2).equals("17"))
+//                .filter(wbEntry -> wbEntry.getAccountGl().substring(0,2).equals("70"))
+                .peek((x) -> System.out.println(x))
                 .collect(
                         Collectors.groupingBy(
                                 wbEntry -> wbEntry.getAccountGl().substring(0, 2),
