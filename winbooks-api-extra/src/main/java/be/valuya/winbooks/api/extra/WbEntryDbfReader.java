@@ -83,7 +83,10 @@ public class WbEntryDbfReader {
                     .map(WbDocType::fromCode)
                     .orElse(null);
 
+            int recordNumber = dbfRecord.getRecordNumber();
+
             WbEntry wbEntry = new WbEntry();
+            wbEntry.setRecordNumber(recordNumber);
             wbEntry.setAccountGl(accountGl);
             wbEntry.setAccountRp(accountRp);
             wbEntry.setAmount(amount);

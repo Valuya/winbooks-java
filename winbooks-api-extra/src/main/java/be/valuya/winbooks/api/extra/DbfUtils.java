@@ -2,6 +2,9 @@ package be.valuya.winbooks.api.extra;
 
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
+import net.iryndin.jdbf.core.DbfRecord;
+import net.iryndin.jdbf.reader.DbfReader;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -9,11 +12,8 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import net.iryndin.jdbf.core.DbfRecord;
-import net.iryndin.jdbf.reader.DbfReader;
 
 /**
- *
  * @author Yannick
  */
 public class DbfUtils {
@@ -55,11 +55,15 @@ public class DbfUtils {
         public boolean tryAdvance(Consumer<? super DbfRecord> consumer) {
             try {
                 DbfRecord dbfRecord = dbfReader.read();
+                while (dbfRecord != null && dbfRecord.isDeleted()) {
+                    dbfRecord = dbfReader.read();
+                }
                 if (dbfRecord == null) {
                     return false;
                 }
                 dbfRecord.setStringCharset(charset);
                 consumer.accept(dbfRecord);
+
                 return true;
             } catch (IOException exception) {
                 throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);

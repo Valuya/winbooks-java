@@ -9,6 +9,7 @@ import java.util.Date;
  */
 public class WbEntry implements Cloneable {
 
+    private Integer recordNumber;
     private WbDocType wbDocType;
     private String dbkCode;
     private WbDbkType wbDbkType;
@@ -392,5 +393,52 @@ public class WbEntry implements Cloneable {
         } catch (CloneNotSupportedException cloneNotSupportedException) {
             throw new IllegalStateException(cloneNotSupportedException);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "WbEntry{" +
+                "wbDocType=" + wbDocType +
+                ", dbkCode='" + dbkCode + '\'' +
+                ", wbDbkType=" + wbDbkType +
+                ", docNumber='" + docNumber + '\'' +
+                ", wbDocOrderType=" + wbDocOrderType +
+                ", docOrder=" + docOrder +
+                ", accountGl='" + accountGl + '\'' +
+                ", accountRp='" + accountRp + '\'' +
+                ", bookYear='" + bookYear + '\'' +
+                ", period='" + period + '\'' +
+                ", date=" + date +
+                ", dateDoc=" + dateDoc +
+                ", dueDate=" + dueDate +
+                ", comment='" + comment + '\'' +
+                ", commentExt='" + commentExt + '\'' +
+                ", amount=" + amount +
+                ", amountEur=" + amountEur +
+                ", vatBase=" + vatBase +
+                ", vatCode='" + vatCode + '\'' +
+                ", vatTax=" + vatTax +
+                ", vatImput='" + vatImput + '\'' +
+                ", currAmount=" + currAmount +
+                ", currCode='" + currCode + '\'' +
+                ", curEurBase=" + curEurBase +
+                ", curRate=" + curRate +
+                ", matchNo='" + matchNo + '\'' +
+                ", oldDate=" + oldDate +
+                ", locked=" + locked +
+                ", imported=" + imported +
+                ", temp=" + temp +
+                ", memoType=" + memoType +
+                ", doc=" + doc +
+                ", docStatus=" + docStatus +
+                '}';
+    }
+
+    public Integer getRecordNumber() {
+        return recordNumber;
+    }
+
+    public void setRecordNumber(Integer recordNumber) {
+        this.recordNumber = recordNumber;
     }
 }

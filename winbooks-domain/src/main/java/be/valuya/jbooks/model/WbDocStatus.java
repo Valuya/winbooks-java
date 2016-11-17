@@ -13,7 +13,7 @@ public enum WbDocStatus implements WbValue {
 
     private final Integer code;
 
-    private WbDocStatus(Integer code) {
+    WbDocStatus(Integer code) {
         this.code = code;
     }
 
@@ -33,6 +33,6 @@ public enum WbDocStatus implements WbValue {
         return Stream.of(WbDocStatus.values())
                 .filter(wbDocStatus -> wbDocStatus.code != null && wbDocStatus.code.equals(code))
                 .findAny()
-                .orElseThrow(IllegalArgumentException::new);
+                .orElseThrow(() -> new IllegalArgumentException("Unknown WbDocStatus code:" + code));
     }
 }
