@@ -45,12 +45,17 @@ public class WbEntryDbfReader {
             String currCode = dbfRecord.getString("CURRCODE");
             Date date = dbfRecord.getDate("DATE");
             Date dateDoc = dbfRecord.getDate("DATEDOC");
-            String docOrderStr = Optional.ofNullable(dbfRecord.getString("DOCORDER")).orElse("0");
+            String docOrderNullable = dbfRecord.getString("DOCORDER");
+            Optional<String> docOderOptional = Optional.ofNullable(docOrderNullable);
 
-            WbDocOrderType docOrderType = WbDocOrderType.fromString(docOrderStr);
+            if (docOrderNullable == null) {
+                int x =1;
+            }
+            WbDocOrderType docOrderType = docOderOptional.map(WbDocOrderType::fromString)
+                    .orElse(WbDocOrderType.BALANCE);
             Integer docOrder;
             if (docOrderType == WbDocOrderType.NUMBER) {
-                docOrder = docOrderFormat.parse(docOrderStr).intValue();
+                docOrder = docOrderFormat.parse(docOrderNullable).intValue();
             } else {
                 docOrder = null;
             }

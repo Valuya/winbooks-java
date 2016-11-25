@@ -58,9 +58,9 @@ public class WinbooksExtraServiceTest {
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
-                .filter(wbEntry -> wbEntry.getComment() != null && wbEntry.getComment().equals("LOYER 20/06-19/07/2016"))
+//                .filter(wbEntry -> wbEntry.getComment() != null && wbEntry.getComment().equals("LOYER 20/06-19/07/2016"))
                 .filter(wbEntry -> wbEntry.getAccountGl() != null)
-//                .filter(wbEntry -> wbEntry.getAccountGl().substring(0,2).equals("70"))
+                .filter(wbEntry -> wbEntry.getAccountGl().substring(0,2).equals("55"))
                 .peek((x) -> System.out.println(x))
                 .collect(
                         Collectors.groupingBy(

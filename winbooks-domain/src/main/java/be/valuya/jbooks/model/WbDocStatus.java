@@ -8,6 +8,7 @@ import java.util.stream.Stream;
  */
 public enum WbDocStatus implements WbValue {
 
+    NONE(0),
     NO_IMPUT_FOR_REMINDER(1),
     UNKNOWN(null);
 

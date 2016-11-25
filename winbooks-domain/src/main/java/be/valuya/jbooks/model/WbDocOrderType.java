@@ -11,7 +11,8 @@ public enum WbDocOrderType implements WbValue {
     NUMBER(null),
     VAT("VAT"),
     DEBIT_CENTRAL("998"),
-    CREDIT_CENTRAL("999");
+    CREDIT_CENTRAL("999"),
+    BALANCE(null);
     //
     private String value;
 
