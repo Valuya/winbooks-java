@@ -12,11 +12,12 @@ public enum WbDocOrderType implements WbValue {
     VAT("VAT"),
     DEBIT_CENTRAL("998"),
     CREDIT_CENTRAL("999"),
+    A("A.*"),
     BALANCE(null);
     //
     private String value;
 
-    private WbDocOrderType(String value) {
+    WbDocOrderType(String value) {
         this.value = value;
     }
 
@@ -27,7 +28,7 @@ public enum WbDocOrderType implements WbValue {
 
     public static WbDocOrderType fromString(String docOrderStr) {
         return Stream.of(WbDocOrderType.values())
-                .filter(wbDocOrderType -> wbDocOrderType.value != null && wbDocOrderType.value.equals(docOrderStr))
+                .filter(wbDocOrderType -> wbDocOrderType.value != null && docOrderStr.matches(wbDocOrderType.value))
                 .findAny()
                 .orElseGet(() -> getDocOrderTypeNumber(docOrderStr));
     }
@@ -36,7 +37,7 @@ public enum WbDocOrderType implements WbValue {
         if (docOrderStr.matches("^\\d+$")) {
             return NUMBER;
         }
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Unreadable docOrder: " + docOrderStr);
     }
 
 }

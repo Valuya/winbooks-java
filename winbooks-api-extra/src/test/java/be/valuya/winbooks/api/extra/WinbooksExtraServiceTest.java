@@ -2,6 +2,9 @@ package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbEntry;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,14 +13,10 @@ import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
 
 /**
- *
  * @author Yannick
  */
-
 
 public class WinbooksExtraServiceTest {
 
@@ -29,12 +28,11 @@ public class WinbooksExtraServiceTest {
         winbooksExtraService = new WinbooksExtraService();
 
 //        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\valuya");
-        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\bd");
+        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\pc");
 
         winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(baseFolderPath);
-        winbooksFileConfiguration.setBaseName("bd");
-//        winbooksFileConfiguration.setBaseName("bd");
+        winbooksFileConfiguration.setBaseName("pc");
     }
 
     @Test
@@ -51,6 +49,22 @@ public class WinbooksExtraServiceTest {
     }
 
     @Test
+    public void testFindDistinctDocOrder() {
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
+                .map(wbEntry -> wbEntry.getWbDocOrderType())
+                .distinct()
+                .forEach(docOrderType -> System.out.println(docOrderType));
+    }
+
+    @Test
+    public void testFindDistinctDocStatus() {
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
+                .map(wbEntry -> wbEntry.getDocStatus())
+                .distinct()
+                .forEach(docStatus -> System.out.println(docStatus));
+    }
+
+    @Test
     public void testAccountTotal() {
         Date startDate = new Date(116, Calendar.JANUARY, 01);
         Date endDate = new Date(117, Calendar.JANUARY, 01);
@@ -60,8 +74,8 @@ public class WinbooksExtraServiceTest {
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
 //                .filter(wbEntry -> wbEntry.getComment() != null && wbEntry.getComment().equals("LOYER 20/06-19/07/2016"))
                 .filter(wbEntry -> wbEntry.getAccountGl() != null)
-                .filter(wbEntry -> wbEntry.getAccountGl().substring(0,2).equals("55"))
-                .peek((x) -> System.out.println(x))
+                .filter(wbEntry -> wbEntry.getAccountGl().substring(0, 2).equals("70"))
+                .peek(wbEntry -> System.out.println(wbEntry))
                 .collect(
                         Collectors.groupingBy(
                                 wbEntry -> wbEntry.getAccountGl().substring(0, 2),

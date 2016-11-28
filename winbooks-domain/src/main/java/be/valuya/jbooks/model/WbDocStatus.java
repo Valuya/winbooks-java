@@ -10,6 +10,7 @@ public enum WbDocStatus implements WbValue {
 
     NONE(0),
     NO_IMPUT_FOR_REMINDER(1),
+    UNKNOWN_2(2),
     UNKNOWN(null);
 
     private final Integer code;
