@@ -2,6 +2,7 @@ package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbBookYearStatus;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbParam;
 import be.valuya.winbooks.domain.error.WinbooksError;
@@ -53,7 +54,7 @@ public class WinbooksExtraService {
     public List<WbBookYearFull> streamBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
         Map<String, String> paramMap = streamTable(winbooksFileConfiguration, PARAM_TABLE_NAME, new WbParamDbfReader()::readWbParamFromDbfRecord)
                 .filter(wbParam -> wbParam.getValue() != null)
-                .collect(Collectors.toMap(WbParam::getId, WbParam::getValue));
+                .collect(Collectors.toMap(WbParam::getId, WbParam::getValue, (id1, id2) -> id2));
 
         List<WbBookYearFull> wbBookYearFullList = new ArrayList<>();
 
@@ -65,15 +66,25 @@ public class WinbooksExtraService {
             String bookYearShortLabel = paramMap.get(bookYearParamPrefix + "." + "SHORTLABEL");
             String perDatesStr = paramMap.get(bookYearParamPrefix + "." + "PERDATE");
 
+            String concatenatedPeriodNames = paramMap.get(bookYearParamPrefix + "." + "PERLIB1");
+            List<String> periodNames = parsePeriodNames(concatenatedPeriodNames);
+
             List<LocalDate> periodDates = parsePeriodDates(perDatesStr);
-            LocalDate startDate = periodDates.stream().findFirst()
+
+            LocalDate startDate = periodDates.stream()
+                    .findFirst()
                     .orElseThrow(IllegalArgumentException::new);
-            LocalDate endDate = periodDates.stream().max(LocalDate::compareTo)
+            LocalDate endDate = periodDates.stream()
+                    .max(LocalDate::compareTo)
                     .map(date -> date.plusDays(1)) // exclusive upper bound is day after
                     .orElseThrow(IllegalArgumentException::new);
 
             int startYear = startDate.getYear();
             int endYear = endDate.getYear();
+
+            String statusStrNullable = paramMap.get(bookYearParamPrefix + "." + "STATUS");
+
+            int periodCount = periodDates.size() - 2;
 
             WbBookYearFull wbBookYearFull = new WbBookYearFull();
             wbBookYearFull.setLongName(bookYearLongLabel);
@@ -83,12 +94,28 @@ public class WinbooksExtraService {
             wbBookYearFull.setEndDate(endDate);
             wbBookYearFull.setYearBeginInt(startYear);
             wbBookYearFull.setYearEndInt(endYear);
-            wbBookYearFull.setPeriods(12);
+            wbBookYearFull.setPeriods(periodCount);
+
+            Optional.ofNullable(statusStrNullable)
+                    .flatMap(WbBookYearStatus::fromValueStr)
+                    .ifPresent(wbBookYearFull::setWbBookYearStatus);
 
             wbBookYearFullList.add(wbBookYearFull);
         }
 
         return wbBookYearFullList;
+    }
+
+    private List<String> parsePeriodNames(String concatenatedPeriodNames) {
+        List<String> periodNames = new ArrayList<>();
+
+        int length = concatenatedPeriodNames.length();
+        for (int i = 0; i + 8 <= length; i += 8) {
+            String periodName = concatenatedPeriodNames.substring(i, i + 8);
+            periodNames.add(periodName);
+        }
+
+        return periodNames;
     }
 
     private List<LocalDate> parsePeriodDates(String allPeriodDatesStr) {
@@ -133,7 +160,7 @@ public class WinbooksExtraService {
                 .orElse(false);
     }
 
-    private Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+    public Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         return resolveTablePathOptional(winbooksFileConfiguration, tableName)
                 .orElseThrow(() -> {
                     Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();

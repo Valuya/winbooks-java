@@ -16,6 +16,7 @@ public class WbBookYearFull {
     private LocalDate startDate;
     private LocalDate endDate;
     private int periods;
+    private WbBookYearStatus wbBookYearStatus;
 
     public int getIndex() {
         return index;
@@ -84,5 +85,13 @@ public class WbBookYearFull {
     @Override
     public String toString() {
         return "WbBookYearFull{" + "index=" + index + ", yearBeginInt=" + yearBeginInt + ", yearEndInt=" + yearEndInt + ", shortName=" + shortName + ", longName=" + longName + ", startDate=" + startDate + ", endDate=" + endDate + ", periods=" + periods + '}';
+    }
+
+    public WbBookYearStatus getWbBookYearStatus() {
+        return wbBookYearStatus;
+    }
+
+    public void setWbBookYearStatus(WbBookYearStatus wbBookYearStatus) {
+        this.wbBookYearStatus = wbBookYearStatus;
     }
 }

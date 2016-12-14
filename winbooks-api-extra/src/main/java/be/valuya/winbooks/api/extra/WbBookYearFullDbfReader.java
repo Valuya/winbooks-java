@@ -1,6 +1,7 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbBookYearStatus;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import java.nio.ByteBuffer;
@@ -47,6 +48,7 @@ public class WbBookYearFullDbfReader {
             wbBookYearFull.setLongName(longName);
             wbBookYearFull.setStartDate(startDate);
             wbBookYearFull.setEndDate(endDate);
+            wbBookYearFull.setWbBookYearStatus(WbBookYearStatus.OPEN);
 
             return wbBookYearFull;
         } catch (ParseException parseException) {
