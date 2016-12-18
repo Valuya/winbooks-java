@@ -26,7 +26,7 @@ winbooks.openBookYear("Ex. 2003");
 BigDecimal vatRate = BigDecimal.valueOf(2100, 2);
 String internalVatCode = winbooks.getInternalVatCode(vatRate, WbClientSupplierType.CLIENT, WbLanguage.FRENCH);
 
-WbBookYear wbBookYear = winbooks.getBookYear(date);
+WbBookYear wbBookYearFull = winbooks.getBookYear(date);
 
 ```java
 // importing stuff (client + invoice)

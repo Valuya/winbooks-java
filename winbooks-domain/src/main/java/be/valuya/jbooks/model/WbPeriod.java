@@ -1,36 +1,85 @@
 package be.valuya.jbooks.model;
 
+import java.time.LocalDate;
+import java.util.Objects;
+
 /**
- *
  * @author Yannick Majoros <yannick@valuya.be>
  */
 public class WbPeriod {
 
-    private WbBookYear wbBookYear;
-    private String name;
-    private String num;
+    private WbBookYearFull wbBookYearFull;
+    private int index;
+    private String shortName;
+    private LocalDate startDate;
+    private LocalDate endDate;
 
-    public WbBookYear getWbBookYear() {
-        return wbBookYear;
+    public WbBookYearFull getWbBookYearFull() {
+        return wbBookYearFull;
     }
 
-    public void setWbBookYear(WbBookYear wbBookYear) {
-        this.wbBookYear = wbBookYear;
+    public void setWbBookYearFull(WbBookYearFull wbBookYearFull) {
+        this.wbBookYearFull = wbBookYearFull;
     }
 
-    public String getName() {
-        return name;
+    public int getIndex() {
+        return index;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setIndex(int index) {
+        this.index = index;
     }
 
-    public String getNum() {
-        return num;
+    public String getShortName() {
+        return shortName;
     }
 
-    public void setNum(String num) {
-        this.num = num;
+    public void setShortName(String shortName) {
+        this.shortName = shortName;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        WbPeriod period = (WbPeriod) o;
+        return index == period.index &&
+                Objects.equals(wbBookYearFull, period.wbBookYearFull);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(wbBookYearFull, index);
+    }
+
+    @Override
+    public String toString() {
+        return "WbPeriod{" +
+                "wbBookYearFull=" + wbBookYearFull +
+                ", index=" + index +
+                ", shortName='" + shortName + '\'' +
+                ", startDate=" + startDate +
+                ", endDate=" + endDate +
+                '}';
     }
 }

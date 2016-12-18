@@ -5,6 +5,7 @@ import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbBookYearStatus;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbParam;
+import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
@@ -28,8 +29,9 @@ import java.util.stream.Stream;
 
 public class WinbooksExtraService {
 
-    private static final String PARAM_TABLE_NAME = "param";
+    private static final String PARAM_TABLE_NAME = "param" ;
     private static final String BOOKYEARS_TABLE_NAME = "SLBKY";
+    private static final String PERIOD_TABLE_NAME = "SLPRD";
     private static final String ACCOUNT_TABLE_NAME = "ACF";
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
@@ -44,7 +46,7 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
-        if (tableExists(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) {
+        if (false && tableExists(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can get more info out of the badly structured param table
             return streamBookYearsFromBookyearsTable(winbooksFileConfiguration);
         }
         // fall-back: a lot of customers seem not to have table above
@@ -64,12 +66,17 @@ public class WinbooksExtraService {
             String bookYearParamPrefix = "BOOKYEAR" + i;
             String bookYearLongLabel = paramMap.get(bookYearParamPrefix + "." + "LONGLABEL");
             String bookYearShortLabel = paramMap.get(bookYearParamPrefix + "." + "SHORTLABEL");
+
             String perDatesStr = paramMap.get(bookYearParamPrefix + "." + "PERDATE");
+            List<LocalDate> periodDates = parsePeriodDates(perDatesStr);
+
+            int periodCount = periodDates.size() - 2;
+            int durationInMonths = 12 / periodCount;
 
             String concatenatedPeriodNames = paramMap.get(bookYearParamPrefix + "." + "PERLIB1");
             List<String> periodNames = parsePeriodNames(concatenatedPeriodNames);
 
-            List<LocalDate> periodDates = parsePeriodDates(perDatesStr);
+            List<WbPeriod> wbPeriodList = convertWinbooksPeriods(periodNames, periodDates, durationInMonths);
 
             LocalDate startDate = periodDates.stream()
                     .findFirst()
@@ -84,8 +91,6 @@ public class WinbooksExtraService {
 
             String statusStrNullable = paramMap.get(bookYearParamPrefix + "." + "STATUS");
 
-            int periodCount = periodDates.size() - 2;
-
             WbBookYearFull wbBookYearFull = new WbBookYearFull();
             wbBookYearFull.setLongName(bookYearLongLabel);
             wbBookYearFull.setShortName(bookYearShortLabel);
@@ -95,6 +100,9 @@ public class WinbooksExtraService {
             wbBookYearFull.setYearBeginInt(startYear);
             wbBookYearFull.setYearEndInt(endYear);
             wbBookYearFull.setPeriods(periodCount);
+            wbBookYearFull.setPeriodList(wbPeriodList);
+
+            wbPeriodList.forEach(wbPeriod -> wbPeriod.setWbBookYearFull(wbBookYearFull));
 
             Optional.ofNullable(statusStrNullable)
                     .flatMap(WbBookYearStatus::fromValueStr)
@@ -104,6 +112,33 @@ public class WinbooksExtraService {
         }
 
         return wbBookYearFullList;
+    }
+
+    private List<WbPeriod> convertWinbooksPeriods(List<String> periodNames, List<LocalDate> periodDates, int durationInMonths) {
+        int periodCount = periodNames.size();
+        if (periodDates.size() != periodCount) {
+            throw new IllegalArgumentException("Different sizes for period names and period dates.");
+        }
+
+        List<WbPeriod> periods = new ArrayList<>();
+        for (int i = 0; i < periodCount; i++) {
+            String periodName = periodNames.get(i);
+            LocalDate periodStartDate = periodDates.get(i);
+            LocalDate periodEndDate = periodStartDate.plusMonths(durationInMonths);
+
+            WbPeriod period = new WbPeriod();
+            period.setStartDate(periodStartDate);
+            period.setEndDate(periodEndDate);
+            period.setShortName(periodName);
+            period.setIndex(i);
+
+            periods.add(period);
+        }
+
+        WbPeriod lasterWbPeriod = periods.get(periodCount - 1);
+        lasterWbPeriod.setIndex(99);
+
+        return periods;
     }
 
     private List<String> parsePeriodNames(String concatenatedPeriodNames) {
@@ -120,11 +155,18 @@ public class WinbooksExtraService {
 
     private List<LocalDate> parsePeriodDates(String allPeriodDatesStr) {
         List<LocalDate> periodDates = new ArrayList<>();
-        for (int i = 0; i + 8 <= allPeriodDatesStr.length(); i += 8) {
+        int allPeriodCount = allPeriodDatesStr.length();
+        for (int i = 0; i + 8 <= allPeriodCount; i += 8) {
             String periodDateStr = allPeriodDatesStr.substring(i, i + 8);
             LocalDate periodDate = LocalDate.parse(periodDateStr, PERIOD_FORMATTER);
+
+            if (i == allPeriodCount - 1) {
+                periodDate = periodDate.plusDays(1);
+            }
+
             periodDates.add(periodDate);
         }
+
         return periodDates;
     }
 

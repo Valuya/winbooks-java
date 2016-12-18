@@ -463,11 +463,12 @@ public class Winbooks {
         for (short periodIndex = 1; periodIndex <= periodCount; periodIndex++) {
             _Period internalPeriod = internalBookYear.periods(periodIndex);
             String periodName = internalPeriod.name();
-            String numOfPeriod = internalPeriod.numOfPeriod(periodName);
+            String numOfPeriodStr = internalPeriod.numOfPeriod(periodName);
+            int periodNum = Integer.valueOf(numOfPeriodStr);
 
             WbPeriod wbPeriod = new WbPeriod();
-            wbPeriod.setName(periodName);
-            wbPeriod.setNum(numOfPeriod);
+            wbPeriod.setShortName(periodName);
+            wbPeriod.setIndex(periodNum);
 
             wbPeriods.add(wbPeriod);
         }

@@ -1,9 +1,10 @@
 package be.valuya.jbooks.model;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
 
 /**
- *
  * @author Yannick Majoros <yannick@valuya.be>
  */
 public class WbBookYearFull {
@@ -17,6 +18,7 @@ public class WbBookYearFull {
     private LocalDate endDate;
     private int periods;
     private WbBookYearStatus wbBookYearStatus;
+    private List<WbPeriod> periodList;
 
     public int getIndex() {
         return index;
@@ -82,9 +84,12 @@ public class WbBookYearFull {
         this.periods = periods;
     }
 
-    @Override
-    public String toString() {
-        return "WbBookYearFull{" + "index=" + index + ", yearBeginInt=" + yearBeginInt + ", yearEndInt=" + yearEndInt + ", shortName=" + shortName + ", longName=" + longName + ", startDate=" + startDate + ", endDate=" + endDate + ", periods=" + periods + '}';
+    public List<WbPeriod> getPeriodList() {
+        return periodList;
+    }
+
+    public void setPeriodList(List<WbPeriod> periodList) {
+        this.periodList = periodList;
     }
 
     public WbBookYearStatus getWbBookYearStatus() {
@@ -93,5 +98,27 @@ public class WbBookYearFull {
 
     public void setWbBookYearStatus(WbBookYearStatus wbBookYearStatus) {
         this.wbBookYearStatus = wbBookYearStatus;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        WbBookYearFull that = (WbBookYearFull) o;
+        return index == that.index;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index);
+    }
+
+    @Override
+    public String toString() {
+        return "WbBookYearFull{" + "index=" + index + ", yearBeginInt=" + yearBeginInt + ", yearEndInt=" + yearEndInt + ", shortName=" + shortName + ", longName=" + longName + ", startDate=" + startDate + ", endDate=" + endDate + ", periods=" + periods + '}';
     }
 }

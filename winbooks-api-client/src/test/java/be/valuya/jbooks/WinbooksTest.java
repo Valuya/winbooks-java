@@ -148,7 +148,7 @@ public class WinbooksTest {
             List<WbPeriod> bookYearPeriods = winbooks.getBookYearPeriods(wbBookYear);
             Assert.assertFalse(bookYearPeriods.isEmpty());
             for (WbPeriod wbPeriod : bookYearPeriods) {
-                String periodName = wbPeriod.getName();
+                String periodName = wbPeriod.getShortName();
                 System.out.println(periodName);
             }
         }
