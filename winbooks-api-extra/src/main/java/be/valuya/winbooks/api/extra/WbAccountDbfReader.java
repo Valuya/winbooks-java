@@ -1,17 +1,17 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
-import java.math.BigDecimal;
-import java.util.Optional;
 import net.iryndin.jdbf.core.DbfField;
 import net.iryndin.jdbf.core.DbfRecord;
 
+import java.math.BigDecimal;
+import java.util.Optional;
+
 /**
- *
  * @author Yannick
  */
 public class WbAccountDbfReader {
-    
+
     public WbAccount readWbAccountFromAcfDbfRecord(DbfRecord dbfRecord) {
         String accountTypeStr = dbfRecord.getString("TYPE");
         String accountNumber = dbfRecord.getString("NUMBER");
@@ -45,9 +45,14 @@ public class WbAccountDbfReader {
         BigDecimal totCur1 = dbfRecord.getBigDecimal("TOTCUR1");
         BigDecimal totCur2 = dbfRecord.getBigDecimal("TOTCUR2");
         String memoType = dbfRecord.getString("MEMOTYPE");
-        Boolean docNullable = dbfRecord.getBoolean("ISDOC");
-        boolean doc = Optional.ofNullable(docNullable).orElse(false);
-        boolean analyt = Optional.ofNullable(dbfRecord.getBoolean("ISANALYT")).orElse(false);
+        DbfField docFieldNullable = dbfRecord.getField("ISDOC");
+        boolean doc = Optional.ofNullable(docFieldNullable)
+                .map(docField -> dbfRecord.getBoolean("ISDOC"))
+                .orElse(false);
+        DbfField analytFieldNullable = dbfRecord.getField("ISANALYT");
+        boolean analyt = Optional.ofNullable(analytFieldNullable)
+                .map(analytField -> dbfRecord.getBoolean("ISANALYT"))
+                .orElse(false);
         String accBilDb = dbfRecord.getString("ACCBILDB");
         String accBilCd = dbfRecord.getString("ACCBILCD");
         String accBnbDb = dbfRecord.getString("ACCBNBDB");
@@ -97,5 +102,5 @@ public class WbAccountDbfReader {
         wbAccount.setVatCode(vatCodeStr);
         return wbAccount;
     }
-    
+
 }
