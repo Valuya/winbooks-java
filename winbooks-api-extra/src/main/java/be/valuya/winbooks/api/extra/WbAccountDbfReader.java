@@ -45,23 +45,18 @@ public class WbAccountDbfReader {
         BigDecimal totCur1 = dbfRecord.getBigDecimal("TOTCUR1");
         BigDecimal totCur2 = dbfRecord.getBigDecimal("TOTCUR2");
         String memoType = dbfRecord.getString("MEMOTYPE");
-        DbfField docFieldNullable = dbfRecord.getField("ISDOC");
-        boolean doc = Optional.ofNullable(docFieldNullable)
-                .map(docField -> dbfRecord.getBoolean("ISDOC"))
+        boolean doc = getBooleanOptional(dbfRecord, "ISDOC")
                 .orElse(false);
-        DbfField analytFieldNullable = dbfRecord.getField("ISANALYT");
-        boolean analyt = Optional.ofNullable(analytFieldNullable)
-                .map(analytField -> dbfRecord.getBoolean("ISANALYT"))
+        boolean analyt = getBooleanOptional(dbfRecord, "ISANALYT")
                 .orElse(false);
         String accBilDb = dbfRecord.getString("ACCBILDB");
         String accBilCd = dbfRecord.getString("ACCBILCD");
         String accBnbDb = dbfRecord.getString("ACCBNBDB");
         String accBnbCd = dbfRecord.getString("ACCBNBCD");
         String f28150 = dbfRecord.getString("F28150");
-        DbfField defDedFieldNullable = dbfRecord.getField("DEFDED");
-        String defDed = Optional.ofNullable(defDedFieldNullable)
-                .map(defDefField -> dbfRecord.getString("DEFDED"))
+        String defDed = getStringOptional(dbfRecord, "DEFDED")
                 .orElse(null);
+
         WbAccount wbAccount = new WbAccount();
         wbAccount.setAccountNumber(accountNumber);
         wbAccount.setName11(name11);
@@ -100,7 +95,23 @@ public class WbAccountDbfReader {
         wbAccount.setTotDebTmp1(totDebTmp1);
         wbAccount.setTotDebTmp2(totDebTmp2);
         wbAccount.setVatCode(vatCodeStr);
+
         return wbAccount;
+    }
+
+    private Optional<Boolean> getBooleanOptional(DbfRecord dbfRecord, String fieldName) {
+        return getDbfFieldOptional(dbfRecord, fieldName)
+                .map(docField -> dbfRecord.getBoolean(fieldName));
+    }
+
+    private Optional<String> getStringOptional(DbfRecord dbfRecord, String fieldName) {
+        return getDbfFieldOptional(dbfRecord, fieldName)
+                .map(docField -> dbfRecord.getString(fieldName));
+    }
+
+    private Optional<DbfField> getDbfFieldOptional(DbfRecord dbfRecord, String fieldName) {
+        DbfField fieldNullable = dbfRecord.getField(fieldName);
+        return Optional.ofNullable(fieldNullable);
     }
 
 }
