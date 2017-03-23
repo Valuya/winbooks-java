@@ -15,9 +15,13 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
 import java.text.ParseException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +40,17 @@ public class WinbooksExtraService {
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
+
+    public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path path = resolveTablePath(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME);
+        try {
+            FileTime lastModifiedTime = Files.getLastModifiedTime(path);
+            Instant lastModificationInstant = lastModifiedTime.toInstant();
+            return LocalDateTime.ofInstant(lastModificationInstant, ZoneId.systemDefault());
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+        }
+    }
 
     public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
         return streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, new WbEntryDbfReader()::readWbEntryFromActDbfRecord);
