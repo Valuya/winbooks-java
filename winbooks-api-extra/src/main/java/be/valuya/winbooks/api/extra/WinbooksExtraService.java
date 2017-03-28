@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,7 +34,7 @@ import java.util.stream.Stream;
 
 public class WinbooksExtraService {
 
-    private static final String PARAM_TABLE_NAME = "param" ;
+    private static final String PARAM_TABLE_NAME = "param";
     private static final String BOOKYEARS_TABLE_NAME = "SLBKY";
     private static final String PERIOD_TABLE_NAME = "SLPRD";
     private static final String ACCOUNT_TABLE_NAME = "ACF";
@@ -229,15 +230,32 @@ public class WinbooksExtraService {
     }
 
     private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        String fileName = getTableFileName(winbooksFileConfiguration, tableName);
+        List<String> fileNameParts = Arrays.asList(fileName);
+        return resolveWbPathOptional(winbooksFileConfiguration, fileNameParts);
+    }
+
+    public Optional<Path> resolveWbPathOptional(WinbooksFileConfiguration winbooksFileConfiguration, List<String> fileNameParts){
+        Path basePath = winbooksFileConfiguration.getBaseFolderPath();
+        Optional<Path> resolvedSubPath = Optional.of(basePath);
+        for (String fileNamePart : fileNameParts) {
+            resolvedSubPath = resolvedSubPath.flatMap(path -> resolveWbPathOptional(path, fileNamePart));
+        }
+        return resolvedSubPath;
+    }
+
+    public Optional<Path> resolveWbPathOptional(Path folderPath, String fileName) {
         try {
-            Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-            String fileName = getTableFileName(winbooksFileConfiguration, tableName);
-            return Files.find(baseFolderPath, 1,
-                    (path, attr) -> path.getFileName().toString().equalsIgnoreCase(fileName))
+            return Files.find(folderPath, 1,
+                    (path, attr) -> isSamePathName(path, fileName))
                     .findFirst();
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
+    }
+
+    protected boolean isSamePathName(Path path, String fileName) {
+        return path.getFileName().toString().equalsIgnoreCase(fileName);
     }
 
     private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
