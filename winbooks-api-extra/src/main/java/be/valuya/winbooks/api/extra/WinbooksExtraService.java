@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -230,21 +229,19 @@ public class WinbooksExtraService {
     }
 
     private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        String fileName = getTableFileName(winbooksFileConfiguration, tableName);
-        List<String> fileNameParts = Arrays.asList(fileName);
-        return resolveWbPathOptional(winbooksFileConfiguration, fileNameParts);
-    }
-
-    public Optional<Path> resolveWbPathOptional(WinbooksFileConfiguration winbooksFileConfiguration, List<String> fileNameParts){
         Path basePath = winbooksFileConfiguration.getBaseFolderPath();
-        Optional<Path> resolvedSubPath = Optional.of(basePath);
-        for (String fileNamePart : fileNameParts) {
-            resolvedSubPath = resolvedSubPath.flatMap(path -> resolveWbPathOptional(path, fileNamePart));
-        }
-        return resolvedSubPath;
+        String fileName = getTableFileName(winbooksFileConfiguration, tableName);
+        return resolvePathOptional(basePath, fileName);
     }
 
-    public Optional<Path> resolveWbPathOptional(Path folderPath, String fileName) {
+    public Path resolvePath(Path folderPath, String subFolderName) {
+        return Optional.of(folderPath)
+                .filter(Files::exists)
+                .flatMap(existingFolderPath -> resolvePathOptional(existingFolderPath, subFolderName))
+                .orElseGet(() -> folderPath.resolve(subFolderName));
+    }
+
+    public Optional<Path> resolvePathOptional(Path folderPath, String fileName) {
         try {
             return Files.find(folderPath, 1,
                     (path, attr) -> isSamePathName(path, fileName))
