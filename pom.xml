@@ -18,12 +18,12 @@
         <repository>
             <id>nexus@valuya</id>
             <name>Nexus</name>
-            <url>http://nexus:8081/nexus/repository/maven-releases/</url>
+            <url>https://valuya.be:50443/nexus/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
             <id>nexus@valuya</id>
             <name>Nexus</name>
-            <url>http://nexus:8081/nexus/repository/maven-snapshots/</url>
+            <url>https://valuya.be:50443/nexus/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
