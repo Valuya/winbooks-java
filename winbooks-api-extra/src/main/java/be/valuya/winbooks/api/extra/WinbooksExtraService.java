@@ -257,7 +257,8 @@ public class WinbooksExtraService {
 
     private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         String baseName = winbooksFileConfiguration.getBaseName();
-        return baseName + "_" + tableName + DBF_EXTENSION;
+        String tablePrefix = baseName.replace("_", "");
+        return tablePrefix + "_" + tableName + DBF_EXTENSION;
     }
 
     private void dumpDbfRecord(DbfRecord dbfRecord) {
