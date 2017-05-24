@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,6 +39,8 @@ public class WinbooksExtraService {
     private static final String BOOKYEARS_TABLE_NAME = "SLBKY";
     private static final String PERIOD_TABLE_NAME = "SLPRD";
     private static final String ACCOUNT_TABLE_NAME = "ACF";
+    private static final String DEFAULT_TABLE_FILE_NAME_REGEX = "^(.*)_" + ACCOUNT_TABLE_NAME + ".DBF$";
+    private static final Pattern DEFAULT_TABLE_FILE_NAME_PATTERN = Pattern.compile(DEFAULT_TABLE_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
@@ -129,6 +133,111 @@ public class WinbooksExtraService {
         return wbBookYearFullList;
     }
 
+    public Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+        return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME, new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
+    }
+
+    public <T> Stream<T> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, Function<DbfRecord, T> readFunction) {
+        InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, tableName);
+        Charset charset = winbooksFileConfiguration.getCharset();
+        return DbfUtils.streamDbf(tableInputStream, charset)
+                .map(readFunction);
+    }
+
+    public void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        try (Stream<DbfRecord> streamTable = streamTable(winbooksFileConfiguration, tableName, Function.identity())) {
+            streamTable.forEach(this::dumpDbfRecord);
+        }
+    }
+
+    public Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        return resolveTablePathOptional(winbooksFileConfiguration, tableName)
+                .orElseThrow(() -> {
+                    Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+                    String fileName = getTableFileName(winbooksFileConfiguration, tableName);
+
+                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, baseFolderPath.toString());
+                    return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
+                });
+    }
+
+    public Path resolvePath(Path folderPath, String subFolderName) {
+        return Optional.of(folderPath)
+                .filter(Files::exists)
+                .flatMap(existingFolderPath -> resolvePathOptional(existingFolderPath, subFolderName))
+                .orElseGet(() -> folderPath.resolve(subFolderName));
+    }
+
+    public Optional<Path> resolvePathOptional(Path folderPath, String fileName) {
+        try {
+            return Files.find(folderPath, 1,
+                    (path, attr) -> isSamePathName(path, fileName))
+                    .findFirst();
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+        }
+    }
+
+    public Optional<String> findBaseNameOptional(Path customerWinbooksPath) {
+        return findBaseNameFromPathOptional(customerWinbooksPath)
+                .map(Optional::of)
+                .orElseGet(() -> findBaseNameFromPathAndDefaultTableOptional(customerWinbooksPath));
+    }
+
+    private Optional<String> findBaseNameFromPathAndDefaultTableOptional(Path customerWinbooksPath) {
+        try {
+            List<String> baseNameCandidates = Files.walk(customerWinbooksPath, 1)
+                    .filter(this::isDefaultTablePath)
+                    .map(this::getPrefixFromTablePath)
+                    .collect(Collectors.toList());
+            if (baseNameCandidates.size() > 1) {
+                return Optional.empty();
+            }
+
+            return baseNameCandidates
+                    .stream()
+                    .findFirst();
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
+        }
+    }
+
+    private String getPrefixFromTablePath(Path path) {
+        Path fileNamePath = path.getFileName();
+        String fileName = fileNamePath.toString();
+
+        Matcher matcher = DEFAULT_TABLE_FILE_NAME_PATTERN.matcher(fileName);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException();
+        }
+        return matcher.group(1);
+    }
+
+    private boolean isDefaultTablePath(Path path) {
+        Path fileNamePath = path.getFileName();
+        String fileName = fileNamePath.toString();
+        return fileName.matches(DEFAULT_TABLE_FILE_NAME_REGEX);
+    }
+
+    private Optional<String> findBaseNameFromPathOptional(Path customerWinbooksPath) {
+        Path folderNamePath = customerWinbooksPath.getFileName();
+        String folderName = folderNamePath.toString();
+
+        WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
+        winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
+        winbooksFileConfiguration.setBaseName(folderName);
+
+        if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(folderName);
+    }
+
+    private boolean isSamePathName(Path path, String fileName) {
+        return path.getFileName().toString().equalsIgnoreCase(fileName);
+    }
+
     private List<WbPeriod> convertWinbooksPeriods(List<String> periodNames, List<LocalDate> periodDates, int durationInMonths) {
         int periodCount = periodNames.size();
         if (periodDates.size() != periodCount) {
@@ -185,23 +294,6 @@ public class WinbooksExtraService {
         return periodDates;
     }
 
-    public Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
-        return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME, new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
-    }
-
-    public <T> Stream<T> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, Function<DbfRecord, T> readFunction) {
-        InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, tableName);
-        Charset charset = winbooksFileConfiguration.getCharset();
-        return DbfUtils.streamDbf(tableInputStream, charset)
-                .map(readFunction);
-    }
-
-    public void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        try (Stream<DbfRecord> streamTable = streamTable(winbooksFileConfiguration, tableName, Function.identity())) {
-            streamTable.forEach(this::dumpDbfRecord);
-        }
-    }
-
     private InputStream getTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         try {
             Path path = resolveTablePath(winbooksFileConfiguration, tableName);
@@ -217,42 +309,10 @@ public class WinbooksExtraService {
                 .orElse(false);
     }
 
-    public Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        return resolveTablePathOptional(winbooksFileConfiguration, tableName)
-                .orElseThrow(() -> {
-                    Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-                    String fileName = getTableFileName(winbooksFileConfiguration, tableName);
-
-                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, baseFolderPath.toString());
-                    return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
-                });
-    }
-
     private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         Path basePath = winbooksFileConfiguration.getBaseFolderPath();
         String fileName = getTableFileName(winbooksFileConfiguration, tableName);
         return resolvePathOptional(basePath, fileName);
-    }
-
-    public Path resolvePath(Path folderPath, String subFolderName) {
-        return Optional.of(folderPath)
-                .filter(Files::exists)
-                .flatMap(existingFolderPath -> resolvePathOptional(existingFolderPath, subFolderName))
-                .orElseGet(() -> folderPath.resolve(subFolderName));
-    }
-
-    public Optional<Path> resolvePathOptional(Path folderPath, String fileName) {
-        try {
-            return Files.find(folderPath, 1,
-                    (path, attr) -> isSamePathName(path, fileName))
-                    .findFirst();
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
-        }
-    }
-
-    protected boolean isSamePathName(Path path, String fileName) {
-        return path.getFileName().toString().equalsIgnoreCase(fileName);
     }
 
     private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
@@ -269,14 +329,6 @@ public class WinbooksExtraService {
             System.out.println("Record #" + recordNumber + ": " + valueMap);
         } catch (ParseException parseException) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
-        }
-    }
-
-    private void closeInputStream(InputStream tableInputStream) {
-        try {
-            tableInputStream.close();
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
     }
 

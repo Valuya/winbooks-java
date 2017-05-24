@@ -124,7 +124,7 @@ public class WbEntryDbfReader {
 
             return wbEntry;
         } catch (ParseException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+                throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
     }
 

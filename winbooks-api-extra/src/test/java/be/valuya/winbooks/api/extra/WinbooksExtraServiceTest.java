@@ -2,6 +2,7 @@ package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbEntry;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,20 +21,31 @@ import java.util.stream.Collectors;
 
 public class WinbooksExtraServiceTest {
 
+    public static final String TEST_BASE_NAME = "pc";
+
     private WinbooksExtraService winbooksExtraService;
     private WinbooksFileConfiguration winbooksFileConfiguration;
+    private Path baseFolderPath;
 
     @Before
     public void setup() {
         winbooksExtraService = new WinbooksExtraService();
 
 //        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\valuya");
-        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\pc");
+        baseFolderPath = Paths.get("C:\\temp\\wbdata\\" + TEST_BASE_NAME);
 
         winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(baseFolderPath);
-        winbooksFileConfiguration.setBaseName("pc");
+        winbooksFileConfiguration.setBaseName(TEST_BASE_NAME);
     }
+
+    @Test
+    public void testGuessBaseName() {
+        String baseName = winbooksExtraService.findBaseNameOptional(baseFolderPath)
+                .orElseThrow(AssertionError::new);
+        Assert.assertEquals(TEST_BASE_NAME, baseName);
+    }
+
 
     @Test
     public void testReadDBF() throws Exception {
