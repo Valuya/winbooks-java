@@ -216,7 +216,9 @@ public class WinbooksExtraService {
     private boolean isDefaultTablePath(Path path) {
         Path fileNamePath = path.getFileName();
         String fileName = fileNamePath.toString();
-        return fileName.matches(DEFAULT_TABLE_FILE_NAME_REGEX);
+        Matcher matcher = DEFAULT_TABLE_FILE_NAME_PATTERN.matcher(fileName);
+
+        return matcher.matches();
     }
 
     private Optional<String> findBaseNameFromPathOptional(Path customerWinbooksPath) {

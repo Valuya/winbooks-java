@@ -4,7 +4,7 @@
     <parent>
         <groupId>be.valuya.winbooks</groupId>
         <artifactId>winbooks-java-parent</artifactId>
-        <version>1.2</version>
+        <version>1.2.1</version>
     </parent>
     <artifactId>winbooks-api-extra</artifactId>
 
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>winbooks-domain</artifactId>
-            <version>1.2</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

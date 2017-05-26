@@ -42,10 +42,9 @@ public class WinbooksExtraServiceTest {
     @Test
     public void testGuessBaseName() {
         String baseName = winbooksExtraService.findBaseNameOptional(baseFolderPath)
-                .orElseThrow(AssertionError::new);
+                .orElse("?");
         Assert.assertEquals(TEST_BASE_NAME, baseName);
     }
-
 
     @Test
     public void testReadDBF() throws Exception {
@@ -63,17 +62,17 @@ public class WinbooksExtraServiceTest {
     @Test
     public void testFindDistinctDocOrder() {
         winbooksExtraService.streamAct(winbooksFileConfiguration)
-                .map(wbEntry -> wbEntry.getWbDocOrderType())
+                .map(WbEntry::getWbDocOrderType)
                 .distinct()
-                .forEach(docOrderType -> System.out.println(docOrderType));
+                .forEach(System.out::println);
     }
 
     @Test
     public void testFindDistinctDocStatus() {
         winbooksExtraService.streamAct(winbooksFileConfiguration)
-                .map(wbEntry -> wbEntry.getDocStatus())
+                .map(WbEntry::getDocStatus)
                 .distinct()
-                .forEach(docStatus -> System.out.println(docStatus));
+                .forEach(System.out::println);
     }
 
     @Test
@@ -87,7 +86,7 @@ public class WinbooksExtraServiceTest {
 //                .filter(wbEntry -> wbEntry.getComment() != null && wbEntry.getComment().equals("LOYER 20/06-19/07/2016"))
                 .filter(wbEntry -> wbEntry.getAccountGl() != null)
                 .filter(wbEntry -> wbEntry.getAccountGl().substring(0, 2).equals("70"))
-                .peek(wbEntry -> System.out.println(wbEntry))
+                .peek(System.out::println)
                 .collect(
                         Collectors.groupingBy(
                                 wbEntry -> wbEntry.getAccountGl().substring(0, 2),
