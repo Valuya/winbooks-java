@@ -8,17 +8,19 @@ import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbMemoType;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
+import net.iryndin.jdbf.core.DbfRecord;
+
 import java.math.BigDecimal;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Optional;
-import net.iryndin.jdbf.core.DbfRecord;
 
 /**
- *
  * @author Yannick
  */
 public class WbEntryDbfReader {
@@ -43,15 +45,11 @@ public class WbEntryDbfReader {
             BigDecimal curRate = dbfRecord.getBigDecimal("CURRATE");
             BigDecimal currAmount = dbfRecord.getBigDecimal("CURRAMOUNT");
             String currCode = dbfRecord.getString("CURRCODE");
-            Date date = dbfRecord.getDate("DATE");
-            Date dateDoc = dbfRecord.getDate("DATEDOC");
+            Date date = getDate(dbfRecord, "DATE");
+            Date dateDoc = getDate(dbfRecord,"DATEDOC");
             String docOrderNullable = dbfRecord.getString("DOCORDER");
-            Optional<String> docOderOptional = Optional.ofNullable(docOrderNullable);
 
-            if (docOrderNullable == null) {
-                int x =1;
-            }
-            WbDocOrderType docOrderType = docOderOptional.map(WbDocOrderType::fromString)
+            WbDocOrderType docOrderType = Optional.ofNullable(docOrderNullable).map(WbDocOrderType::fromString)
                     .orElse(WbDocOrderType.BALANCE);
             Integer docOrder;
             if (docOrderType == WbDocOrderType.NUMBER) {
@@ -66,13 +64,13 @@ public class WbEntryDbfReader {
                     .map(WbDocStatus::fromCode)
                     .orElse(WbDocStatus.UNKNOWN);
 
-            Date dueDate = dbfRecord.getDate("DUEDATE");
+            Date dueDate = getDate(dbfRecord,"DUEDATE");
             String matchNo = dbfRecord.getString("MATCHNO");
             WbMemoType memoType = Optional.ofNullable(dbfRecord.getString("MEMOTYPE"))
                     .map(Integer::valueOf)
                     .map(WbMemoType::fromCode)
                     .orElse(WbMemoType.MEMO);
-            Date oldDate = dbfRecord.getDate("OLDDATE");
+            Date oldDate = getDate(dbfRecord,"OLDDATE");
             String period = dbfRecord.getString("PERIOD");
             BigDecimal vatBase = dbfRecord.getBigDecimal("VATBASE");
             String vatCode = dbfRecord.getString("VATCODE");
@@ -124,8 +122,25 @@ public class WbEntryDbfReader {
 
             return wbEntry;
         } catch (ParseException exception) {
-                throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
     }
 
+    public Date getDate(DbfRecord dbfRecord, String fieldName) throws ParseException {
+        String stringValueNullable = dbfRecord.getString(fieldName);
+        return Optional.ofNullable(stringValueNullable)
+                .map(String::trim)
+                .filter(dateStr -> !dateStr.isEmpty())
+                .map(this::parseDate)
+                .orElse(null);
+    }
+
+    private Date parseDate(String dateStr) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        try {
+            return dateFormat.parse(dateStr);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException(dateStr);
+        }
+    }
 }
