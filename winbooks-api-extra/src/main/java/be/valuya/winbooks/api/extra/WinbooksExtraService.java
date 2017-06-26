@@ -281,16 +281,23 @@ public class WinbooksExtraService {
 
     private List<LocalDate> parsePeriodDates(String allPeriodDatesStr) {
         List<LocalDate> periodDates = new ArrayList<>();
-        int allPeriodCount = allPeriodDatesStr.length();
-        for (int i = 0; i + 8 <= allPeriodCount; i += 8) {
+        int allPeriodLength = allPeriodDatesStr.length();
+        int i = 0;
+        while (i < allPeriodLength) {
+            char currentChar = allPeriodDatesStr.charAt(i);
+            if (currentChar == ' ') {
+                i++;
+                continue;
+            }
             String periodDateStr = allPeriodDatesStr.substring(i, i + 8);
             LocalDate periodDate = LocalDate.parse(periodDateStr, PERIOD_FORMATTER);
 
-            if (i == allPeriodCount - 1) {
+            if (i == allPeriodLength - 1) {
                 periodDate = periodDate.plusDays(1);
             }
 
             periodDates.add(periodDate);
+            i += 8;
         }
 
         return periodDates;
@@ -335,3 +342,4 @@ public class WinbooksExtraService {
     }
 
 }
+
