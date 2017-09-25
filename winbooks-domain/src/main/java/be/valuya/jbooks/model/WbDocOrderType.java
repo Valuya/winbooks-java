@@ -1,5 +1,6 @@
 package be.valuya.jbooks.model;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -26,18 +27,22 @@ public enum WbDocOrderType implements WbValue {
         return value;
     }
 
-    public static WbDocOrderType fromString(String docOrderStr) {
+    public static Optional<WbDocOrderType> fromStringOptional(String docOrderStr) {
+        // find WbDocOrderType that matches that constant value
         return Stream.of(WbDocOrderType.values())
                 .filter(wbDocOrderType -> wbDocOrderType.value != null && docOrderStr.matches(wbDocOrderType.value))
                 .findAny()
-                .orElseGet(() -> getDocOrderTypeNumber(docOrderStr));
+                .map(Optional::of)
+                // none found, so it should be a number
+                .orElseGet(() -> getDocOrderTypeNumberOptional(docOrderStr));
     }
 
-    private static WbDocOrderType getDocOrderTypeNumber(String docOrderStr) {
+    private static Optional<WbDocOrderType> getDocOrderTypeNumberOptional(String docOrderStr) {
         if (docOrderStr.matches("^\\d+$")) {
-            return NUMBER;
+            return Optional.of(NUMBER);
         }
-        throw new IllegalArgumentException("Unreadable docOrder: " + docOrderStr);
+//        throw new IllegalArgumentException("Unreadable docOrder: " + docOrderStr);
+        return Optional.empty();
     }
 
 }

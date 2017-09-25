@@ -44,6 +44,8 @@ public class WinbooksExtraService {
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
+    // some invalid String that Winbooks likes to have
+    public static final String CHAR0_STRING = Character.toString((char) 0);
 
     public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
         Path path = resolveTablePath(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME);
@@ -57,11 +59,26 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
-        return streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, new WbEntryDbfReader()::readWbEntryFromActDbfRecord);
+        WbEntryDbfReader wbEntryDbfReader = new WbEntryDbfReader();
+        return streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)
+                .filter(this::isValidActRecord)
+                .map(wbEntryDbfReader::readWbEntryFromActDbfRecord);
+    }
+
+    private boolean isValidActRecord(DbfRecord dbfRecord) {
+        String docOrderNullable = dbfRecord.getString("DOCORDER");
+        return Optional.ofNullable(docOrderNullable)
+                .map(this::isWbValidString)
+                .orElse(true);
+    }
+
+    private boolean isWbValidString(String str) {
+        return str == null || !str.startsWith(CHAR0_STRING);
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
-        return streamTable(winbooksFileConfiguration, ACCOUNT_TABLE_NAME, new WbAccountDbfReader()::readWbAccountFromAcfDbfRecord);
+        return streamTable(winbooksFileConfiguration, ACCOUNT_TABLE_NAME)
+                .map(new WbAccountDbfReader()::readWbAccountFromAcfDbfRecord);
     }
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
@@ -73,7 +90,8 @@ public class WinbooksExtraService {
     }
 
     public List<WbBookYearFull> streamBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Map<String, String> paramMap = streamTable(winbooksFileConfiguration, PARAM_TABLE_NAME, new WbParamDbfReader()::readWbParamFromDbfRecord)
+        Map<String, String> paramMap = streamTable(winbooksFileConfiguration, PARAM_TABLE_NAME)
+                .map(new WbParamDbfReader()::readWbParamFromDbfRecord)
                 .filter(wbParam -> wbParam.getValue() != null)
                 .collect(Collectors.toMap(WbParam::getId, WbParam::getValue, (id1, id2) -> id2));
 
@@ -134,18 +152,18 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
-        return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME, new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
+        return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)
+                .map(new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
     }
 
-    public <T> Stream<T> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, Function<DbfRecord, T> readFunction) {
+    public Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, tableName);
         Charset charset = winbooksFileConfiguration.getCharset();
-        return DbfUtils.streamDbf(tableInputStream, charset)
-                .map(readFunction);
+        return DbfUtils.streamDbf(tableInputStream, charset);
     }
 
     public void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        try (Stream<DbfRecord> streamTable = streamTable(winbooksFileConfiguration, tableName, Function.identity())) {
+        try (Stream<DbfRecord> streamTable = streamTable(winbooksFileConfiguration, tableName)) {
             streamTable.forEach(this::dumpDbfRecord);
         }
     }

@@ -49,8 +49,10 @@ public class WbEntryDbfReader {
             Date dateDoc = getDate(dbfRecord,"DATEDOC");
             String docOrderNullable = dbfRecord.getString("DOCORDER");
 
-            WbDocOrderType docOrderType = Optional.ofNullable(docOrderNullable).map(WbDocOrderType::fromString)
-                    .orElse(WbDocOrderType.BALANCE);
+            WbDocOrderType docOrderType = Optional.ofNullable(docOrderNullable)
+                    .map(WbDocOrderType::fromStringOptional)
+                    .orElseGet(Optional::empty) // unknown doc order
+                    .orElse(WbDocOrderType.BALANCE); // no doc order
             Integer docOrder;
             if (docOrderType == WbDocOrderType.NUMBER) {
                 docOrder = docOrderFormat.parse(docOrderNullable).intValue();
@@ -66,7 +68,8 @@ public class WbEntryDbfReader {
 
             Date dueDate = getDate(dbfRecord,"DUEDATE");
             String matchNo = dbfRecord.getString("MATCHNO");
-            WbMemoType memoType = Optional.ofNullable(dbfRecord.getString("MEMOTYPE"))
+            String memotype = dbfRecord.getString("MEMOTYPE");
+            WbMemoType memoType = Optional.ofNullable(memotype)
                     .map(Integer::valueOf)
                     .map(WbMemoType::fromCode)
                     .orElse(WbMemoType.MEMO);
