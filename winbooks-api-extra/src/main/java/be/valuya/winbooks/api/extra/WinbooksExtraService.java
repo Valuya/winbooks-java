@@ -63,6 +63,7 @@ public class WinbooksExtraService {
         return streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord);
+
     }
 
     private boolean isValidActRecord(DbfRecord dbfRecord) {
