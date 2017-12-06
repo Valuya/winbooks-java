@@ -13,8 +13,22 @@
         <module>winbooks-api-extra</module>
         <module>winbooks-api-client</module>
     </modules>
-    <dependencyManagement>
 
+    <distributionManagement>
+        <repository>
+            <id>nexus@valuya</id>
+            <name>Nexus</name>
+            <url>https://valuya.be:50443/nexus/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus@valuya</id>
+            <name>Nexus</name>
+            <url>https://valuya.be:50443/nexus/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <dependencyManagement>
+        
     </dependencyManagement>
     <build>
         <pluginManagement>
