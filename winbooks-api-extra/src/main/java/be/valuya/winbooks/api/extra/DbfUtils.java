@@ -65,7 +65,7 @@ public class DbfUtils {
                 consumer.accept(dbfRecord);
 
                 return true;
-            } catch (IOException exception) {
+            } catch (IOException | RuntimeException exception) {
                 throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
             }
         }

@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -35,6 +34,8 @@ import java.util.stream.Stream;
 
 public class WinbooksExtraService {
 
+    // some invalid String that Winbooks likes to have
+    public static final String CHAR0_STRING = Character.toString((char) 0);
     private static final String PARAM_TABLE_NAME = "param";
     private static final String BOOKYEARS_TABLE_NAME = "SLBKY";
     private static final String PERIOD_TABLE_NAME = "SLPRD";
@@ -44,8 +45,6 @@ public class WinbooksExtraService {
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
-    // some invalid String that Winbooks likes to have
-    public static final String CHAR0_STRING = Character.toString((char) 0);
 
     public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
         Path path = resolveTablePath(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME);
@@ -64,17 +63,6 @@ public class WinbooksExtraService {
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord);
 
-    }
-
-    private boolean isValidActRecord(DbfRecord dbfRecord) {
-        String docOrderNullable = dbfRecord.getString("DOCORDER");
-        return Optional.ofNullable(docOrderNullable)
-                .map(this::isWbValidString)
-                .orElse(true);
-    }
-
-    private boolean isWbValidString(String str) {
-        return str == null || !str.startsWith(CHAR0_STRING);
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
@@ -203,6 +191,17 @@ public class WinbooksExtraService {
                 .orElseGet(() -> findBaseNameFromPathAndDefaultTableOptional(customerWinbooksPath));
     }
 
+    private boolean isValidActRecord(DbfRecord dbfRecord) {
+        String docOrderNullable = dbfRecord.getString("DOCORDER");
+        return Optional.ofNullable(docOrderNullable)
+                .map(this::isWbValidString)
+                .orElse(true);
+    }
+
+    private boolean isWbValidString(String str) {
+        return str == null || !str.startsWith(CHAR0_STRING);
+    }
+
     private Optional<String> findBaseNameFromPathAndDefaultTableOptional(Path customerWinbooksPath) {
         try {
             List<String> baseNameCandidates = Files.walk(customerWinbooksPath, 1)
@@ -262,7 +261,7 @@ public class WinbooksExtraService {
     private List<WbPeriod> convertWinbooksPeriods(List<String> periodNames, List<LocalDate> periodDates, int durationInMonths) {
         int periodCount = periodNames.size();
         if (periodDates.size() != periodCount) {
-            throw new IllegalArgumentException("Different sizes for period names and period dates.");
+            throw new WinbooksException(WinbooksError.PERIOD_DATE_MISMATCH, "Different sizes for period names and period dates.");
         }
 
         List<WbPeriod> periods = new ArrayList<>();
