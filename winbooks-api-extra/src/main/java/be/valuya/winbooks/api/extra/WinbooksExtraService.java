@@ -58,11 +58,32 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
-        WbEntryDbfReader wbEntryDbfReader = new WbEntryDbfReader();
-        return streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)
+        List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
+                .collect(Collectors.toList());
+        List<WbBookYearFull> archivedBookYearFullList = wbBookYearFullList
+                .stream()
+                .filter(this::isArchived)
+                .collect(Collectors.toList());
+
+        PeriodResolver periodResolver = new PeriodResolver();
+        periodResolver.init(wbBookYearFullList);
+
+        WbEntryDbfReader wbEntryDbfReader = new WbEntryDbfReader(periodResolver);
+
+        Stream<WbEntry> archivedEntryStream = archivedBookYearFullList
+                .stream()
+                .map(WbBookYearFull::getArchivePathNameOptional)
+                .flatMap(this::streamOptional)
+                .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName))
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord);
 
+        Stream<WbEntry> unarchivedEntryStream = streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)
+                .filter(this::isValidActRecord)
+                .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
+                .filter(this::isCurrent);
+
+        return Stream.concat(archivedEntryStream, unarchivedEntryStream);
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
@@ -71,18 +92,15 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
-        if (false && tableExists(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can get more info out of the badly structured param table
+        if (false && tableExists(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
             return streamBookYearsFromBookyearsTable(winbooksFileConfiguration);
         }
         // fall-back: a lot of customers seem not to have table above
-        return streamBookYearsFromParamTable(winbooksFileConfiguration).stream();
+        return listBookYearsFromParamTable(winbooksFileConfiguration).stream();
     }
 
-    public List<WbBookYearFull> streamBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Map<String, String> paramMap = streamTable(winbooksFileConfiguration, PARAM_TABLE_NAME)
-                .map(new WbParamDbfReader()::readWbParamFromDbfRecord)
-                .filter(wbParam -> wbParam.getValue() != null)
-                .collect(Collectors.toMap(WbParam::getId, WbParam::getValue, (id1, id2) -> id2));
+    public List<WbBookYearFull> listBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
 
         List<WbBookYearFull> wbBookYearFullList = new ArrayList<>();
 
@@ -92,6 +110,8 @@ public class WinbooksExtraService {
             String bookYearParamPrefix = "BOOKYEAR" + i;
             String bookYearLongLabel = paramMap.get(bookYearParamPrefix + "." + "LONGLABEL");
             String bookYearShortLabel = paramMap.get(bookYearParamPrefix + "." + "SHORTLABEL");
+            String archivePathName = paramMap.get(bookYearParamPrefix + "." + "PATHARCH");
+            Optional<String> archivePathNameNullable = Optional.ofNullable(archivePathName);
 
             String perDatesStr = paramMap.get(bookYearParamPrefix + "." + "PERDATE");
             List<LocalDate> periodDates = parsePeriodDates(perDatesStr);
@@ -120,6 +140,7 @@ public class WinbooksExtraService {
             WbBookYearFull wbBookYearFull = new WbBookYearFull();
             wbBookYearFull.setLongName(bookYearLongLabel);
             wbBookYearFull.setShortName(bookYearShortLabel);
+            wbBookYearFull.setArchivePathNameOptional(archivePathNameNullable);
             wbBookYearFull.setIndex(i);
             wbBookYearFull.setStartDate(startDate);
             wbBookYearFull.setEndDate(endDate);
@@ -145,6 +166,12 @@ public class WinbooksExtraService {
                 .map(new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
     }
 
+    public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
+        InputStream tableInputStream = getArchivedTableInputStream(winbooksFileConfiguration, tableName, archivePathName);
+        Charset charset = winbooksFileConfiguration.getCharset();
+        return DbfUtils.streamDbf(tableInputStream, charset);
+    }
+
     public Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, tableName);
         Charset charset = winbooksFileConfiguration.getCharset();
@@ -168,13 +195,6 @@ public class WinbooksExtraService {
                 });
     }
 
-    public Path resolvePath(Path folderPath, String subFolderName) {
-        return Optional.of(folderPath)
-                .filter(Files::exists)
-                .flatMap(existingFolderPath -> resolvePathOptional(existingFolderPath, subFolderName))
-                .orElseGet(() -> folderPath.resolve(subFolderName));
-    }
-
     public Optional<Path> resolvePathOptional(Path folderPath, String fileName) {
         try {
             return Files.find(folderPath, 1,
@@ -189,6 +209,29 @@ public class WinbooksExtraService {
         return findBaseNameFromPathOptional(customerWinbooksPath)
                 .map(Optional::of)
                 .orElseGet(() -> findBaseNameFromPathAndDefaultTableOptional(customerWinbooksPath));
+    }
+
+    private boolean isCurrent(WbEntry wbEntry) {
+        WbBookYearFull wbBookYearFull = wbEntry.getWbBookYearFull();
+        return !isArchived(wbBookYearFull);
+    }
+
+    private boolean isArchived(WbBookYearFull wbBookYearFull) {
+        Optional<String> archivePathNameOptional = Optional.ofNullable(wbBookYearFull)
+                .flatMap(WbBookYearFull::getArchivePathNameOptional);
+        return archivePathNameOptional.isPresent();
+    }
+
+    private <T> Stream<T> streamOptional(Optional<T> optional) {
+        return optional.map(Stream::of)
+                .orElseGet(Stream::empty);
+    }
+
+    private Map<String, String> getParamMap(WinbooksFileConfiguration winbooksFileConfiguration) {
+        return streamTable(winbooksFileConfiguration, PARAM_TABLE_NAME)
+                .map(new WbParamDbfReader()::readWbParamFromDbfRecord)
+                .filter(wbParam -> wbParam.getValue() != null)
+                .collect(Collectors.toMap(WbParam::getId, WbParam::getValue, (id1, id2) -> id2));
     }
 
     private boolean isValidActRecord(DbfRecord dbfRecord) {
@@ -321,6 +364,16 @@ public class WinbooksExtraService {
         return periodDates;
     }
 
+    private InputStream getArchivedTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
+        try {
+            Path archivedTablePath = resolveArchivedTablePath(winbooksFileConfiguration, tableName, archivePathName);
+
+            return Files.newInputStream(archivedTablePath);
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+        }
+    }
+
     private InputStream getTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         try {
             Path path = resolveTablePath(winbooksFileConfiguration, tableName);
@@ -330,10 +383,24 @@ public class WinbooksExtraService {
         }
     }
 
+    private Path resolveArchivedTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
+        String archiveFolderName = archivePathName
+                .replace("\\", "/")
+                .replaceAll("/$", "")
+                .replaceAll("^.*/", "");
+        Path unarchivedTablePath = resolveTablePath(winbooksFileConfiguration, tableName);
+
+        String tableFileName = archiveFolderName + "_" + tableName + ".dbf";
+
+        Path parentPath = unarchivedTablePath.getParent();
+        Path archiveFolderPath = parentPath.resolveSibling(archiveFolderName);
+
+        return archiveFolderPath.resolve(tableFileName);
+    }
+
     private boolean tableExists(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         return resolveTablePathOptional(winbooksFileConfiguration, tableName)
-                .map(path -> true)
-                .orElse(false);
+                .isPresent();
     }
 
     private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {

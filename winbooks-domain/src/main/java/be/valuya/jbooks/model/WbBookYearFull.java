@@ -3,6 +3,7 @@ package be.valuya.jbooks.model;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Yannick Majoros <yannick@valuya.be>
@@ -18,6 +19,7 @@ public class WbBookYearFull {
     private LocalDate endDate;
     private int periods;
     private WbBookYearStatus wbBookYearStatus;
+    private Optional<String> archivePathNameOptional;
     private List<WbPeriod> periodList;
 
     public int getIndex() {
@@ -82,6 +84,18 @@ public class WbBookYearFull {
 
     public void setPeriods(int periods) {
         this.periods = periods;
+    }
+
+    public Optional<String> getArchivePathNameOptional() {
+        return archivePathNameOptional;
+    }
+
+    public void setArchivePathNameOptional(Optional<String> archivePathNameOptional) {
+        this.archivePathNameOptional = archivePathNameOptional;
+    }
+
+    public void setArchivePathName(String archivePathName) {
+        this.archivePathNameOptional = Optional.of(archivePathName);
     }
 
     public List<WbPeriod> getPeriodList() {

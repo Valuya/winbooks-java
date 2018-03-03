@@ -46,6 +46,8 @@ public class WbEntry implements Cloneable {
      * comptable actif.
      */
     private String bookYear;
+
+    private WbBookYearFull wbBookYearFull;
     /**
      * Winbooks doc: 00 = période d’ouverture uniquement autorisée dans un journal d’opérations diverses
      * d’ouverture<br/>
@@ -192,6 +194,14 @@ public class WbEntry implements Cloneable {
 
     public void setBookYear(String bookYear) {
         this.bookYear = bookYear;
+    }
+
+    public WbBookYearFull getWbBookYearFull() {
+        return wbBookYearFull;
+    }
+
+    public void setWbBookYearFull(WbBookYearFull wbBookYearFull) {
+        this.wbBookYearFull = wbBookYearFull;
     }
 
     public String getPeriod() {

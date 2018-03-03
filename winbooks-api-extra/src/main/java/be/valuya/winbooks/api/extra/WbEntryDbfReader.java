@@ -1,5 +1,6 @@
 package be.valuya.winbooks.api.extra;
 
+import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbDbkType;
 import be.valuya.jbooks.model.WbDocOrderType;
 import be.valuya.jbooks.model.WbDocStatus;
@@ -25,6 +26,12 @@ import java.util.Optional;
  */
 public class WbEntryDbfReader {
 
+    private final PeriodResolver periodResolver;
+
+    public WbEntryDbfReader(PeriodResolver periodResolver) {
+        this.periodResolver = periodResolver;
+    }
+
     public WbEntry readWbEntryFromActDbfRecord(DbfRecord dbfRecord) {
         try {
             DecimalFormat vatRateFormat = new DecimalFormat("0.00");
@@ -38,7 +45,15 @@ public class WbEntryDbfReader {
             String accountRp = dbfRecord.getString("ACCOUNTRP");
             BigDecimal amount = dbfRecord.getBigDecimal("AMOUNT");
             BigDecimal amountEur = dbfRecord.getBigDecimal("AMOUNTEUR");
+
             String bookYear = dbfRecord.getString("BOOKYEAR");
+            int bookYearInt = Integer.parseInt(bookYear);
+            WbBookYearFull wbBookYearFull = periodResolver.findWbBookYearFull(bookYearInt);
+
+            String period = dbfRecord.getString("PERIOD");
+            int periodIndex = Integer.parseInt(period);
+            periodResolver.findWbPeriod(wbBookYearFull, periodIndex);
+
             String comment = dbfRecord.getString("COMMENT");
             String commentExt = dbfRecord.getString("COMMENTEXT");
             BigDecimal curEurBase = dbfRecord.getBigDecimal("CUREURBASE");
@@ -46,7 +61,7 @@ public class WbEntryDbfReader {
             BigDecimal currAmount = dbfRecord.getBigDecimal("CURRAMOUNT");
             String currCode = dbfRecord.getString("CURRCODE");
             Date date = getDate(dbfRecord, "DATE");
-            Date dateDoc = getDate(dbfRecord,"DATEDOC");
+            Date dateDoc = getDate(dbfRecord, "DATEDOC");
             String docOrderNullable = dbfRecord.getString("DOCORDER");
 
             WbDocOrderType docOrderType = Optional.ofNullable(docOrderNullable)
@@ -66,15 +81,14 @@ public class WbEntryDbfReader {
                     .map(WbDocStatus::fromCode)
                     .orElse(WbDocStatus.UNKNOWN);
 
-            Date dueDate = getDate(dbfRecord,"DUEDATE");
+            Date dueDate = getDate(dbfRecord, "DUEDATE");
             String matchNo = dbfRecord.getString("MATCHNO");
             String memotype = dbfRecord.getString("MEMOTYPE");
             WbMemoType memoType = Optional.ofNullable(memotype)
                     .map(Integer::valueOf)
                     .map(WbMemoType::fromCode)
                     .orElse(WbMemoType.MEMO);
-            Date oldDate = getDate(dbfRecord,"OLDDATE");
-            String period = dbfRecord.getString("PERIOD");
+            Date oldDate = getDate(dbfRecord, "OLDDATE");
             BigDecimal vatBase = dbfRecord.getBigDecimal("VATBASE");
             String vatCode = dbfRecord.getString("VATCODE");
             String vatImput = dbfRecord.getString("VATIMPUT");
@@ -98,6 +112,7 @@ public class WbEntryDbfReader {
             wbEntry.setAmount(amount);
             wbEntry.setAmountEur(amountEur);
             wbEntry.setBookYear(bookYear);
+            wbEntry.setWbBookYearFull(wbBookYearFull);
             wbEntry.setComment(comment);
             wbEntry.setCommentExt(commentExt);
             wbEntry.setCurEurBase(curEurBase);

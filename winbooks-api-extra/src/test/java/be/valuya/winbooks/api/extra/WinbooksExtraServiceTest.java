@@ -1,6 +1,7 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
+import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbEntry;
 import org.junit.Assert;
 import org.junit.Before;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class WinbooksExtraServiceTest {
 
-    public static final String TEST_BASE_NAME = "pc";
+    public static final String TEST_BASE_NAME = "Tradas";
 
     private WinbooksExtraService winbooksExtraService;
     private WinbooksFileConfiguration winbooksFileConfiguration;
@@ -47,16 +48,16 @@ public class WinbooksExtraServiceTest {
     }
 
     @Test
-    public void testReadDBF() throws Exception {
+    public void testReadDBF() {
         winbooksExtraService.dumpDbf(winbooksFileConfiguration, "act");
         winbooksExtraService.dumpDbf(winbooksFileConfiguration, "acf");
         winbooksExtraService.dumpDbf(winbooksFileConfiguration, "csf");
     }
 
     @Test
-    public void testStreamBookYears() throws Exception {
+    public void testStreamBookYears() {
         winbooksExtraService.streamBookYears(winbooksFileConfiguration)
-                .forEach(System.out::println);
+                .forEach(this::printBookYear);
     }
 
     @Test
@@ -116,6 +117,13 @@ public class WinbooksExtraServiceTest {
                 .orElseThrow(IllegalArgumentException::new);
 
         System.out.println("Account: " + description);
+    }
+
+    private void printBookYear(WbBookYearFull wbBookYearFull) {
+        System.out.println(wbBookYearFull);
+        wbBookYearFull.getPeriodList()
+                .stream()
+                .forEach(System.out::println);
     }
 
 }
