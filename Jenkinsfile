@@ -11,18 +11,18 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
     stages {
-        stage ('Build') {
+        stage('Build') {
             steps {
-		withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings') {
-                	sh "mvn -DskipTests=${params.SKIP_TESTS} -s /var/run/secrets/nexus-mvn-settings clean compile install"
-		}
+                withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings') {
+                    sh "mvn -DskipTests=${params.SKIP_TESTS} -s /var/run/secrets/nexus-mvn-settings clean compile install"
+                }
             }
         }
-        stage ('Deploy') {
+        stage('Deploy') {
             steps {
-		withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings') {
-                	sh  "mvn -DskipTests=${params.SKIP_TESTS} -s /var/run/secrets/nexus-mvn-settings  deploy"
-		}
+                withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings') {
+                    sh "mvn -DskipTests=${params.SKIP_TESTS} -s /var/run/secrets/nexus-mvn-settings deploy"
+                }
             }
         }
     }
