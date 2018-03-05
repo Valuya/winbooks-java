@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- *
  * @author Yannick
  */
 public class WbEntry implements Cloneable {
@@ -17,7 +16,7 @@ public class WbEntry implements Cloneable {
     private WbDocOrderType wbDocOrderType = WbDocOrderType.NUMBER;
     /**
      * Winbooks doc: Ce champs peut rester à blanc. Il est automatiquement complété lors de l’import.
-     *
+     * <p>
      * Il retient l’ordre d’encodage des imputations pour les financiers et OD. Il commence à ‘001’ pour chaque nouveau
      * document et est incrémenté de 1 ( ex : 001,002,003, … ) Dans le cas d’un financier, l’ensemble des imputations
      * passées sur un numéro d’extrait (DOCNUMBER) donne lieu à l’enregistrement d’une ou deux imputations sur le compte
@@ -25,7 +24,7 @@ public class WbEntry implements Cloneable {
      * - une imputation avec le total des mouvements passés au débit du compte centralisateur<br/>
      * - une imputation avec le total des mouvements passés au crédit du compte centralisateur<br/>
      * Les imputations sur ce compte centralisateur ont un docorder = ‘999’ et ‘998’
-     *
+     * <p>
      * Le DOCORDER reste vide pour les autres journaux ( ventes, achats, notes de crédit )
      */
     private Integer docOrder;
@@ -56,9 +55,9 @@ public class WbEntry implements Cloneable {
      * 99 = période de clôture uniquement autorisées dans un journal d’opérations diverses de clôture<br/>
      * Il s’agit de la période comptable, qui ne correspond pas forcément au mois (exercice décalé,de + de 12 mois, …).
      * Voir aussi Wb.Import.Setdefaultperiod pour la manière de remplir automatiquement cette zone.
-     *
      */
     private String period;
+    private WbPeriod wbPeriod;
     private Date date;
     private Date dateDoc;
     private Date dueDate;
@@ -84,7 +83,7 @@ public class WbEntry implements Cloneable {
      * VATBASE du record de doctype = 1 ( imputation client) ou du record de doctype = 2 ( imputation fournisseur)
      * reprend le montant total du chiffre d’affaires de la facture ( servira aux statistiques et au listing Tva
      * clients)
-     *
+     * <p>
      * Wb totalise automatiquement dans le VATBASE du record tiers, le montant total du CA qui servira pour les
      * statistiques et le listing tva annuel.
      */
@@ -93,7 +92,6 @@ public class WbEntry implements Cloneable {
      * Winbooks doc: On y indique soit le code TVA interne WB (6 chiffres), soit le code tva en clair (21) : dans ce cas
      * Wb convertira automatiquement en code interne sur base du type de document (Cli/Fou) et de la langue. Voir
      * explication VATCODE dans la description du CSF.
-     *
      */
     private String vatCode;
     /**
@@ -123,6 +121,14 @@ public class WbEntry implements Cloneable {
     private WbMemoType memoType;
     private boolean doc;
     private WbDocStatus docStatus;
+
+    public WbPeriod getWbPeriod() {
+        return wbPeriod;
+    }
+
+    public void setWbPeriod(WbPeriod wbPeriod) {
+        this.wbPeriod = wbPeriod;
+    }
 
     public WbDocType getWbDocType() {
         return wbDocType;
@@ -396,6 +402,14 @@ public class WbEntry implements Cloneable {
         this.docStatus = docStatus;
     }
 
+    public Integer getRecordNumber() {
+        return recordNumber;
+    }
+
+    public void setRecordNumber(Integer recordNumber) {
+        this.recordNumber = recordNumber;
+    }
+
     @Override
     public WbEntry clone() {
         try {
@@ -442,13 +456,5 @@ public class WbEntry implements Cloneable {
                 ", doc=" + doc +
                 ", docStatus=" + docStatus +
                 '}';
-    }
-
-    public Integer getRecordNumber() {
-        return recordNumber;
-    }
-
-    public void setRecordNumber(Integer recordNumber) {
-        this.recordNumber = recordNumber;
     }
 }

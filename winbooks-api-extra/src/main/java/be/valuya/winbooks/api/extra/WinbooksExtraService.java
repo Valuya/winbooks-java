@@ -76,11 +76,13 @@ public class WinbooksExtraService {
                 .flatMap(this::streamOptional)
                 .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName))
                 .filter(this::isValidActRecord)
-                .map(wbEntryDbfReader::readWbEntryFromActDbfRecord);
+                .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
+                .flatMap(this::streamOptional);
 
         Stream<WbEntry> unarchivedEntryStream = streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
+                .flatMap(this::streamOptional)
                 .filter(this::isCurrent);
 
         return Stream.concat(archivedEntryStream, unarchivedEntryStream);

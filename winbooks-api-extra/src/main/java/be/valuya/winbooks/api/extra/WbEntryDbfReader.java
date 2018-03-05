@@ -7,6 +7,7 @@ import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbDocType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbMemoType;
+import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
@@ -32,7 +33,7 @@ public class WbEntryDbfReader {
         this.periodResolver = periodResolver;
     }
 
-    public WbEntry readWbEntryFromActDbfRecord(DbfRecord dbfRecord) {
+    public Optional<WbEntry> readWbEntryFromActDbfRecord(DbfRecord dbfRecord) {
         try {
             DecimalFormat vatRateFormat = new DecimalFormat("0.00");
             DecimalFormat moneyFormat = new DecimalFormat("0.00");
@@ -47,12 +48,18 @@ public class WbEntryDbfReader {
             BigDecimal amountEur = dbfRecord.getBigDecimal("AMOUNTEUR");
 
             String bookYear = dbfRecord.getString("BOOKYEAR");
+            if (bookYear == null) {
+                return Optional.empty();
+            }
             int bookYearInt = Integer.parseInt(bookYear);
             WbBookYearFull wbBookYearFull = periodResolver.findWbBookYearFull(bookYearInt);
 
             String period = dbfRecord.getString("PERIOD");
+            if (period == null) {
+                return Optional.empty();
+            }
             int periodIndex = Integer.parseInt(period);
-            periodResolver.findWbPeriod(wbBookYearFull, periodIndex);
+            WbPeriod wbPeriod = periodResolver.findWbPeriod(wbBookYearFull, periodIndex);
 
             String comment = dbfRecord.getString("COMMENT");
             String commentExt = dbfRecord.getString("COMMENTEXT");
@@ -113,6 +120,7 @@ public class WbEntryDbfReader {
             wbEntry.setAmountEur(amountEur);
             wbEntry.setBookYear(bookYear);
             wbEntry.setWbBookYearFull(wbBookYearFull);
+            wbEntry.setWbPeriod(wbPeriod);
             wbEntry.setComment(comment);
             wbEntry.setCommentExt(commentExt);
             wbEntry.setCurEurBase(curEurBase);
@@ -138,13 +146,13 @@ public class WbEntryDbfReader {
             wbEntry.setWbDbkType(wbDbkType);
             wbEntry.setWbDocType(wbDocType);
 
-            return wbEntry;
+            return Optional.of(wbEntry);
         } catch (ParseException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
     }
 
-    public Date getDate(DbfRecord dbfRecord, String fieldName) throws ParseException {
+    public Date getDate(DbfRecord dbfRecord, String fieldName) {
         String stringValueNullable = dbfRecord.getString(fieldName);
         return Optional.ofNullable(stringValueNullable)
                 .map(String::trim)
