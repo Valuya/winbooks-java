@@ -16,7 +16,7 @@ public class PeriodResolver {
 
     public void init(List<WbBookYearFull> wbBookYearFullList) {
         wbBookYearFullMap = wbBookYearFullList.stream()
-                .collect(Collectors.toMap(WbBookYearFull::getYearBeginInt, Function.identity()));
+                .collect(Collectors.toMap(WbBookYearFull::getIndex, Function.identity()));
 
         wbBookYearPeriodFullMap = new HashMap<>();
         for (WbBookYearFull wbBookYearFull : wbBookYearFullList) {
