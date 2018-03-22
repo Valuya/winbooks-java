@@ -199,6 +199,9 @@ public class WinbooksExtraService {
 
     public Optional<Path> resolvePathOptional(Path folderPath, String fileName) {
         try {
+            if (!Files.exists(folderPath)) {
+                return Optional.empty();
+            }
             return Files.find(folderPath, 1,
                     (path, attr) -> isSamePathName(path, fileName))
                     .findFirst();
@@ -249,6 +252,9 @@ public class WinbooksExtraService {
 
     private Optional<String> findBaseNameFromPathAndDefaultTableOptional(Path customerWinbooksPath) {
         try {
+            if (!Files.exists(customerWinbooksPath)) {
+                return Optional.empty();
+            }
             List<String> baseNameCandidates = Files.walk(customerWinbooksPath, 1)
                     .filter(this::isDefaultTablePath)
                     .map(this::getPrefixFromTablePath)
