@@ -19,7 +19,7 @@ public class WbAccount {
     private boolean inby1;
     private boolean inby2;
     private String accountCategoryStr;
-    private BigDecimal debCredFlt;
+    private String debCredFlt;
     private boolean toMatch;
     private String centralId;
     private boolean locked;
@@ -126,11 +126,11 @@ public class WbAccount {
         this.accountCategoryStr = accountCategoryStr;
     }
 
-    public BigDecimal getDebCredFlt() {
+    public String getDebCredFlt() {
         return debCredFlt;
     }
 
-    public void setDebCredFlt(BigDecimal debCredFlt) {
+    public void setDebCredFlt(String debCredFlt) {
         this.debCredFlt = debCredFlt;
     }
 
