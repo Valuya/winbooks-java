@@ -22,7 +22,10 @@ public class WbAccountDbfReader {
         boolean inby1 = dbfRecord.getBoolean("ISINBY1");
         boolean inby2 = dbfRecord.getBoolean("ISINBY2");
         String accountCategoryStr = dbfRecord.getString("CATEGORY");
-        BigDecimal debCredFlt = dbfRecord.getBigDecimal("DEBCREDFLT");
+        BigDecimal debCredFlt = getDbfFieldOptional(dbfRecord, "DEBCREDFLT")
+                .map(DbfField::getStringRepresentation)
+                .map(BigDecimal::new)
+                .orElse(null);
         Boolean toMatchNullable = dbfRecord.getBoolean("ISTOMATCH");
         boolean toMatch = Optional.ofNullable(toMatchNullable).orElse(false);
         String centralId = dbfRecord.getString("CENTRALID");
