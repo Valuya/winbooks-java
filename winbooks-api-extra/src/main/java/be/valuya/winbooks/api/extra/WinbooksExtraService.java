@@ -378,7 +378,8 @@ public class WinbooksExtraService {
 
             return Files.newInputStream(archivedTablePath);
         } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+            String message = MessageFormat.format("Erreur de lecture d''une table archivée : {0}", archivePathName);
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, message, exception);
         }
     }
 
