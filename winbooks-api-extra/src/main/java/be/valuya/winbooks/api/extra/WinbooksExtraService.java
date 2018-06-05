@@ -197,7 +197,7 @@ public class WinbooksExtraService {
                 });
     }
 
-    public Optional<Path> resolvePathOptional(Path folderPath, String fileName) {
+    public Optional<Path> resolveCaseInsensitivePathOptional(Path folderPath, String fileName) {
         try {
             if (!Files.exists(folderPath)) {
                 return Optional.empty();
@@ -402,9 +402,11 @@ public class WinbooksExtraService {
         String tableFileName = archiveFolderName + "_" + tableName + ".dbf";
 
         Path parentPath = unarchivedTablePath.getParent();
-        Path archiveFolderPath = parentPath.resolveSibling(archiveFolderName);
+        Path archiveFolderPath = resolveCaseInsensitivePathOptional(parentPath, archiveFolderName)
+                .orElseGet(() -> parentPath.resolveSibling(archiveFolderName)); // we return an unexisting path if needed, to at least show a relevant error
 
-        return archiveFolderPath.resolve(tableFileName);
+        return resolveCaseInsensitivePathOptional(archiveFolderPath, tableFileName)
+                .orElseGet(() -> archiveFolderPath.resolve(tableFileName));  // we return an unexisting path if needed, to at least show a relevant error
     }
 
     private boolean tableExists(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
@@ -413,9 +415,11 @@ public class WinbooksExtraService {
     }
 
     private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        Path basePath = winbooksFileConfiguration.getBaseFolderPath();
         String fileName = getTableFileName(winbooksFileConfiguration, tableName);
-        return resolvePathOptional(basePath, fileName);
+
+        Path basePath = winbooksFileConfiguration.getBaseFolderPath();
+
+        return resolveCaseInsensitivePathOptional(basePath, fileName);
     }
 
     private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
