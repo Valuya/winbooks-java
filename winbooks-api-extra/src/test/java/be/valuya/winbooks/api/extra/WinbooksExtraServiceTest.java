@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class WinbooksExtraServiceTest {
 
-    public static final String TEST_BASE_NAME = "Tradas";
+    public static final String TEST_BASE_NAME = "BD";
 
     private WinbooksExtraService winbooksExtraService;
     private WinbooksFileConfiguration winbooksFileConfiguration;
@@ -32,7 +32,6 @@ public class WinbooksExtraServiceTest {
     public void setup() {
         winbooksExtraService = new WinbooksExtraService();
 
-//        Path baseFolderPath = Paths.get("C:\\temp\\wbdata\\valuya");
         baseFolderPath = Paths.get("C:\\temp\\wbdata\\" + TEST_BASE_NAME);
 
         winbooksFileConfiguration = new WinbooksFileConfiguration();

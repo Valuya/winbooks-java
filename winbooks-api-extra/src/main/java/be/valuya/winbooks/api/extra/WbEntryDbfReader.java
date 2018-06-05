@@ -51,7 +51,7 @@ public class WbEntryDbfReader {
             if (bookYear == null) {
                 return Optional.empty();
             }
-            int bookYearInt = Integer.parseInt(bookYear);
+            int bookYearInt = parseBookYear(bookYear);
             WbBookYearFull wbBookYearFull = periodResolver.findWbBookYearFull(bookYearInt);
 
             String period = dbfRecord.getString("PERIOD");
@@ -150,6 +150,18 @@ public class WbEntryDbfReader {
         } catch (ParseException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
+    }
+
+    private int parseBookYear(String bookYear) {
+        char bookYearChar = bookYear.charAt(0);
+        if (bookYearChar >= '0' && bookYearChar <= '9') {
+            return bookYearChar - '0';
+        }
+        char upperCaseBookYearChar = Character.toUpperCase(bookYearChar);
+        if (upperCaseBookYearChar >= 'A' && upperCaseBookYearChar <= 'Z') {
+            return upperCaseBookYearChar - 'A' + 10;
+        }
+        throw new IllegalArgumentException("Unknown book year value: " + bookYear);
     }
 
     public Date getDate(DbfRecord dbfRecord, String fieldName) {
