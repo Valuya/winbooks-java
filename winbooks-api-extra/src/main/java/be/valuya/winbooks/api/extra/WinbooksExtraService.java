@@ -169,9 +169,17 @@ public class WinbooksExtraService {
     }
 
     public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
-        InputStream tableInputStream = getArchivedTableInputStream(winbooksFileConfiguration, tableName, archivePathName);
-        Charset charset = winbooksFileConfiguration.getCharset();
-        return DbfUtils.streamDbf(tableInputStream, charset);
+        try {
+            InputStream tableInputStream = getArchivedTableInputStream(winbooksFileConfiguration, tableName, archivePathName);
+            Charset charset = winbooksFileConfiguration.getCharset();
+            return DbfUtils.streamDbf(tableInputStream, charset);
+        } catch (WinbooksException winbooksException) {
+            WinbooksError winbooksError = winbooksException.getWinbooksError();
+            if (winbooksError == WinbooksError.DOSSIER_NOT_FOUND) {
+                return Stream.empty(); // TODO: at least report this!!!
+            }
+            throw winbooksException;
+        }
     }
 
     public Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
@@ -379,7 +387,7 @@ public class WinbooksExtraService {
             return Files.newInputStream(archivedTablePath);
         } catch (IOException exception) {
             String message = MessageFormat.format("Erreur de lecture d''une table archivée : {0}", archivePathName);
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, message, exception);
+            throw new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message, exception);
         }
     }
 

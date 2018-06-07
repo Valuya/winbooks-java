@@ -28,4 +28,8 @@ public class WinbooksException extends RuntimeException {
         super(cause);
         this.winbooksError = winbooksError;
     }
+
+    public WinbooksError getWinbooksError() {
+        return winbooksError;
+    }
 }
