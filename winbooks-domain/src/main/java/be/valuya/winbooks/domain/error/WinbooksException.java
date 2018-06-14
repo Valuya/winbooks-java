@@ -8,7 +8,7 @@ import be.valuya.winbooks.domain.error.WinbooksError;
  */
 public class WinbooksException extends RuntimeException {
 
-    public WinbooksError winbooksError;
+    private WinbooksError winbooksError;
 
     public WinbooksException(WinbooksError winbooksError) {
         this.winbooksError = winbooksError;

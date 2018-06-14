@@ -15,6 +15,7 @@ public class WinbooksFileConfiguration {
     private Path baseFolderPath;
     private String baseName;
     private Charset charset = StandardCharsets.ISO_8859_1;
+    private boolean ignoreMissingArchives = true;
 
     public String getUsername() {
         return username;
@@ -56,4 +57,11 @@ public class WinbooksFileConfiguration {
         this.charset = charset;
     }
 
+    public boolean isIgnoreMissingArchives() {
+        return ignoreMissingArchives;
+    }
+
+    public void setIgnoreMissingArchives(boolean ignoreMissingArchives) {
+        this.ignoreMissingArchives = ignoreMissingArchives;
+    }
 }

@@ -2,7 +2,10 @@ package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbDocOrderType;
+import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbEntry;
+import be.valuya.jbooks.model.WbPeriod;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,8 +15,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +33,8 @@ public class WinbooksExtraServiceTest {
     private WinbooksExtraService winbooksExtraService;
     private WinbooksFileConfiguration winbooksFileConfiguration;
     private Path baseFolderPath;
+
+    private Logger logger = Logger.getLogger(WinbooksExtraServiceTest.class.getName());
 
     @Before
     public void setup() {
@@ -61,32 +69,34 @@ public class WinbooksExtraServiceTest {
 
     @Test
     public void testFindDistinctDocOrder() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
                 .map(WbEntry::getWbDocOrderType)
                 .distinct()
-                .forEach(System.out::println);
+                .map(WbDocOrderType::name)
+                .forEach(logger::info);
     }
 
     @Test
     public void testFindDistinctDocStatus() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
                 .map(WbEntry::getDocStatus)
                 .distinct()
-                .forEach(System.out::println);
+                .map(WbDocStatus::name)
+                .forEach(logger::info);
     }
 
     @Test
     public void testAccountTotal() {
         Date startDate = new Date(116, Calendar.JANUARY, 01);
         Date endDate = new Date(117, Calendar.JANUARY, 01);
-        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration)
+        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
 //                .filter(wbEntry -> wbEntry.getComment() != null && wbEntry.getComment().equals("LOYER 20/06-19/07/2016"))
                 .filter(wbEntry -> wbEntry.getAccountGl() != null)
                 .filter(wbEntry -> wbEntry.getAccountGl().substring(0, 2).equals("70"))
-                .peek(System.out::println)
+                .peek(wbEntry -> logger.info(wbEntry.toString()))
                 .collect(
                         Collectors.groupingBy(
                                 wbEntry -> wbEntry.getAccountGl().substring(0, 2),
@@ -122,7 +132,32 @@ public class WinbooksExtraServiceTest {
         System.out.println(wbBookYearFull);
         wbBookYearFull.getPeriodList()
                 .stream()
-                .forEach(System.out::println);
+                .map(WbPeriod::toString)
+                .forEach(logger::info);
     }
 
+    private void logWinbooksEvent(WinbooksEvent winbooksEvent) {
+        WinbooksEventCategory winbooksEventCategory = winbooksEvent.getWinbooksEventCategory();
+        String message = winbooksEvent.getMessage();
+        List<Object> arguments = winbooksEvent.getArguments();
+        WinbooksEventType winbooksEventType = winbooksEventCategory.getWinbooksEventType();
+
+        Level level;
+        switch (winbooksEventType) {
+            case INFO:
+                level = Level.INFO;
+                break;
+            case WARNING:
+                level = Level.WARNING;
+                break;
+            case ERROR:
+                level = Level.SEVERE;
+                break;
+            default:
+                throw new AssertionError("Unknown winbooks event type: " + winbooksEventType);
+        }
+
+        Object[] argumentArray = arguments.toArray();
+        logger.log(level, message, argumentArray);
+    }
 }

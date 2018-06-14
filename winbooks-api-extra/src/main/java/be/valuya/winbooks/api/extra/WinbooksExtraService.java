@@ -57,7 +57,7 @@ public class WinbooksExtraService {
         }
     }
 
-    public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
+    public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration, WinbooksEventHandler winbooksEventHandler) {
         List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
                 .collect(Collectors.toList());
         List<WbBookYearFull> archivedBookYearFullList = wbBookYearFullList
@@ -74,7 +74,7 @@ public class WinbooksExtraService {
                 .stream()
                 .map(WbBookYearFull::getArchivePathNameOptional)
                 .flatMap(this::streamOptional)
-                .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName))
+                .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName, winbooksEventHandler))
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
                 .flatMap(this::streamOptional);
@@ -168,18 +168,12 @@ public class WinbooksExtraService {
                 .map(new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
     }
 
-    public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
-        try {
-            InputStream tableInputStream = getArchivedTableInputStream(winbooksFileConfiguration, tableName, archivePathName);
-            Charset charset = winbooksFileConfiguration.getCharset();
-            return DbfUtils.streamDbf(tableInputStream, charset);
-        } catch (WinbooksException winbooksException) {
-            WinbooksError winbooksError = winbooksException.getWinbooksError();
-            if (winbooksError == WinbooksError.DOSSIER_NOT_FOUND) {
-                return Stream.empty(); // TODO: at least report this!!!
-            }
-            throw winbooksException;
-        }
+    public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {
+        Charset charset = winbooksFileConfiguration.getCharset();
+
+        return getArchivedTableInputStreamOptional(winbooksFileConfiguration, tableName, archivePathName, winbooksEventHandler)
+                .map(tableInputStream -> DbfUtils.streamDbf(tableInputStream, charset))
+                .orElseGet(Stream::empty);
     }
 
     public Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
@@ -380,11 +374,20 @@ public class WinbooksExtraService {
         return periodDates;
     }
 
-    private InputStream getArchivedTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
+    private Optional<InputStream> getArchivedTableInputStreamOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {
         try {
             Path archivedTablePath = resolveArchivedTablePath(winbooksFileConfiguration, tableName, archivePathName);
 
-            return Files.newInputStream(archivedTablePath);
+            boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
+            if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
+                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archivedTablePath);
+                winbooksEventHandler.handleEvent(winbooksEvent);
+                return Optional.empty();
+            }
+
+            InputStream inputStream = Files.newInputStream(archivedTablePath);
+
+            return Optional.of(inputStream);
         } catch (IOException exception) {
             String message = MessageFormat.format("Erreur de lecture d''une table archivée : {0}", archivePathName);
             throw new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message, exception);
