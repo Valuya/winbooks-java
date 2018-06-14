@@ -380,7 +380,10 @@ public class WinbooksExtraService {
 
             boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
             if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
-                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archivedTablePath);
+                Path archiveFolderPath = archivedTablePath.getParent();
+                Path archiveFolderNamePath = archiveFolderPath.getFileName();
+                String archiveFolderName = archiveFolderNamePath.toString();
+                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archiveFolderName);
                 winbooksEventHandler.handleEvent(winbooksEvent);
                 return Optional.empty();
             }
@@ -389,7 +392,7 @@ public class WinbooksExtraService {
 
             return Optional.of(inputStream);
         } catch (IOException exception) {
-            String message = MessageFormat.format("Erreur de lecture d''une table archivée : {0}", archivePathName);
+            String message = MessageFormat.format("Error reading archived table: {0}", archivePathName);
             throw new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message, exception);
         }
     }
