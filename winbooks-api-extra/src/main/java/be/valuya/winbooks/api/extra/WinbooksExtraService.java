@@ -192,9 +192,12 @@ public class WinbooksExtraService {
         return resolveTablePathOptional(winbooksFileConfiguration, tableName)
                 .orElseThrow(() -> {
                     Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+                    Path relativeBaseFolderPath = baseFolderPath.getFileName();
+                    String folderName = relativeBaseFolderPath.toString();
+
                     String fileName = getTableFileName(winbooksFileConfiguration, tableName);
 
-                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, baseFolderPath.toString());
+                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, folderName);
                     return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
                 });
     }
