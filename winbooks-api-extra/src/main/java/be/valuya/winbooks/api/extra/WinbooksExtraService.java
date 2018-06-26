@@ -10,6 +10,7 @@ import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -17,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
-import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,12 +27,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class WinbooksExtraService {
+
+    private static Logger LOGGER = Logger.getLogger(WinbooksExtraService.class.getName());
 
     // some invalid String that Winbooks likes to have
     public static final String CHAR0_STRING = Character.toString((char) 0);
@@ -182,12 +185,6 @@ public class WinbooksExtraService {
         return DbfUtils.streamDbf(tableInputStream, charset);
     }
 
-    public void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        try (Stream<DbfRecord> streamTable = streamTable(winbooksFileConfiguration, tableName)) {
-            streamTable.forEach(this::dumpDbfRecord);
-        }
-    }
-
     public Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         return resolveTablePathOptional(winbooksFileConfiguration, tableName)
                 .orElseThrow(() -> {
@@ -202,23 +199,40 @@ public class WinbooksExtraService {
                 });
     }
 
-    public Optional<Path> resolveCaseInsensitivePathOptional(Path folderPath, String fileName) {
+    public Optional<Path> resolveCaseInsensitiveSibilingPathOptional(Path folderPath, String fileName) {
+        Path parentPath = folderPath.getParent();
+        return resolveCaseInsensitivePathOptional(parentPath, fileName);
+    }
+
+    public Optional<Path> resolveCaseInsensitivePathOptional(Path parentPath, String fileName) {
         try {
-            if (!Files.exists(folderPath)) {
+            boolean parentExists = Files.exists(parentPath);
+            if (!parentExists) {
                 return Optional.empty();
             }
-            return Files.find(folderPath, 1,
+            Path defaultPath = parentPath.resolve(fileName);
+            if (Files.exists(defaultPath)) {
+                return Optional.of(defaultPath);
+            }
+            if (fileName.endsWith(".dbf")) {
+                String capitalizedExtensionFileName = fileName.replace(".dbf", ".DBF");
+                Path capitalizedExtensionPath = parentPath.resolve(capitalizedExtensionFileName);
+                if (Files.exists(capitalizedExtensionPath)) {
+                    return Optional.of(capitalizedExtensionPath);
+                }
+            }
+
+            long time0 = System.currentTimeMillis();
+            Optional<Path> firstFoundPathOptional = Files.find(parentPath, 1,
                     (path, attr) -> isSamePathName(path, fileName))
                     .findFirst();
+            long timeAfterWalk = System.currentTimeMillis();
+            long deltaTimeWalk = timeAfterWalk - time0;
+            LOGGER.log(Level.FINE, "****FIND TIME (" + fileName + "): " + deltaTimeWalk);
+            return firstFoundPathOptional;
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
-    }
-
-    public Optional<String> findBaseNameOptional(Path customerWinbooksPath) {
-        return findBaseNameFromPathOptional(customerWinbooksPath)
-                .map(Optional::of)
-                .orElseGet(() -> findBaseNameFromPathAndDefaultTableOptional(customerWinbooksPath));
     }
 
     private boolean isCurrent(WbEntry wbEntry) {
@@ -255,59 +269,24 @@ public class WinbooksExtraService {
         return str == null || !str.startsWith(CHAR0_STRING);
     }
 
-    private Optional<String> findBaseNameFromPathAndDefaultTableOptional(Path customerWinbooksPath) {
-        try {
-            if (!Files.exists(customerWinbooksPath)) {
-                return Optional.empty();
-            }
-            List<String> baseNameCandidates = Files.walk(customerWinbooksPath, 1)
-                    .filter(this::isDefaultTablePath)
-                    .map(this::getPrefixFromTablePath)
-                    .collect(Collectors.toList());
-            if (baseNameCandidates.size() > 1) {
-                return Optional.empty();
-            }
-
-            return baseNameCandidates
-                    .stream()
-                    .findFirst();
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
-        }
+    public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path parentPath, String baseName) {
+        return resolveCaseInsensitivePathOptional(parentPath, baseName)
+                .flatMap(this::createWinbooksFileConfigurationOptional);
     }
 
-    private String getPrefixFromTablePath(Path path) {
-        Path fileNamePath = path.getFileName();
-        String fileName = fileNamePath.toString();
-
-        Matcher matcher = DEFAULT_TABLE_FILE_NAME_PATTERN.matcher(fileName);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException();
-        }
-        return matcher.group(1);
-    }
-
-    private boolean isDefaultTablePath(Path path) {
-        Path fileNamePath = path.getFileName();
-        String fileName = fileNamePath.toString();
-        Matcher matcher = DEFAULT_TABLE_FILE_NAME_PATTERN.matcher(fileName);
-
-        return matcher.matches();
-    }
-
-    private Optional<String> findBaseNameFromPathOptional(Path customerWinbooksPath) {
+    public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path customerWinbooksPath) {
         Path folderNamePath = customerWinbooksPath.getFileName();
-        String folderName = folderNamePath.toString();
+        String baseName = folderNamePath.toString();
 
         WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
-        winbooksFileConfiguration.setBaseName(folderName);
+        winbooksFileConfiguration.setBaseName(baseName);
 
         if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
             return Optional.empty();
         }
 
-        return Optional.of(folderName);
+        return Optional.of(winbooksFileConfiguration);
     }
 
     private boolean isSamePathName(Path path, String fileName) {
@@ -378,34 +357,44 @@ public class WinbooksExtraService {
     }
 
     private Optional<InputStream> getArchivedTableInputStreamOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {
-        try {
-            Path archivedTablePath = resolveArchivedTablePath(winbooksFileConfiguration, tableName, archivePathName);
+        Path archivedTablePath = resolveArchivedTablePath(winbooksFileConfiguration, tableName, archivePathName);
 
-            boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
-            if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
-                Path archiveFolderPath = archivedTablePath.getParent();
-                Path archiveFolderNamePath = archiveFolderPath.getFileName();
-                String archiveFolderName = archiveFolderNamePath.toString();
-                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archiveFolderName);
-                winbooksEventHandler.handleEvent(winbooksEvent);
-                return Optional.empty();
-            }
-
-            InputStream inputStream = Files.newInputStream(archivedTablePath);
-
-            return Optional.of(inputStream);
-        } catch (IOException exception) {
-            String message = MessageFormat.format("Error reading archived table: {0}", archivePathName);
-            throw new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message, exception);
+        boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
+        if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
+            Path archiveFolderPath = archivedTablePath.getParent();
+            Path archiveFolderNamePath = archiveFolderPath.getFileName();
+            String archiveFolderName = archiveFolderNamePath.toString();
+            WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archiveFolderName);
+            winbooksEventHandler.handleEvent(winbooksEvent);
+            return Optional.empty();
         }
+
+        InputStream inputStream = getFastInputStream(winbooksFileConfiguration, archivedTablePath);
+
+        return Optional.of(inputStream);
     }
 
     private InputStream getTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        Path path = resolveTablePath(winbooksFileConfiguration, tableName);
+        return getFastInputStream(winbooksFileConfiguration, path);
+    }
+
+    private InputStream getFastInputStream(WinbooksFileConfiguration winbooksFileConfiguration, Path path) {
         try {
-            Path path = resolveTablePath(winbooksFileConfiguration, tableName);
-            return Files.newInputStream(path);
+            if (!winbooksFileConfiguration.isReadTablesToMemory()) {
+                return Files.newInputStream(path);
+            }
+
+            long time0 = System.currentTimeMillis();
+            byte[] bytes = Files.readAllBytes(path);
+            long time1 = System.currentTimeMillis();
+            long deltaTime = time1 - time0;
+            LOGGER.log(Level.FINE, "READ TIME (" + path + "): " + deltaTime);
+
+            return new ByteArrayInputStream(bytes);
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+
         }
     }
 
@@ -414,13 +403,11 @@ public class WinbooksExtraService {
                 .replace("\\", "/")
                 .replaceAll("/$", "")
                 .replaceAll("^.*/", "");
-        Path unarchivedTablePath = resolveTablePath(winbooksFileConfiguration, tableName);
-
         String tableFileName = archiveFolderName + "_" + tableName + ".dbf";
 
-        Path parentPath = unarchivedTablePath.getParent();
-        Path archiveFolderPath = resolveCaseInsensitivePathOptional(parentPath, archiveFolderName)
-                .orElseGet(() -> parentPath.resolveSibling(archiveFolderName)); // we return an unexisting path if needed, to at least show a relevant error
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path archiveFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, archiveFolderName)
+                .orElseGet(() -> baseFolderPath.resolveSibling(archiveFolderName)); // we return an unexisting path if needed, to at least show a relevant error
 
         return resolveCaseInsensitivePathOptional(archiveFolderPath, tableFileName)
                 .orElseGet(() -> archiveFolderPath.resolve(tableFileName));  // we return an unexisting path if needed, to at least show a relevant error
@@ -443,17 +430,6 @@ public class WinbooksExtraService {
         String baseName = winbooksFileConfiguration.getBaseName();
         String tablePrefix = baseName.replace("_", "");
         return tablePrefix + "_" + tableName + DBF_EXTENSION;
-    }
-
-    private void dumpDbfRecord(DbfRecord dbfRecord) {
-        try {
-            int recordNumber = dbfRecord.getRecordNumber();
-            Map<String, Object> valueMap = dbfRecord.toMap();
-
-            System.out.println("Record #" + recordNumber + ": " + valueMap);
-        } catch (ParseException parseException) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
-        }
     }
 
 }

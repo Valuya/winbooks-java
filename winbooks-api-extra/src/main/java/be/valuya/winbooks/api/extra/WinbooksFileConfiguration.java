@@ -16,6 +16,7 @@ public class WinbooksFileConfiguration {
     private String baseName;
     private Charset charset = StandardCharsets.ISO_8859_1;
     private boolean ignoreMissingArchives = true;
+    private boolean readTablesToMemory;
 
     public String getUsername() {
         return username;
@@ -63,5 +64,13 @@ public class WinbooksFileConfiguration {
 
     public void setIgnoreMissingArchives(boolean ignoreMissingArchives) {
         this.ignoreMissingArchives = ignoreMissingArchives;
+    }
+
+    public boolean isReadTablesToMemory() {
+        return readTablesToMemory;
+    }
+
+    public void setReadTablesToMemory(boolean readTablesToMemory) {
+        this.readTablesToMemory = readTablesToMemory;
     }
 }
