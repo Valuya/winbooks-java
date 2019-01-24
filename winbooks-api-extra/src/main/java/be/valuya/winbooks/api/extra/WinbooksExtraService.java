@@ -167,8 +167,9 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+        WbBookYearFullDbfReader wbBookYearFullDbfReader = new WbBookYearFullDbfReader();
         return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)
-                .map(new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
+                .map(wbBookYearFullDbfReader::readWbBookYearFromSlbkyDbfRecord);
     }
 
     public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {

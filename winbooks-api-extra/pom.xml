@@ -41,6 +41,7 @@
                         <winbooks.test.ftp.ssl>${winbooks.test.ftp.ssl}</winbooks.test.ftp.ssl>
                         <winbooks.test.ftp.user.name>${winbooks.test.ftp.user.name}</winbooks.test.ftp.user.name>
                         <winbooks.test.ftp.password>${winbooks.test.ftp.password}</winbooks.test.ftp.password>
+                        <winbooks.test.folder>${winbooks.test.folder}</winbooks.test.folder>
                         <winbooks.test.base.name>${winbooks.test.base.name}</winbooks.test.base.name>
                     </systemPropertyVariables>
                 </configuration>
