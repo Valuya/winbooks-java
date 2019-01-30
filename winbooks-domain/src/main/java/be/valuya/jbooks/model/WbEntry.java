@@ -111,6 +111,7 @@ public class WbEntry implements Cloneable {
      * Winbooks doc: Informations pour le lettrage
      */
     private String matchNo;
+    private boolean matched;
     /**
      * Winbooks doc: Informations pour le lettrage
      */
@@ -344,6 +345,14 @@ public class WbEntry implements Cloneable {
 
     public void setMatchNo(String matchNo) {
         this.matchNo = matchNo;
+    }
+
+    public boolean isMatched() {
+        return matched;
+    }
+
+    public void setMatched(boolean matched) {
+        this.matched = matched;
     }
 
     public Date getOldDate() {

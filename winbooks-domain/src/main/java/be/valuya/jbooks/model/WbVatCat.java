@@ -1,5 +1,7 @@
 package be.valuya.jbooks.model;
 
+import java.util.stream.Stream;
+
 /**
  * Winbooks doc:<br/>
  * 1 : Liable<br/>
@@ -13,17 +15,31 @@ package be.valuya.jbooks.model;
  */
 public enum WbVatCat implements WbValue {
 
+    // I'm sorry to have to make a difference with INDETERMINATE, but it seems Winbooks is really using that value
+    UNKNOWN("0"),
     INDETERMINATE("1"),
     ZERO_RATED("2"),
     NON_LIABLE("3");
+
     private String value;
 
-    private WbVatCat(String value) {
+    WbVatCat(String value) {
         this.value = value;
     }
 
     @Override
     public String getValue() {
         return value;
+    }
+
+    public static WbVatCat fromCode(String code) {
+        return Stream.of(values())
+                .filter(wbVatCat -> wbVatCat.hasCode(code))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid vat cat: " + code));
+    }
+
+    public boolean hasCode(String code) {
+        return this.value.equals(code);
     }
 }

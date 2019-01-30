@@ -17,10 +17,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * @author Yannick
- */
-
 public class WinbooksExtraServiceLocalTest {
 
     private WinbooksExtraService winbooksExtraService;
@@ -53,6 +49,13 @@ public class WinbooksExtraServiceLocalTest {
     public void testStreamBookYears() {
         winbooksExtraService.streamBookYears(winbooksFileConfiguration)
                 .forEach(this::printBookYear);
+    }
+
+    @Test
+    public void testListCustomers() {
+        winbooksExtraService.streamCsf(winbooksFileConfiguration)
+                .map(WbClientSupplier::getName1)
+                .forEach(logger::info);
     }
 
     @Test
@@ -99,8 +102,8 @@ public class WinbooksExtraServiceLocalTest {
             BigDecimal accountTotal = monthTotalMap.values().stream()
                     .collect(Collectors.reducing(BigDecimal::add))
                     .orElse(BigDecimal.ZERO);
-            monthTotalMap.forEach((month, total) -> System.out.println("Account " + accountNumber + ", month " + month + ": " + total));
-            System.out.println("Account " + accountNumber + ": " + accountTotal);
+            monthTotalMap.forEach((month, total) -> logger.info("Account " + accountNumber + ", month " + month + ": " + total));
+            logger.info("Account " + accountNumber + ": " + accountTotal);
         });
     }
 
@@ -113,11 +116,11 @@ public class WinbooksExtraServiceLocalTest {
                 .findAny()
                 .orElseThrow(IllegalArgumentException::new);
 
-        System.out.println("Account: " + description);
+        logger.info("Account: " + description);
     }
 
     private void printBookYear(WbBookYearFull wbBookYearFull) {
-        System.out.println(wbBookYearFull);
+        logger.info(wbBookYearFull.toString());
         wbBookYearFull.getPeriodList()
                 .stream()
                 .map(WbPeriod::toString)
@@ -160,7 +163,7 @@ public class WinbooksExtraServiceLocalTest {
             int recordNumber = dbfRecord.getRecordNumber();
             Map<String, Object> valueMap = dbfRecord.toMap();
 
-            System.out.println("Record #" + recordNumber + ": " + valueMap);
+            logger.info("Record #" + recordNumber + ": " + valueMap);
         } catch (ParseException parseException) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
         }
