@@ -1,11 +1,6 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.WbAccount;
-import be.valuya.jbooks.model.WbBookYearFull;
-import be.valuya.jbooks.model.WbBookYearStatus;
-import be.valuya.jbooks.model.WbEntry;
-import be.valuya.jbooks.model.WbParam;
-import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.jbooks.model.*;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
@@ -43,6 +38,7 @@ public class WinbooksExtraService {
     private static final String BOOKYEARS_TABLE_NAME = "SLBKY";
     private static final String PERIOD_TABLE_NAME = "SLPRD";
     private static final String ACCOUNT_TABLE_NAME = "ACF";
+    private static final String CUSTOMER_SUPPLIER_TABLE_NAME = "CSF";
     private static final String DEFAULT_TABLE_FILE_NAME_REGEX = "^(.*)_" + ACCOUNT_TABLE_NAME + ".DBF$";
     private static final Pattern DEFAULT_TABLE_FILE_NAME_PATTERN = Pattern.compile(DEFAULT_TABLE_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
@@ -92,8 +88,15 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
+        WbAccountDbfReader wbAccountDbfReader = new WbAccountDbfReader();
         return streamTable(winbooksFileConfiguration, ACCOUNT_TABLE_NAME)
-                .map(new WbAccountDbfReader()::readWbAccountFromAcfDbfRecord);
+                .map(wbAccountDbfReader::readWbAccountFromAcfDbfRecord);
+    }
+
+    public Stream<WbClientSupplier> streamCsf(WinbooksFileConfiguration winbooksFileConfiguration) {
+        WbClientSupplierDbfReader wbClientSupplierDbfReader = new WbClientSupplierDbfReader();
+        return streamTable(winbooksFileConfiguration, CUSTOMER_SUPPLIER_TABLE_NAME)
+                .map(wbClientSupplierDbfReader::readWbClientSupplierFromAcfDbfRecord);
     }
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
@@ -167,8 +170,9 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+        WbBookYearFullDbfReader wbBookYearFullDbfReader = new WbBookYearFullDbfReader();
         return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)
-                .map(new WbBookYearFullDbfReader()::readWbBookYearFromSlbkyDbfRecord);
+                .map(wbBookYearFullDbfReader::readWbBookYearFromSlbkyDbfRecord);
     }
 
     public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {

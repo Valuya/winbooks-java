@@ -1,23 +1,12 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.WbBookYearFull;
-import be.valuya.jbooks.model.WbDbkType;
-import be.valuya.jbooks.model.WbDocOrderType;
-import be.valuya.jbooks.model.WbDocStatus;
-import be.valuya.jbooks.model.WbDocType;
-import be.valuya.jbooks.model.WbEntry;
-import be.valuya.jbooks.model.WbMemoType;
-import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.jbooks.model.*;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
 
 import java.math.BigDecimal;
-import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.text.*;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Optional;
@@ -89,6 +78,14 @@ public class WbEntryDbfReader {
                     .orElse(WbDocStatus.UNKNOWN);
 
             Date dueDate = getDate(dbfRecord, "DUEDATE");
+            Boolean matchedNullable = dbfRecord.getBoolean("ISMATCHED");
+            boolean matched = Optional.ofNullable(matchedNullable).orElse(false);
+            Boolean lockedNullable = dbfRecord.getBoolean("ISLOCKED");
+            boolean locked = Optional.ofNullable(lockedNullable).orElse(false);
+            Boolean importedNullable = dbfRecord.getBoolean("ISIMPORTED");
+            boolean imported = Optional.ofNullable(importedNullable).orElse(false);
+            Boolean tempNullable = dbfRecord.getBoolean("ISTEMP");
+            boolean temp = Optional.ofNullable(tempNullable).orElse(false);
             String matchNo = dbfRecord.getString("MATCHNO");
             String memotype = dbfRecord.getString("MEMOTYPE");
             WbMemoType memoType = Optional.ofNullable(memotype)
@@ -135,6 +132,10 @@ public class WbEntryDbfReader {
             wbEntry.setDocStatus(docStatus);
             wbEntry.setDueDate(dueDate);
             wbEntry.setMatchNo(matchNo);
+            wbEntry.setMatched(matched);
+            wbEntry.setLocked(locked);
+            wbEntry.setImported(imported);
+            wbEntry.setTemp(temp);
             wbEntry.setMemoType(memoType);
             wbEntry.setOldDate(oldDate);
             wbEntry.setPeriod(period);

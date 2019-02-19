@@ -40,7 +40,7 @@ import java.util.stream.Stream;
  * @author Yannick
  */
 
-public class WinbooksExtraServiceTest {
+public class WinbooksExtraServiceFtpTest {
 
     private static String FTP_USER_NAME;
     private static String FTP_PASSWORD;
@@ -54,7 +54,7 @@ public class WinbooksExtraServiceTest {
     private WinbooksExtraService winbooksExtraService;
     private WinbooksFileConfiguration winbooksFileConfiguration;
 
-    private Logger logger = Logger.getLogger(WinbooksExtraServiceTest.class.getName());
+    private Logger logger = Logger.getLogger(WinbooksExtraServiceFtpTest.class.getName());
 
     @BeforeClass
     public static void initFileSystem() throws IOException {
