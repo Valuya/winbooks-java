@@ -193,12 +193,11 @@ public class WinbooksExtraService {
         return resolveTablePathOptional(winbooksFileConfiguration, tableName)
                 .orElseThrow(() -> {
                     Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-                    Path relativeBaseFolderPath = baseFolderPath.getFileName();
-                    String folderName = relativeBaseFolderPath.toString();
+                    String baseFolderPathName = getPathFileNameString(baseFolderPath);
 
                     String fileName = getTableFileName(winbooksFileConfiguration, tableName);
 
-                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, folderName);
+                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, baseFolderPathName);
                     return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
                 });
     }
@@ -279,12 +278,16 @@ public class WinbooksExtraService {
     }
 
     public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path customerWinbooksPath) {
-        Path folderNamePath = customerWinbooksPath.getFileName();
-        String baseName = folderNamePath.toString();
+        Optional<String> customerWinbooksPathNameOptional = Optional.ofNullable(customerWinbooksPath.getFileName())
+                .map(Path::toString);
+        if (!customerWinbooksPathNameOptional.isPresent()) {
+            return Optional.empty();
+        }
+        String customerWinbooksPathName = customerWinbooksPathNameOptional.get();
 
         WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
-        winbooksFileConfiguration.setBaseName(baseName);
+        winbooksFileConfiguration.setBaseName(customerWinbooksPathName);
 
         if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
             return Optional.empty();
@@ -294,7 +297,10 @@ public class WinbooksExtraService {
     }
 
     private boolean isSamePathName(Path path, String fileName) {
-        return path.getFileName().toString().equalsIgnoreCase(fileName);
+        return Optional.ofNullable(path.getFileName())
+                .map(Path::toString)
+                .map(fileName::equalsIgnoreCase)
+                .orElse(false);
     }
 
     private List<WbPeriod> convertWinbooksPeriods(List<String> periodNames, List<LocalDate> periodDates, int durationInMonths) {
@@ -366,8 +372,7 @@ public class WinbooksExtraService {
         boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
         if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
             Path archiveFolderPath = archivedTablePath.getParent();
-            Path archiveFolderNamePath = archiveFolderPath.getFileName();
-            String archiveFolderName = archiveFolderNamePath.toString();
+            String archiveFolderName = getPathFileNameString(archiveFolderPath);
             WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archiveFolderName);
             winbooksEventHandler.handleEvent(winbooksEvent);
             return Optional.empty();
@@ -376,6 +381,12 @@ public class WinbooksExtraService {
         InputStream inputStream = getFastInputStream(winbooksFileConfiguration, archivedTablePath);
 
         return Optional.of(inputStream);
+    }
+
+    private String getPathFileNameString(Path archiveFolderPath) {
+        return Optional.ofNullable(archiveFolderPath.getFileName())
+                .map(Path::toString)
+                .orElse("");
     }
 
     private InputStream getTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
