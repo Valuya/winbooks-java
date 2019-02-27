@@ -1,5 +1,8 @@
 package be.valuya.jbooks.model;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -16,15 +19,21 @@ import java.util.stream.Stream;
 public enum WbVatCat implements WbValue {
 
     // I'm sorry to have to make a difference with INDETERMINATE, but it seems Winbooks is really using that value
-    UNKNOWN("0"),
+    UNKNOWN("0", "-"),
     INDETERMINATE("1"),
     ZERO_RATED("2"),
     NON_LIABLE("3");
 
+    private final List<String> allCodes;
     private String value;
 
-    WbVatCat(String value) {
+    WbVatCat(String value, String... otherCodeArray) {
         this.value = value;
+        List<String> otherCodes = Arrays.asList(otherCodeArray);
+        List<String> allCodes = new ArrayList<>();
+        allCodes.add(value);
+        allCodes.addAll(otherCodes);
+        this.allCodes = allCodes;
     }
 
     @Override
@@ -40,6 +49,6 @@ public enum WbVatCat implements WbValue {
     }
 
     public boolean hasCode(String code) {
-        return this.value.equals(code);
+        return allCodes.contains(code);
     }
 }
