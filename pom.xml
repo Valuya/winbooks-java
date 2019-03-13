@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>be.valuya.winbooks</groupId>
     <artifactId>winbooks-java-parent</artifactId>
-    <version>1.2.11-SNAPSHOT</version>
+    <version>1.2.11</version>
     <packaging>pom</packaging>
 
     <name>winbooks-java-parent</name>
