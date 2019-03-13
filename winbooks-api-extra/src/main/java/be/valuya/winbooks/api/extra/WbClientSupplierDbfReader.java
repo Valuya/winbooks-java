@@ -42,7 +42,8 @@ public class WbClientSupplierDbfReader {
             String currency = dbfRecord.getString("CURRENCY");
             String lastRemLev = dbfRecord.getString("LASTREMLEV");
             Date lastRemDat = dbfRecord.getDate("LASTREMDAT");
-            Boolean locked = dbfRecord.getBoolean("ISLOCKED");
+            Boolean lockedNullable = dbfRecord.getBoolean("ISLOCKED");
+            boolean locked = Optional.ofNullable(lockedNullable).orElse(false);
             String memoTypeNullable = dbfRecord.getString("MEMOTYPE");
             Boolean docNullable = dbfRecord.getBoolean("ISDOC");
             boolean doc = Optional.ofNullable(docNullable).orElse(false);
