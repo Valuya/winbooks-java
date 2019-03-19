@@ -591,6 +591,15 @@ public class WinbooksExtraService {
         if (!matcher.matches()) {
             return Optional.empty();
         }
+        FileTime lastModifiedFileTime = null;
+        try {
+            lastModifiedFileTime = Files.getLastModifiedTime(documentPath);
+        } catch (IOException e) {
+            // TODO: rethrow? ignore?
+            return Optional.empty();
+        }
+        LocalDateTime lastModifiedLocalTime = LocalDateTime.from(lastModifiedFileTime.toInstant());
+
         String actualDbkCode = matcher.group(1);
         String periodName = matcher.group(2);
         String name = matcher.group(3);
@@ -602,6 +611,9 @@ public class WinbooksExtraService {
         wbDocument.setName(name);
         wbDocument.setPageCount(pageNr);
         wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
+        wbDocument.setUpdatedTime(lastModifiedLocalTime);
+        // FIXME: creation time
+        wbDocument.setCreationTime(lastModifiedLocalTime);
 
         return Optional.of(wbDocument);
     }

@@ -1,5 +1,6 @@
 package be.valuya.jbooks.model;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class WbDocument {
@@ -8,6 +9,9 @@ public class WbDocument {
     private String dbCode;
     private WbPeriod wbPeriod;
     private int pageCount;
+    private LocalDateTime creationTime;
+    private LocalDateTime updatedTime;
+
 
     public String getName() {
         return name;
@@ -39,6 +43,22 @@ public class WbDocument {
 
     public void setPageCount(int pageCount) {
         this.pageCount = pageCount;
+    }
+
+    public LocalDateTime getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(LocalDateTime creationTime) {
+        this.creationTime = creationTime;
+    }
+
+    public LocalDateTime getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(LocalDateTime updatedTime) {
+        this.updatedTime = updatedTime;
     }
 
     @Override
