@@ -4,7 +4,7 @@
     <parent>
         <groupId>be.valuya.winbooks</groupId>
         <artifactId>winbooks-java-parent</artifactId>
-        <version>1.2.11-SNAPSHOT</version>
+        <version>1.2.12-SNAPSHOT</version>
     </parent>
     <artifactId>winbooks-domain</artifactId>
     <properties>
