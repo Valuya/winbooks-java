@@ -1,6 +1,13 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.*;
+import be.valuya.jbooks.model.WbAccount;
+import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbBookYearStatus;
+import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDocument;
+import be.valuya.jbooks.model.WbEntry;
+import be.valuya.jbooks.model.WbParam;
+import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
@@ -18,7 +25,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -471,8 +482,12 @@ public class WinbooksExtraService {
             return Stream.empty();
         }
 
-        return streamDirectory(bookYearDocumentFolderPath)
-                .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear));
+        try {
+            return Files.list(bookYearDocumentFolderPath)
+                    .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear));
+        } catch (IOException e) {
+            return Stream.empty();
+        }
     }
 
     private Stream<WbDocument> streamDbkBookYearDocuments(Path path, WbBookYearFull bookYear) {
@@ -483,8 +498,9 @@ public class WinbooksExtraService {
                 .map(documentPath -> getDocument(documentPath, bookYear, dbkCode))
                 .flatMap(this::streamOptional)
                 .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
-                .keySet()
-                .stream();
+                .values()
+                .stream()
+                .flatMap(this::streamOptional);
     }
 
 
