@@ -10,14 +10,19 @@ import be.valuya.jbooks.model.WbParam;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.pdf.PdfCopyFields;
+import com.lowagie.text.pdf.PdfReader;
 import net.iryndin.jdbf.core.DbfRecord;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -37,6 +42,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class WinbooksExtraService {
@@ -504,12 +510,78 @@ public class WinbooksExtraService {
     }
 
 
+    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path documentFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
+                .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error
+
+        WbBookYearFull wbBookYearFull = document.getWbPeriod().getWbBookYearFull();
+        String bookYearShortName = wbBookYearFull.getShortName();
+        String dbCode = document.getDbCode();
+        Path documentPagesFolderPath = documentFolderPath.resolve(bookYearShortName).resolve(dbCode);
+        return this.streamDocumentPagesPaths(document)
+                .map(documentPagesFolderPath::resolve)
+                .map(this::readAllBytes)
+                .reduce(this::mergePdf);
+    }
+
+    private byte[] readAllBytes(Path path) {
+        try {
+            return Files.readAllBytes(path);
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
+        }
+    }
+
+    private byte[] mergePdf(byte[] pdfData1, byte[] pdfData2) {
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+            PdfCopyFields pdfCopyFields = new PdfCopyFields(byteArrayOutputStream);
+
+            PdfReader pdfReader1 = new PdfReader(pdfData1);
+            pdfCopyFields.addDocument(pdfReader1);
+
+            PdfReader pdfReader2 = new PdfReader(pdfData2);
+            pdfCopyFields.addDocument(pdfReader2);
+
+            pdfCopyFields.close();
+            pdfReader1.close();
+            pdfReader2.close();
+
+            return byteArrayOutputStream.toByteArray();
+        } catch (IOException | DocumentException exception) {
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, "Erreur de traitement PDF.", exception);
+        }
+    }
+
     private Stream<Path> streamDirectory(Path path) {
         try {
             return Files.walk(path);
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
         }
+    }
+
+    private Stream<Path> streamDocumentPagesPaths(WbDocument document) {
+        int pageCount = document.getPageCount();
+
+        return IntStream.range(0, pageCount)
+                .mapToObj(pageIndex -> getDocumentPagePath(pageIndex, document));
+    }
+
+    private Path getDocumentPagePath(int pageIndex, WbDocument document) {
+        WbPeriod wbPeriod = document.getWbPeriod();
+        int wbPeriodIndex = wbPeriod.getIndex();
+        String periodIndexName = String.format("%02d", wbPeriodIndex);
+        String pageIndexName = String.format("%02d", pageIndex);
+
+        String fileName = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
+                document.getDbCode(),
+                periodIndexName,
+                document.getName(),
+                pageIndexName
+        );
+        return Paths.get(fileName);
     }
 
     private Optional<WbDocument> getDocument(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {

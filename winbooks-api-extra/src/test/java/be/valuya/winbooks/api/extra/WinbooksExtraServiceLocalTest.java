@@ -1,6 +1,13 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.*;
+import be.valuya.jbooks.model.WbAccount;
+import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDocOrderType;
+import be.valuya.jbooks.model.WbDocStatus;
+import be.valuya.jbooks.model.WbDocument;
+import be.valuya.jbooks.model.WbEntry;
+import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
@@ -8,11 +15,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -43,7 +55,21 @@ public class WinbooksExtraServiceLocalTest {
     public void testStreamDocuments() {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
         winbooksExtraService.streamDocuments(winbooksSession)
-        .forEach(this::printDocument);
+                .forEach(this::printDocument);
+    }
+
+    @Test
+    public void testStreamDocumentPageData() throws Exception {
+        WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
+        WbDocument testDoc = winbooksExtraService.streamDocuments(winbooksSession)
+                .filter(doc -> doc.getPageCount() > 1)
+                .findAny()
+                .orElseThrow(AssertionError::new);
+
+        this.printDocument(testDoc);
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDoc)
+                .orElseThrow(AssertionError::new);
+        Files.write(Paths.get("/tmp/test.pdf"), documentData);
     }
 
     @Test
