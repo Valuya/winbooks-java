@@ -1,13 +1,6 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.WbAccount;
-import be.valuya.jbooks.model.WbBookYearFull;
-import be.valuya.jbooks.model.WbBookYearStatus;
-import be.valuya.jbooks.model.WbClientSupplier;
-import be.valuya.jbooks.model.WbDocument;
-import be.valuya.jbooks.model.WbEntry;
-import be.valuya.jbooks.model.WbParam;
-import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.jbooks.model.*;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.DocumentException;
@@ -30,11 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -591,14 +580,7 @@ public class WinbooksExtraService {
         if (!matcher.matches()) {
             return Optional.empty();
         }
-        FileTime lastModifiedFileTime = null;
-        try {
-            lastModifiedFileTime = Files.getLastModifiedTime(documentPath);
-        } catch (IOException e) {
-            // TODO: rethrow? ignore?
-            return Optional.empty();
-        }
-        LocalDateTime lastModifiedLocalTime = LocalDateTime.ofInstant(lastModifiedFileTime.toInstant(), ZoneId.systemDefault());
+        LocalDateTime lastModifiedLocalTime = getLastModifiedTime(documentPath);
 
         String actualDbkCode = matcher.group(1);
         String periodName = matcher.group(2);
@@ -616,6 +598,16 @@ public class WinbooksExtraService {
         wbDocument.setCreationTime(lastModifiedLocalTime);
 
         return Optional.of(wbDocument);
+    }
+
+    private LocalDateTime getLastModifiedTime(Path documentPath) {
+        try {
+            FileTime lastModifiedTime = Files.getLastModifiedTime(documentPath);
+            Instant lastModifiedInstant = lastModifiedTime.toInstant();
+            return LocalDateTime.ofInstant(lastModifiedInstant, ZoneId.systemDefault());
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
+        }
     }
 
     private WbPeriod getWbPeriod(WbBookYearFull bookYear, String periodName) {
