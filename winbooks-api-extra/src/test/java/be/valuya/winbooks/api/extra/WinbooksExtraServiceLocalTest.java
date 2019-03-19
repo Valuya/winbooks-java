@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.*;
 import java.util.logging.Level;
@@ -36,6 +37,13 @@ public class WinbooksExtraServiceLocalTest {
         winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
+    }
+
+    @Test
+    public void testStreamDocuments() {
+        WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
+        winbooksExtraService.streamDocuments(winbooksSession)
+        .forEach(this::printDocument);
     }
 
     @Test
@@ -167,5 +175,15 @@ public class WinbooksExtraServiceLocalTest {
         } catch (ParseException parseException) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
         }
+    }
+
+    private void printDocument(WbDocument wbDocument) {
+        String name = wbDocument.getName();
+        String dbCode = wbDocument.getDbCode();
+        int pageCount = wbDocument.getPageCount();
+        WbPeriod wbPeriod = wbDocument.getWbPeriod();
+        String periodName = wbPeriod.getShortName();
+        String message = MessageFormat.format("Document: {0}, dbk = {1}, period = {2}, page count = {3}", name, dbCode, periodName, pageCount);
+        logger.info(message);
     }
 }

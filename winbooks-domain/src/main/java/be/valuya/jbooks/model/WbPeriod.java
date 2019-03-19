@@ -3,9 +3,6 @@ package be.valuya.jbooks.model;
 import java.time.LocalDate;
 import java.util.Objects;
 
-/**
- * @author Yannick Majoros <yannick@valuya.be>
- */
 public class WbPeriod {
 
     private WbBookYearFull wbBookYearFull;

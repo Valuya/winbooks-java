@@ -18,13 +18,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,6 +44,12 @@ public class WinbooksExtraService {
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
+
+    public WinbooksSession createSession(WinbooksFileConfiguration winbooksFileConfiguration) {
+        List<WbBookYearFull> bookYears = streamBookYears(winbooksFileConfiguration)
+                .collect(Collectors.toList());
+        return new WinbooksSession(winbooksFileConfiguration, bookYears);
+    }
 
     public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
         Path path = resolveTablePath(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME);
@@ -445,6 +451,85 @@ public class WinbooksExtraService {
         String baseName = winbooksFileConfiguration.getBaseName();
         String tablePrefix = baseName.replace("_", "");
         return tablePrefix + "_" + tableName + DBF_EXTENSION;
+    }
+
+    public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path documentFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
+                .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error
+        return winbooksSession.getBookYears()
+                .stream()
+                .flatMap(bookYear -> streamBookYearDocuments(documentFolderPath, bookYear));
+    }
+
+    private Stream<WbDocument> streamBookYearDocuments(Path documentFolderPath, WbBookYearFull bookYear) {
+        String bookYearName = bookYear.getShortName();
+        Path bookYearDocumentFolderPath = documentFolderPath.resolve(bookYearName);
+
+        if (!Files.exists(bookYearDocumentFolderPath)) {
+            return Stream.empty();
+        }
+
+        return streamDirectory(bookYearDocumentFolderPath)
+                .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear));
+    }
+
+    private Stream<WbDocument> streamDbkBookYearDocuments(Path path, WbBookYearFull bookYear) {
+        String dbkCode = path.getFileName().toString();
+
+        Collector<WbDocument, ?, Optional<WbDocument>> maxPageNrComparator = Collectors.maxBy(Comparator.comparing(WbDocument::getPageCount));
+        return streamDirectory(path)
+                .map(documentPath -> getDocument(documentPath, bookYear, dbkCode))
+                .flatMap(this::streamOptional)
+                .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
+                .keySet()
+                .stream();
+    }
+
+
+    private Stream<Path> streamDirectory(Path path) {
+        try {
+            return Files.walk(path);
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
+        }
+    }
+
+    private Optional<WbDocument> getDocument(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
+        String fileName = documentPath.getFileName().toString();
+        Pattern pattern = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
+        Matcher matcher = pattern.matcher(fileName);
+        if (!matcher.matches()) {
+            return Optional.empty();
+        }
+        String actualDbkCode = matcher.group(1);
+        String periodName = matcher.group(2);
+        String name = matcher.group(3);
+        String pageNrStr = matcher.group(4);
+        int pageNr = Integer.valueOf(pageNrStr);
+
+        WbDocument wbDocument = new WbDocument();
+        wbDocument.setDbCode(actualDbkCode);
+        wbDocument.setName(name);
+        wbDocument.setPageCount(pageNr);
+        wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
+
+        return Optional.of(wbDocument);
+    }
+
+    private WbPeriod getWbPeriod(WbBookYearFull bookYear, String periodName) {
+        return bookYear.getPeriodList()
+                .stream()
+                .filter(wbPeriod -> isPeriodIndex(wbPeriod, periodName))
+                .findFirst()
+                .orElseThrow(() -> new WinbooksException(WinbooksError.ILLEGAL_DOCUMENT, "Period not found: " + periodName));
+    }
+
+    private boolean isPeriodIndex(WbPeriod wbPeriod, String expectedPeriodName) {
+        int periodIndex = wbPeriod.getIndex();
+        String periodIndexName = String.format("%02d", periodIndex);
+        return expectedPeriodName.equals(periodIndexName);
     }
 
 }
