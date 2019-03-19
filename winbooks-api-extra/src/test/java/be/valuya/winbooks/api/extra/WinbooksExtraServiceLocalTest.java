@@ -69,7 +69,8 @@ public class WinbooksExtraServiceLocalTest {
         this.printDocument(testDoc);
         byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDoc)
                 .orElseThrow(AssertionError::new);
-        Files.write(Paths.get("/tmp/test.pdf"), documentData);
+        Path tempPath = Files.createTempFile("jbooks", ".pdf");
+        Files.write(tempPath, documentData);
     }
 
     @Test
