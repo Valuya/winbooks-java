@@ -61,8 +61,7 @@ public class WinbooksExtraService {
         Path path = resolveTablePath(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME);
         try {
             FileTime lastModifiedTime = Files.getLastModifiedTime(path);
-            Instant lastModificationInstant = lastModifiedTime.toInstant();
-            return LocalDateTime.ofInstant(lastModificationInstant, ZoneId.systemDefault());
+            return toLocalDateTime(lastModifiedTime);
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
@@ -603,8 +602,7 @@ public class WinbooksExtraService {
     private LocalDateTime getLastModifiedTime(Path documentPath) {
         try {
             FileTime lastModifiedTime = Files.getLastModifiedTime(documentPath);
-            Instant lastModifiedInstant = lastModifiedTime.toInstant();
-            return LocalDateTime.ofInstant(lastModifiedInstant, ZoneId.systemDefault());
+            return toLocalDateTime(lastModifiedTime);
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
         }
@@ -624,5 +622,10 @@ public class WinbooksExtraService {
         return expectedPeriodName.equals(periodIndexName);
     }
 
+
+    private LocalDateTime toLocalDateTime(FileTime fileTime) {
+        Instant lastModifiedInstant = fileTime.toInstant();
+        return LocalDateTime.ofInstant(lastModifiedInstant, ZoneId.systemDefault());
+    }
 }
 
