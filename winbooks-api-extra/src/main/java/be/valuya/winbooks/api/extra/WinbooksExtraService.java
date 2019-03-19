@@ -510,7 +510,8 @@ public class WinbooksExtraService {
     }
 
 
-    public Optional<byte[]> getDocumentData(WinbooksFileConfiguration winbooksFileConfiguration, WbDocument document) {
+    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
         Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         Path documentFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
                 .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error

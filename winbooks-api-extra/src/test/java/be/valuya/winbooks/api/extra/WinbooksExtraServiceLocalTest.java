@@ -67,7 +67,7 @@ public class WinbooksExtraServiceLocalTest {
                 .orElseThrow(AssertionError::new);
 
         this.printDocument(testDoc);
-        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession.getWinbooksFileConfiguration(), testDoc)
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDoc)
                 .orElseThrow(AssertionError::new);
         Files.write(Paths.get("/tmp/test.pdf"), documentData);
     }
