@@ -598,7 +598,7 @@ public class WinbooksExtraService {
             // TODO: rethrow? ignore?
             return Optional.empty();
         }
-        LocalDateTime lastModifiedLocalTime = LocalDateTime.from(lastModifiedFileTime.toInstant());
+        LocalDateTime lastModifiedLocalTime = LocalDateTime.ofInstant(lastModifiedFileTime.toInstant(), ZoneId.systemDefault());
 
         String actualDbkCode = matcher.group(1);
         String periodName = matcher.group(2);
