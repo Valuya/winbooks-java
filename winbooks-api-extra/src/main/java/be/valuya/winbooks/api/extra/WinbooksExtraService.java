@@ -460,9 +460,7 @@ public class WinbooksExtraService {
 
     public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession) {
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-        Path documentFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
-                .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error
+        Path documentFolderPath = getDocumentFolderPath(winbooksFileConfiguration);
         return winbooksSession.getBookYears()
                 .stream()
                 .flatMap(bookYear -> streamBookYearDocuments(documentFolderPath, bookYear));
@@ -489,7 +487,7 @@ public class WinbooksExtraService {
 
         Collector<WbDocument, ?, Optional<WbDocument>> maxPageNrComparator = Collectors.maxBy(Comparator.comparing(WbDocument::getPageCount));
         return streamDirectory(path)
-                .map(documentPath -> getDocument(documentPath, bookYear, dbkCode))
+                .map(documentPath -> getDocumentOptional(documentPath, bookYear, dbkCode))
                 .flatMap(this::streamOptional)
                 .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
                 .values()
@@ -506,7 +504,7 @@ public class WinbooksExtraService {
 
         WbBookYearFull wbBookYearFull = document.getWbPeriod().getWbBookYearFull();
         String bookYearShortName = wbBookYearFull.getShortName();
-        String dbCode = document.getDbCode();
+        String dbCode = document.getDbkCode();
         Path documentPagesFolderPath = documentFolderPath.resolve(bookYearShortName).resolve(dbCode);
         return this.streamDocumentPagesPaths(document)
                 .map(documentPagesFolderPath::resolve)
@@ -564,7 +562,7 @@ public class WinbooksExtraService {
         String pageIndexName = String.format("%02d", pageIndex);
 
         String fileName = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
-                document.getDbCode(),
+                document.getDbkCode(),
                 periodIndexName,
                 document.getName(),
                 pageIndexName
@@ -572,7 +570,7 @@ public class WinbooksExtraService {
         return Paths.get(fileName);
     }
 
-    private Optional<WbDocument> getDocument(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
+    private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
         String fileName = documentPath.getFileName().toString();
         Pattern pattern = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
         Matcher matcher = pattern.matcher(fileName);
@@ -588,7 +586,7 @@ public class WinbooksExtraService {
         int pageNr = Integer.valueOf(pageNrStr);
 
         WbDocument wbDocument = new WbDocument();
-        wbDocument.setDbCode(actualDbkCode);
+        wbDocument.setDbkCode(actualDbkCode);
         wbDocument.setName(name);
         wbDocument.setPageCount(pageNr);
         wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
@@ -597,6 +595,12 @@ public class WinbooksExtraService {
         wbDocument.setCreationTime(lastModifiedLocalTime);
 
         return Optional.of(wbDocument);
+    }
+
+    private Path getDocumentFolderPath(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        return resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
+                .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error
     }
 
     private LocalDateTime getLastModifiedTime(Path documentPath) {

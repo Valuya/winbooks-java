@@ -206,7 +206,7 @@ public class WinbooksExtraServiceLocalTest {
 
     private void printDocument(WbDocument wbDocument) {
         String name = wbDocument.getName();
-        String dbCode = wbDocument.getDbCode();
+        String dbCode = wbDocument.getDbkCode();
         int pageCount = wbDocument.getPageCount();
         WbPeriod wbPeriod = wbDocument.getWbPeriod();
         String periodName = wbPeriod.getShortName();

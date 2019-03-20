@@ -6,7 +6,7 @@ import java.util.Objects;
 public class WbDocument {
 
     private String name;
-    private String dbCode;
+    private String dbkCode;
     private WbPeriod wbPeriod;
     private int pageCount;
     private LocalDateTime creationTime;
@@ -21,12 +21,12 @@ public class WbDocument {
         this.name = name;
     }
 
-    public String getDbCode() {
-        return dbCode;
+    public String getDbkCode() {
+        return dbkCode;
     }
 
-    public void setDbCode(String dbCode) {
-        this.dbCode = dbCode;
+    public void setDbkCode(String dbkCode) {
+        this.dbkCode = dbkCode;
     }
 
     public WbPeriod getWbPeriod() {
@@ -71,12 +71,12 @@ public class WbDocument {
         }
         WbDocument that = (WbDocument) o;
         return name.equals(that.name) &&
-                dbCode.equals(that.dbCode) &&
+                dbkCode.equals(that.dbkCode) &&
                 wbPeriod.equals(that.wbPeriod);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, dbCode, wbPeriod);
+        return Objects.hash(name, dbkCode, wbPeriod);
     }
 }
