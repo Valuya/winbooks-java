@@ -1,7 +1,6 @@
 package be.valuya.winbooks.domain.error;
 
 /**
- *
  * @author Yannick Majoros <yannick@valuya.be>
  */
 public enum WinbooksError {
@@ -24,5 +23,6 @@ public enum WinbooksError {
     FATAL_ERRORS,
     RESOLUTION_UNSYCHRONIZED,
     NO_PERIOD,
-    PERIOD_DATE_MISMATCH;
+    PERIOD_DATE_MISMATCH,
+    ILLEGAL_DOCUMENT;
 }

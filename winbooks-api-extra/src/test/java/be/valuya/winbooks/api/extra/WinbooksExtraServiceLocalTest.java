@@ -1,17 +1,31 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.*;
+import be.valuya.jbooks.model.WbAccount;
+import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDocOrderType;
+import be.valuya.jbooks.model.WbDocStatus;
+import be.valuya.jbooks.model.WbDocument;
+import be.valuya.jbooks.model.WbEntry;
+import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
+import com.lowagie.text.pdf.PdfReader;
 import net.iryndin.jdbf.core.DbfRecord;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -36,6 +50,37 @@ public class WinbooksExtraServiceLocalTest {
         winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
+    }
+
+    @Test
+    public void testStreamDocuments() {
+        WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
+        winbooksExtraService.streamDocuments(winbooksSession)
+                .peek(this::checkDocument)
+                .forEach(this::printDocument);
+    }
+
+    @Test
+    public void testStreamDocumentPageData() throws Exception {
+        WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
+        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession)
+                .filter(doc -> doc.getPageCount() > 1)
+                .findAny()
+                .orElseThrow(AssertionError::new);
+
+        this.printDocument(testDocument);
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument)
+                .orElseThrow(AssertionError::new);
+
+        PdfReader pdfReader = new PdfReader(documentData);
+        int pageCount = pdfReader.getNumberOfPages();
+        int expectedPageCount = testDocument.getPageCount();
+        Assert.assertEquals(expectedPageCount, pageCount);
+        Map<?, ?> infoMap = pdfReader.getInfo();
+        infoMap.forEach((key, value) -> logger.info(key + " = " + value));
+        int fileLength = pdfReader.getFileLength();
+        Assert.assertFalse("File should not be empty", fileLength == 0);
+        logger.info("File size: " + fileLength);
     }
 
     @Test
@@ -119,6 +164,11 @@ public class WinbooksExtraServiceLocalTest {
         logger.info("Account: " + description);
     }
 
+    private void checkDocument(WbDocument wbDocument) {
+        int pageCount = wbDocument.getPageCount();
+        Assert.assertFalse(pageCount == 0);
+    }
+
     private void printBookYear(WbBookYearFull wbBookYearFull) {
         logger.info(wbBookYearFull.toString());
         wbBookYearFull.getPeriodList()
@@ -167,5 +217,15 @@ public class WinbooksExtraServiceLocalTest {
         } catch (ParseException parseException) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
         }
+    }
+
+    private void printDocument(WbDocument wbDocument) {
+        String name = wbDocument.getName();
+        String dbCode = wbDocument.getDbkCode();
+        int pageCount = wbDocument.getPageCount();
+        WbPeriod wbPeriod = wbDocument.getWbPeriod();
+        String periodName = wbPeriod.getShortName();
+        String message = MessageFormat.format("Document: {0}, dbk = {1}, period = {2}, page count = {3}", name, dbCode, periodName, pageCount);
+        logger.info(message);
     }
 }
