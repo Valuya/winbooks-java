@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -608,6 +609,7 @@ public class WinbooksExtraService {
             return Optional.empty();
         }
         LocalDateTime lastModifiedLocalTime = getLastModifiedTime(documentPath);
+        LocalDateTime creationTime = getCreationTime(documentPath);
 
         String actualDbkCode = matcher.group(1);
         String periodName = matcher.group(2);
@@ -621,8 +623,7 @@ public class WinbooksExtraService {
         wbDocument.setPageCount(pageNr);
         wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
         wbDocument.setUpdatedTime(lastModifiedLocalTime);
-        // FIXME: creation time
-        wbDocument.setCreationTime(lastModifiedLocalTime);
+        wbDocument.setCreationTime(creationTime);
 
         return Optional.of(wbDocument);
     }
@@ -637,6 +638,16 @@ public class WinbooksExtraService {
         try {
             FileTime lastModifiedTime = Files.getLastModifiedTime(documentPath);
             return toLocalDateTime(lastModifiedTime);
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
+        }
+    }
+
+    private LocalDateTime getCreationTime(Path documentPath) {
+        try {
+            BasicFileAttributes basicFileAttributes = Files.readAttributes(documentPath, BasicFileAttributes.class);
+            FileTime creationFileTime = basicFileAttributes.creationTime();
+            return toLocalDateTime(creationFileTime);
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
         }
