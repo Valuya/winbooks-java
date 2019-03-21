@@ -529,9 +529,7 @@ public class WinbooksExtraService {
 
     public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document) {
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-        Path documentFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
-                .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error
+        Path documentFolderPath = getDocumentFolderPath(winbooksFileConfiguration);
 
         WbBookYearFull wbBookYearFull = document.getWbPeriod().getWbBookYearFull();
         String bookYearShortName = wbBookYearFull.getShortName();
@@ -568,7 +566,7 @@ public class WinbooksExtraService {
 
             return byteArrayOutputStream.toByteArray();
         } catch (IOException | DocumentException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, "Erreur de traitement PDF.", exception);
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Error while processing pdf files", exception);
         }
     }
 
@@ -649,7 +647,7 @@ public class WinbooksExtraService {
                 .stream()
                 .filter(wbPeriod -> isPeriodIndex(wbPeriod, periodName))
                 .findFirst()
-                .orElseThrow(() -> new WinbooksException(WinbooksError.ILLEGAL_DOCUMENT, "Period not found: " + periodName));
+                .orElseThrow(() -> new WinbooksException(WinbooksError.NO_PERIOD, "Period not found: " + periodName));
     }
 
     private boolean isPeriodIndex(WbPeriod wbPeriod, String expectedPeriodName) {
