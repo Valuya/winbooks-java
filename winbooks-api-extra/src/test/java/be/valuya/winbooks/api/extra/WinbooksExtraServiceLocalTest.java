@@ -10,12 +10,13 @@ import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
+import com.lowagie.text.pdf.PdfReader;
 import net.iryndin.jdbf.core.DbfRecord;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
@@ -55,22 +56,31 @@ public class WinbooksExtraServiceLocalTest {
     public void testStreamDocuments() {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
         winbooksExtraService.streamDocuments(winbooksSession)
+                .peek(this::checkDocument)
                 .forEach(this::printDocument);
     }
 
     @Test
     public void testStreamDocumentPageData() throws Exception {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        WbDocument testDoc = winbooksExtraService.streamDocuments(winbooksSession)
+        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession)
                 .filter(doc -> doc.getPageCount() > 1)
                 .findAny()
                 .orElseThrow(AssertionError::new);
 
-        this.printDocument(testDoc);
-        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDoc)
+        this.printDocument(testDocument);
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument)
                 .orElseThrow(AssertionError::new);
-        Path tempPath = Files.createTempFile("jbooks", ".pdf");
-        Files.write(tempPath, documentData);
+
+        PdfReader pdfReader = new PdfReader(documentData);
+        int pageCount = pdfReader.getNumberOfPages();
+        int expectedPageCount = testDocument.getPageCount();
+        Assert.assertEquals(expectedPageCount, pageCount);
+        Map<?, ?> infoMap = pdfReader.getInfo();
+        infoMap.forEach((key, value) -> logger.info(key + " = " + value));
+        int fileLength = pdfReader.getFileLength();
+        Assert.assertFalse("File should not be empty", fileLength == 0);
+        logger.info("File size: " + fileLength);
     }
 
     @Test
@@ -152,6 +162,11 @@ public class WinbooksExtraServiceLocalTest {
                 .orElseThrow(IllegalArgumentException::new);
 
         logger.info("Account: " + description);
+    }
+
+    private void checkDocument(WbDocument wbDocument) {
+        int pageCount = wbDocument.getPageCount();
+        Assert.assertFalse(pageCount == 0);
     }
 
     private void printBookYear(WbBookYearFull wbBookYearFull) {

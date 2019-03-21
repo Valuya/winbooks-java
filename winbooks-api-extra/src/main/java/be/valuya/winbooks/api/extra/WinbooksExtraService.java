@@ -1,6 +1,13 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.jbooks.model.*;
+import be.valuya.jbooks.model.WbAccount;
+import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.jbooks.model.WbBookYearStatus;
+import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDocument;
+import be.valuya.jbooks.model.WbEntry;
+import be.valuya.jbooks.model.WbParam;
+import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.DocumentException;
@@ -23,7 +30,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -492,7 +503,27 @@ public class WinbooksExtraService {
                 .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
                 .values()
                 .stream()
-                .flatMap(this::streamOptional);
+                .flatMap(this::streamOptional)
+                .map(this::getPageNumberDocument);
+    }
+
+    private WbDocument getPageNumberDocument(WbDocument pageIndexDocument) {
+        WbPeriod wbPeriod = pageIndexDocument.getWbPeriod();
+        int pageCount = pageIndexDocument.getPageCount() + 1;
+        String name = pageIndexDocument.getName();
+        LocalDateTime creationTime = pageIndexDocument.getCreationTime();
+        LocalDateTime updatedTime = pageIndexDocument.getUpdatedTime();
+        String dbkCode = pageIndexDocument.getDbkCode();
+
+        WbDocument pageNumberDocument = new WbDocument();
+        pageNumberDocument.setWbPeriod(wbPeriod);
+        pageNumberDocument.setPageCount(pageCount);
+        pageNumberDocument.setName(name);
+        pageNumberDocument.setCreationTime(creationTime);
+        pageNumberDocument.setUpdatedTime(updatedTime);
+        pageNumberDocument.setDbkCode(dbkCode);
+
+        return pageNumberDocument;
     }
 
 
@@ -506,6 +537,7 @@ public class WinbooksExtraService {
         String bookYearShortName = wbBookYearFull.getShortName();
         String dbCode = document.getDbkCode();
         Path documentPagesFolderPath = documentFolderPath.resolve(bookYearShortName).resolve(dbCode);
+
         return this.streamDocumentPagesPaths(document)
                 .map(documentPagesFolderPath::resolve)
                 .map(this::readAllBytes)
