@@ -97,7 +97,7 @@ public class WbEntryDbfReader {
             String vatCode = dbfRecord.getString("VATCODE");
             String vatImput = dbfRecord.getString("VATIMPUT");
             BigDecimal vatTax = dbfRecord.getBigDecimal("VATTAX");
-            String dbkCode = dbfRecord.getString("ACCOUNTGL");
+            String dbkCode = dbfRecord.getString("DBKCODE");
             WbDbkType wbDbkType = Optional.ofNullable(dbfRecord.getBigDecimal("DBKTYPE"))
                     .map(BigDecimal::intValue)
                     .map(WbDbkType::fromCode)
