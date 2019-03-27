@@ -36,7 +36,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -48,6 +50,7 @@ import java.util.stream.Stream;
 
 public class WinbooksExtraService {
 
+    public static final Pattern BOOK_YEAR_DOCUMENGT_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
     private static Logger LOGGER = Logger.getLogger(WinbooksExtraService.class.getName());
 
     // some invalid String that Winbooks likes to have
@@ -226,7 +229,8 @@ public class WinbooksExtraService {
     }
 
     public Optional<Path> resolveCaseInsensitiveSibilingPathOptional(Path folderPath, String fileName) {
-        Path parentPath = folderPath.getParent();
+        Path parentPath = Optional.ofNullable(folderPath.getParent())
+                .orElseGet(() -> folderPath.getFileSystem().getPath("/"));
         return resolveCaseInsensitivePathOptional(parentPath, fileName);
     }
 
@@ -249,9 +253,7 @@ public class WinbooksExtraService {
             }
 
             long time0 = System.currentTimeMillis();
-            Optional<Path> firstFoundPathOptional = Files.find(parentPath, 1,
-                    (path, attr) -> isSamePathName(path, fileName))
-                    .findFirst();
+            Optional<Path> firstFoundPathOptional = findChildWithName(parentPath, fileName);
             long timeAfterWalk = System.currentTimeMillis();
             long deltaTimeWalk = timeAfterWalk - time0;
             LOGGER.log(Level.FINE, "****FIND TIME (" + fileName + "): " + deltaTimeWalk);
@@ -259,6 +261,11 @@ public class WinbooksExtraService {
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
+    }
+
+    private Optional<Path> findChildWithName(Path parentPath, String fileName) throws IOException {
+        BiPredicate<Path, BasicFileAttributes> predicate = (path, attr) -> isSamePathName(path, fileName);
+        return Files.find(parentPath, 1, predicate).findFirst();
     }
 
     private boolean isCurrent(WbEntry wbEntry) {
@@ -498,7 +505,7 @@ public class WinbooksExtraService {
         String dbkCode = path.getFileName().toString();
 
         Collector<WbDocument, ?, Optional<WbDocument>> maxPageNrComparator = Collectors.maxBy(Comparator.comparing(WbDocument::getPageCount));
-        return streamDirectory(path)
+        return streamDirectoryContent(path, this::isDocument)
                 .map(documentPath -> getDocumentOptional(documentPath, bookYear, dbkCode))
                 .flatMap(this::streamOptional)
                 .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
@@ -506,6 +513,12 @@ public class WinbooksExtraService {
                 .stream()
                 .flatMap(this::streamOptional)
                 .map(this::getPageNumberDocument);
+    }
+
+    private boolean isDocument(Path documentPath) {
+        String fileName = documentPath.getFileName().toString();
+        Matcher matcher = BOOK_YEAR_DOCUMENGT_PATTERN.matcher(fileName);
+        return matcher.matches();
     }
 
     private WbDocument getPageNumberDocument(WbDocument pageIndexDocument) {
@@ -571,11 +584,21 @@ public class WinbooksExtraService {
         }
     }
 
-    private Stream<Path> streamDirectory(Path path) {
+    private Stream<Path> streamDirectoryContent(Path path, Predicate<Path> acceptFilePredicate) {
         try {
-            return Files.walk(path);
+            return Files.find(path, Integer.MAX_VALUE,
+                    (visitedPath, attr) -> checkFindDirectoryPredicate(acceptFilePredicate, visitedPath, attr));
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
+        }
+    }
+
+    private boolean checkFindDirectoryPredicate(Predicate<Path> acceptPredicate, Path visitedPath, BasicFileAttributes attr) {
+        boolean directory = attr.isDirectory();
+        if (!directory) {
+            return acceptPredicate.test(visitedPath);
+        } else {
+            return false;
         }
     }
 
@@ -603,8 +626,7 @@ public class WinbooksExtraService {
 
     private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
         String fileName = documentPath.getFileName().toString();
-        Pattern pattern = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
-        Matcher matcher = pattern.matcher(fileName);
+        Matcher matcher = BOOK_YEAR_DOCUMENGT_PATTERN.matcher(fileName);
         if (!matcher.matches()) {
             return Optional.empty();
         }
@@ -627,6 +649,7 @@ public class WinbooksExtraService {
 
         return Optional.of(wbDocument);
     }
+
 
     private Path getDocumentFolderPath(WinbooksFileConfiguration winbooksFileConfiguration) {
         Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
