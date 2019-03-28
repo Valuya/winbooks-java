@@ -229,9 +229,8 @@ public class WinbooksExtraService {
     }
 
     public Optional<Path> resolveCaseInsensitiveSibilingPathOptional(Path folderPath, String fileName) {
-        Path parentPath = Optional.ofNullable(folderPath.getParent())
-                .orElseGet(() -> folderPath.getFileSystem().getPath("/"));
-        return resolveCaseInsensitivePathOptional(parentPath, fileName);
+        return Optional.ofNullable(folderPath.getParent())
+                .flatMap(parentPath -> resolveCaseInsensitivePathOptional(parentPath, fileName));
     }
 
     public Optional<Path> resolveCaseInsensitivePathOptional(Path parentPath, String fileName) {
