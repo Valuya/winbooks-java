@@ -8,6 +8,7 @@ import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbParam;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.winbooks.domain.error.ArchivePathNotFoundException;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.DocumentException;
@@ -442,7 +443,7 @@ public class WinbooksExtraService {
     }
 
     private Optional<Path> resolveArchivePath(Path baseFolderPath, WbBookYearFull wbBookYearFull) {
-        if (isArchived(wbBookYearFull)) {
+        if (!isArchived(wbBookYearFull)) {
             return Optional.empty();
         }
         String archiveFileName = wbBookYearFull.getArchivePathNameOptional().orElseThrow(IllegalStateException::new);
@@ -587,25 +588,30 @@ public class WinbooksExtraService {
 
         // Try to resolve the book year archive path (at /${basePath/../${bookyearArchivePathName})
         // Return this archive path - if any - and the base path
-        Path archivePathNullable = null;
-        if (resolveArchivePaths && isArchived(wbBookYearFull)) {
-            archivePathNullable = resolveArchivePath(baseFolderPath, wbBookYearFull).orElse(null);
-            if (archivePathNullable == null) {
-                String archivePathMessage = "No archive directory found for base path " + baseFolderPath.toString() + " and book year " + wbBookYearFull.toString();
-                if (ignoreMissingArchives) {
-                    WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, archivePathMessage + " - Ignoring as per configuration.");
-                    winbooksEventHandler.handleEvent(winbooksEvent);
-                    return Stream.empty();
-                } else {
-                    throw new WinbooksException(WinbooksError.BOOKYEAR_NOT_FOUND, archivePathMessage);
-                }
+        try {
+            if (resolveArchivePaths && isArchived(wbBookYearFull)) {
+                Path archivePath = resolveArchivePathOrThrow(baseFolderPath, wbBookYearFull);
+                return Stream.of(archivePath, baseFolderPath);
+            } else {
+                return Stream.of(baseFolderPath);
+            }
+        } catch (ArchivePathNotFoundException archivePathNotFoundException) {
+            if (ignoreMissingArchives) {
+                String message = MessageFormat.format("No archive found : {0} - Ignoring as per configuration.",
+                        archivePathNotFoundException.getMessage());
+                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, message);
+                winbooksEventHandler.handleEvent(winbooksEvent);
+                return Stream.empty();
+            } else {
+                throw new WinbooksException(WinbooksError.BOOKYEAR_NOT_FOUND, archivePathNotFoundException);
             }
         }
-
-        return Stream.of(archivePathNullable, baseFolderPath)
-                .filter(Objects::nonNull);
     }
 
+    private Path resolveArchivePathOrThrow(Path baseFolderPath, WbBookYearFull wbBookYearFull) throws ArchivePathNotFoundException {
+        return resolveArchivePath(baseFolderPath, wbBookYearFull)
+                .orElseThrow(() -> new ArchivePathNotFoundException(baseFolderPath, wbBookYearFull));
+    }
 
     private Path resolveDocumentDirectoryPath(Path baseDocumentPath, WbDocument document) {
         WbBookYearFull wbBookYearFull = document.getWbPeriod().getWbBookYearFull();
