@@ -37,6 +37,7 @@ public class WinbooksExtraServiceLocalTest {
     private WinbooksFileConfiguration winbooksFileConfiguration;
 
     private Logger logger = Logger.getLogger(WinbooksExtraServiceLocalTest.class.getName());
+    private WinbooksEventHandler eventHandler;
 
     @Before
     public void setup() {
@@ -50,12 +51,14 @@ public class WinbooksExtraServiceLocalTest {
         winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
+
+        eventHandler = winbooksEvent -> logger.info(winbooksEvent.getMessage());
     }
 
     @Test
     public void testStreamDocuments() {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        winbooksExtraService.streamDocuments(winbooksSession)
+        winbooksExtraService.streamDocuments(winbooksSession, eventHandler)
                 .peek(this::checkDocument)
                 .forEach(this::printDocument);
     }
@@ -63,13 +66,13 @@ public class WinbooksExtraServiceLocalTest {
     @Test
     public void testStreamDocumentPageData() throws Exception {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession)
+        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession, eventHandler)
                 .filter(doc -> doc.getPageCount() > 1)
                 .findAny()
                 .orElseThrow(AssertionError::new);
 
         this.printDocument(testDocument);
-        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument)
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument, eventHandler)
                 .orElseThrow(AssertionError::new);
 
         PdfReader pdfReader = new PdfReader(documentData);
