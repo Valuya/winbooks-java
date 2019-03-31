@@ -14,6 +14,7 @@ public class WinbooksFileConfiguration {
     private boolean ignoreMissingArchives = true;
     private boolean readTablesToMemory;
     private boolean resolveArchivePaths;
+    private boolean resolveCaseInsensitiveSiblings = true;
 
     public String getUsername() {
         return username;
@@ -77,5 +78,13 @@ public class WinbooksFileConfiguration {
 
     public void setResolveArchivePaths(boolean resolveArchivePaths) {
         this.resolveArchivePaths = resolveArchivePaths;
+    }
+
+    public boolean isResolveCaseInsensitiveSiblings() {
+        return resolveCaseInsensitiveSiblings;
+    }
+
+    public void setResolveCaseInsensitiveSiblings(boolean resolveCaseInsensitiveSiblings) {
+        this.resolveCaseInsensitiveSiblings = resolveCaseInsensitiveSiblings;
     }
 }
