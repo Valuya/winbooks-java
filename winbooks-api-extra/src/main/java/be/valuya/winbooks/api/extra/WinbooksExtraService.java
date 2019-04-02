@@ -8,6 +8,7 @@ import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbParam;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.winbooks.domain.error.ArchivePathNotFoundException;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.DocumentException;
@@ -22,7 +23,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -50,7 +51,7 @@ import java.util.stream.Stream;
 
 public class WinbooksExtraService {
 
-    public static final Pattern BOOK_YEAR_DOCUMENGT_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
+    public static final Pattern BOOK_YEAR_DOCUMENT_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
     private static Logger LOGGER = Logger.getLogger(WinbooksExtraService.class.getName());
 
     // some invalid String that Winbooks likes to have
@@ -228,43 +229,34 @@ public class WinbooksExtraService {
                 });
     }
 
-    public Optional<Path> resolveCaseInsensitiveSibilingPathOptional(Path folderPath, String fileName) {
-        Path parentPath = Optional.ofNullable(folderPath.getParent())
-                .orElseGet(() -> folderPath.getFileSystem().getPath("/"));
-        return resolveCaseInsensitivePathOptional(parentPath, fileName);
-    }
-
-    public Optional<Path> resolveCaseInsensitivePathOptional(Path parentPath, String fileName) {
-        try {
-            boolean parentExists = Files.exists(parentPath);
-            if (!parentExists) {
-                return Optional.empty();
+    public Optional<Path> resolvePath(Path parentPath, String fileName, boolean resolveCaseInsensitiveSiblings) {
+        if (parentPath == null) {
+            return Optional.empty();
+        }
+        Path defaultPath = parentPath.resolve(fileName);
+        if (Files.exists(defaultPath)) {
+            return Optional.of(defaultPath);
+        }
+        boolean parentExists = Files.exists(parentPath);
+        if (!parentExists) {
+            return Optional.empty();
+        }
+        if (fileName.endsWith(".dbf")) {
+            String capitalizedExtensionFileName = fileName.replace(".dbf", ".DBF");
+            Path capitalizedExtensionPath = parentPath.resolve(capitalizedExtensionFileName);
+            if (Files.exists(capitalizedExtensionPath)) {
+                return Optional.of(capitalizedExtensionPath);
             }
-            Path defaultPath = parentPath.resolve(fileName);
-            if (Files.exists(defaultPath)) {
-                return Optional.of(defaultPath);
-            }
-            if (fileName.endsWith(".dbf")) {
-                String capitalizedExtensionFileName = fileName.replace(".dbf", ".DBF");
-                Path capitalizedExtensionPath = parentPath.resolve(capitalizedExtensionFileName);
-                if (Files.exists(capitalizedExtensionPath)) {
-                    return Optional.of(capitalizedExtensionPath);
-                }
-            }
-
-            long time0 = System.currentTimeMillis();
-            Optional<Path> firstFoundPathOptional = findChildWithName(parentPath, fileName);
-            long timeAfterWalk = System.currentTimeMillis();
-            long deltaTimeWalk = timeAfterWalk - time0;
-            LOGGER.log(Level.FINE, "****FIND TIME (" + fileName + "): " + deltaTimeWalk);
-            return firstFoundPathOptional;
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+        }
+        if (resolveCaseInsensitiveSiblings) {
+            return this.resolveCaseInsensitivePathOptional(parentPath, fileName);
+        } else {
+            return Optional.empty();
         }
     }
 
-    private Optional<Path> findChildWithName(Path parentPath, String fileName) throws IOException {
-        BiPredicate<Path, BasicFileAttributes> predicate = (path, attr) -> isSamePathName(path, fileName);
+    private Optional<Path> findSiblingWithSameName(Path parentPath, String fileName) throws IOException {
+        BiPredicate<Path, BasicFileAttributes> predicate = (path, attr) -> isSamePathNameIgnoreCase(path, fileName);
         return Files.find(parentPath, 1, predicate).findFirst();
     }
 
@@ -303,7 +295,7 @@ public class WinbooksExtraService {
     }
 
     public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path parentPath, String baseName) {
-        return resolveCaseInsensitivePathOptional(parentPath, baseName)
+        return resolvePath(parentPath, baseName, true)
                 .flatMap(this::createWinbooksFileConfigurationOptional);
     }
 
@@ -318,6 +310,7 @@ public class WinbooksExtraService {
         WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
         winbooksFileConfiguration.setBaseName(customerWinbooksPathName);
+        winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
 
         if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
             return Optional.empty();
@@ -326,7 +319,21 @@ public class WinbooksExtraService {
         return Optional.of(winbooksFileConfiguration);
     }
 
-    private boolean isSamePathName(Path path, String fileName) {
+    private Optional<Path> resolveCaseInsensitivePathOptional(Path parentPath, String fileName) {
+        try {
+            // Find another child of parent with a similar name
+            long time0 = System.currentTimeMillis();
+            Optional<Path> firstFoundPathOptional = findSiblingWithSameName(parentPath, fileName);
+            long timeAfterWalk = System.currentTimeMillis();
+            long deltaTimeWalk = timeAfterWalk - time0;
+            LOGGER.log(Level.FINE, "****FIND TIME (" + fileName + "): " + deltaTimeWalk);
+            return firstFoundPathOptional;
+        } catch (IOException exception) {
+            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
+        }
+    }
+
+    private boolean isSamePathNameIgnoreCase(Path path, String fileName) {
         return Optional.ofNullable(path.getFileName())
                 .map(Path::toString)
                 .map(fileName::equalsIgnoreCase)
@@ -443,18 +450,38 @@ public class WinbooksExtraService {
         }
     }
 
-    private Path resolveArchivedTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
+    private Optional<Path> resolveArchivePath(Path baseFolderPath, WbBookYearFull wbBookYearFull, boolean resolveCaseInsensitiveSibling) {
+        if (!isArchived(wbBookYearFull)) {
+            return Optional.empty();
+        }
+        String archiveFileName = wbBookYearFull.getArchivePathNameOptional().orElseThrow(IllegalStateException::new);
+        return resolveArchivePath(baseFolderPath, archiveFileName, resolveCaseInsensitiveSibling);
+    }
+
+    private Optional<Path> resolveArchivePath(Path baseFolderPath, String archivePathName, boolean resolveCaseInsensitiveSiblings) {
         String archiveFolderName = archivePathName
                 .replace("\\", "/")
                 .replaceAll("/$", "")
                 .replaceAll("^.*/", "");
+        Path baseParent = baseFolderPath.getParent();
+        return Optional.ofNullable(baseParent)
+                .flatMap(parent -> this.resolvePath(parent, archiveFolderName, resolveCaseInsensitiveSiblings));
+    }
+
+    private Path resolveArchivedTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
+        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseParent = baseFolderPath.getParent();
+        Path archivePath = resolveArchivePath(baseFolderPath, archivePathName, resolveCaseInsensitiveSiblings)
+                .orElse(baseFolderPath.resolveSibling(archivePathName));
+        String archiveFolderName = archivePath.getFileName().toString();
+
+        // Look for archived table in /${archivePath}/${tableFileName}
+        Path archiveFolderPath = resolvePath(baseParent, archiveFolderName, resolveCaseInsensitiveSiblings)
+                .orElse(baseFolderPath.resolveSibling(archiveFolderName));
         String tableFileName = archiveFolderName + "_" + tableName + ".dbf";
 
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-        Path archiveFolderPath = resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, archiveFolderName)
-                .orElseGet(() -> baseFolderPath.resolveSibling(archiveFolderName)); // we return an unexisting path if needed, to at least show a relevant error
-
-        return resolveCaseInsensitivePathOptional(archiveFolderPath, tableFileName)
+        return resolvePath(archiveFolderPath, tableFileName, resolveCaseInsensitiveSiblings)
                 .orElseGet(() -> archiveFolderPath.resolve(tableFileName));  // we return an unexisting path if needed, to at least show a relevant error
     }
 
@@ -464,11 +491,12 @@ public class WinbooksExtraService {
     }
 
     private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        Path basePath = winbooksFileConfiguration.getBaseFolderPath();
+        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
         String fileName = getTableFileName(winbooksFileConfiguration, tableName);
 
-        Path basePath = winbooksFileConfiguration.getBaseFolderPath();
-
-        return resolveCaseInsensitivePathOptional(basePath, fileName);
+        // Look for table in /${base}/${fileName}
+        return resolvePath(basePath, fileName, resolveCaseInsensitiveSiblings);
     }
 
     private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
@@ -477,22 +505,41 @@ public class WinbooksExtraService {
         return tablePrefix + "_" + tableName + DBF_EXTENSION;
     }
 
-    public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession) {
-        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
-        Path documentFolderPath = getDocumentFolderPath(winbooksFileConfiguration);
+    public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession, WinbooksEventHandler winbooksEventHandler) {
         return winbooksSession.getBookYears()
                 .stream()
-                .flatMap(bookYear -> streamBookYearDocuments(documentFolderPath, bookYear));
+                .flatMap(bookYear -> streamBookYearDocuments(winbooksSession, bookYear, winbooksEventHandler));
     }
 
-    private Stream<WbDocument> streamBookYearDocuments(Path documentFolderPath, WbBookYearFull bookYear) {
+    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document, WinbooksEventHandler winbooksEventHandler) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+        WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
+
+        return this.streamBasePaths(winbooksFileConfiguration, bookYearFull, winbooksEventHandler)
+                .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
+                .map(documentsPath -> resolveDocumentDirectoryPath(documentsPath, document, resolveCaseInsensitiveSiblings))
+                .findFirst()
+                .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
+    }
+
+    private Stream<WbDocument> streamBookYearDocuments(WinbooksSession winbooksSession, WbBookYearFull bookYear, WinbooksEventHandler winbooksEventHandler) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
         String bookYearName = bookYear.getShortName();
-        Path bookYearDocumentFolderPath = documentFolderPath.resolve(bookYearName);
+        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
 
-        if (!Files.exists(bookYearDocumentFolderPath)) {
-            return Stream.empty();
-        }
+        // Stream documents at /${basePath}/${documentsPath}/${bookYearName}/<book year doc format>
+        List<Path> rootPathSources = streamBasePaths(winbooksFileConfiguration, bookYear, winbooksEventHandler)
+                .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
+                .map(documentsPath -> resolvePath(documentsPath, bookYearName, resolveCaseInsensitiveSiblings))
+                .flatMap(this::streamOptional)
+                .collect(Collectors.toList());
 
+        return rootPathSources.stream()
+                .flatMap(root -> this.streamBookYearDocuments(root, bookYear));
+    }
+
+    private Stream<WbDocument> streamBookYearDocuments(Path bookYearDocumentFolderPath, WbBookYearFull bookYear) {
         try {
             return Files.list(bookYearDocumentFolderPath)
                     .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear));
@@ -517,7 +564,7 @@ public class WinbooksExtraService {
 
     private boolean isDocument(Path documentPath) {
         String fileName = documentPath.getFileName().toString();
-        Matcher matcher = BOOK_YEAR_DOCUMENGT_PATTERN.matcher(fileName);
+        Matcher matcher = BOOK_YEAR_DOCUMENT_PATTERN.matcher(fileName);
         return matcher.matches();
     }
 
@@ -540,20 +587,58 @@ public class WinbooksExtraService {
         return pageNumberDocument;
     }
 
+    private Optional<byte[]> getDocumentAllPagesPdfContent(Path documentPath, WbDocument document, boolean resolveCaseInsitiveSiblings) {
+        return streamDocumentPagesPaths(documentPath, document, resolveCaseInsitiveSiblings)
+                .map(this::readAllBytes)
+                .reduce(this::mergePdf);
+    }
 
-    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document) {
-        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
-        Path documentFolderPath = getDocumentFolderPath(winbooksFileConfiguration);
+    private Stream<Path> streamBasePaths(WinbooksFileConfiguration fileConfiguration, WbBookYearFull wbBookYearFull, WinbooksEventHandler winbooksEventHandler) {
+        boolean resolveArchivePaths = fileConfiguration.isResolveArchivePaths();
+        boolean ignoreMissingArchives = fileConfiguration.isIgnoreMissingArchives();
+        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
 
+        Path baseFolderPath = fileConfiguration.getBaseFolderPath();
+
+        // Try to resolve the book year archive path (at /${basePath/../${bookyearArchivePathName})
+        // Return this archive path - if any - and the base path
+        try {
+            if (resolveArchivePaths && isArchived(wbBookYearFull)) {
+                Path archivePath = resolveArchivePathOrThrow(baseFolderPath, wbBookYearFull, resolveCaseInsensitiveSiblings);
+                return Stream.of(archivePath, baseFolderPath);
+            } else {
+                return Stream.of(baseFolderPath);
+            }
+        } catch (ArchivePathNotFoundException archivePathNotFoundException) {
+            if (ignoreMissingArchives) {
+                String message = MessageFormat.format("No archive found : {0} - Ignoring as per configuration.",
+                        archivePathNotFoundException.getMessage());
+                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, message);
+                winbooksEventHandler.handleEvent(winbooksEvent);
+                return Stream.empty();
+            } else {
+                throw new WinbooksException(WinbooksError.BOOKYEAR_NOT_FOUND, archivePathNotFoundException);
+            }
+        }
+    }
+
+    private Path resolveArchivePathOrThrow(Path baseFolderPath, WbBookYearFull wbBookYearFull, boolean resolveCaseInsitiveSiblings) throws ArchivePathNotFoundException {
+        return resolveArchivePath(baseFolderPath, wbBookYearFull, resolveCaseInsitiveSiblings)
+                .orElseThrow(() -> new ArchivePathNotFoundException(baseFolderPath, wbBookYearFull));
+    }
+
+    private Path resolveDocumentDirectoryPath(Path baseDocumentPath, WbDocument document, boolean resolveCaseInsensitiveSiblings) {
         WbBookYearFull wbBookYearFull = document.getWbPeriod().getWbBookYearFull();
         String bookYearShortName = wbBookYearFull.getShortName();
         String dbCode = document.getDbkCode();
-        Path documentPagesFolderPath = documentFolderPath.resolve(bookYearShortName).resolve(dbCode);
+        return resolvePath(baseDocumentPath, bookYearShortName, resolveCaseInsensitiveSiblings)
+                .flatMap(bookYearPath -> resolvePath(bookYearPath, dbCode, resolveCaseInsensitiveSiblings))
+                .orElseGet(() -> baseDocumentPath.resolve(bookYearShortName).resolve(dbCode));
+    }
 
-        return this.streamDocumentPagesPaths(document)
-                .map(documentPagesFolderPath::resolve)
-                .map(this::readAllBytes)
-                .reduce(this::mergePdf);
+    private Path resolveDocumentsPath(Path basePath, boolean resolveCaseInsensitiveSiblings) {
+        return resolvePath(basePath, "Document", resolveCaseInsensitiveSiblings)
+                .orElseGet(() -> basePath.resolve("Document"));
     }
 
     private byte[] readAllBytes(Path path) {
@@ -602,14 +687,16 @@ public class WinbooksExtraService {
         }
     }
 
-    private Stream<Path> streamDocumentPagesPaths(WbDocument document) {
+    private Stream<Path> streamDocumentPagesPaths(Path basePath, WbDocument document, boolean resolveCaseInsensitiveSiblings) {
         int pageCount = document.getPageCount();
 
         return IntStream.range(0, pageCount)
-                .mapToObj(pageIndex -> getDocumentPagePath(pageIndex, document));
+                .mapToObj(pageIndex -> getDocumentPagePathName(pageIndex, document))
+                .map(pagePathName -> resolvePath(basePath, pagePathName, resolveCaseInsensitiveSiblings))
+                .flatMap(this::streamOptional);
     }
 
-    private Path getDocumentPagePath(int pageIndex, WbDocument document) {
+    private String getDocumentPagePathName(int pageIndex, WbDocument document) {
         WbPeriod wbPeriod = document.getWbPeriod();
         int wbPeriodIndex = wbPeriod.getIndex();
         String periodIndexName = String.format("%02d", wbPeriodIndex);
@@ -621,12 +708,12 @@ public class WinbooksExtraService {
                 document.getName(),
                 pageIndexName
         );
-        return Paths.get(fileName);
+        return fileName;
     }
 
     private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
         String fileName = documentPath.getFileName().toString();
-        Matcher matcher = BOOK_YEAR_DOCUMENGT_PATTERN.matcher(fileName);
+        Matcher matcher = BOOK_YEAR_DOCUMENT_PATTERN.matcher(fileName);
         if (!matcher.matches()) {
             return Optional.empty();
         }
@@ -648,13 +735,6 @@ public class WinbooksExtraService {
         wbDocument.setCreationTime(creationTime);
 
         return Optional.of(wbDocument);
-    }
-
-
-    private Path getDocumentFolderPath(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-        return resolveCaseInsensitiveSibilingPathOptional(baseFolderPath, "Documents")
-                .orElseGet(() -> baseFolderPath.resolve("Document")); // we return an unexisting path if needed, to at least show a relevant error
     }
 
     private LocalDateTime getLastModifiedTime(Path documentPath) {

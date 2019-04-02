@@ -1,6 +1,7 @@
 package be.valuya.jbooks.model;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -16,8 +17,8 @@ public class WbBookYearFull {
     private LocalDate endDate;
     private int periods;
     private WbBookYearStatus wbBookYearStatus;
-    private Optional<String> archivePathNameOptional;
-    private List<WbPeriod> periodList;
+    private Optional<String> archivePathNameOptional = Optional.empty();
+    private List<WbPeriod> periodList = new ArrayList<>();
 
     public int getIndex() {
         return index;

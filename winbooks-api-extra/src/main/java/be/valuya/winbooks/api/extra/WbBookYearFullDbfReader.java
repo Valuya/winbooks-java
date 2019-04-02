@@ -22,7 +22,7 @@ public class WbBookYearFullDbfReader {
     public WbBookYearFull readWbBookYearFromSlbkyDbfRecord(DbfRecord dbfRecord) {
         try {
             String bookYearStr = dbfRecord.getString("BOOKYEAR");
-            int bookYearIndex = Integer.valueOf(bookYearStr);
+            int bookYearIndex = readIndex(bookYearStr);
 
             String periodsStr = dbfRecord.getString("PERIODS");
             int periods = Integer.valueOf(periodsStr);
@@ -54,6 +54,11 @@ public class WbBookYearFullDbfReader {
         } catch (ParseException parseException) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, parseException);
         }
+    }
+
+    public Integer readIndex(String bookYearStr) {
+        int index = Integer.parseInt(bookYearStr, 16);
+        return index;
     }
 
     private int readYearField(DbfRecord dbfRecord, String fieldName) {

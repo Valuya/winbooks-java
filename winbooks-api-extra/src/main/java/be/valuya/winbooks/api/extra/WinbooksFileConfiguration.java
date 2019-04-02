@@ -13,6 +13,8 @@ public class WinbooksFileConfiguration {
     private Charset charset = StandardCharsets.ISO_8859_1;
     private boolean ignoreMissingArchives = true;
     private boolean readTablesToMemory;
+    private boolean resolveArchivePaths;
+    private boolean resolveCaseInsensitiveSiblings = true;
 
     public String getUsername() {
         return username;
@@ -68,5 +70,21 @@ public class WinbooksFileConfiguration {
 
     public void setReadTablesToMemory(boolean readTablesToMemory) {
         this.readTablesToMemory = readTablesToMemory;
+    }
+
+    public boolean isResolveArchivePaths() {
+        return resolveArchivePaths;
+    }
+
+    public void setResolveArchivePaths(boolean resolveArchivePaths) {
+        this.resolveArchivePaths = resolveArchivePaths;
+    }
+
+    public boolean isResolveCaseInsensitiveSiblings() {
+        return resolveCaseInsensitiveSiblings;
+    }
+
+    public void setResolveCaseInsensitiveSiblings(boolean resolveCaseInsensitiveSiblings) {
+        this.resolveCaseInsensitiveSiblings = resolveCaseInsensitiveSiblings;
     }
 }
