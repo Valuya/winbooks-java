@@ -83,6 +83,17 @@ public class WinbooksExtraService {
         }
     }
 
+    public Stream<WbEntry> streamAct(WinbooksSession winbooksSession) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        return streamAct(winbooksFileConfiguration, new WinbooksEventHandler() {
+            @Override
+            public void handleEvent(WinbooksEvent winbooksEvent) {
+
+            }
+        });
+
+    }
+
     public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration, WinbooksEventHandler winbooksEventHandler) {
         List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
                 .collect(Collectors.toList());
@@ -114,16 +125,34 @@ public class WinbooksExtraService {
         return Stream.concat(archivedEntryStream, unarchivedEntryStream);
     }
 
+    public Stream<WbAccount> streamAcf(WinbooksSession winbooksSession) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        return streamAcf(winbooksFileConfiguration);
+
+    }
+
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
         WbAccountDbfReader wbAccountDbfReader = new WbAccountDbfReader();
         return streamTable(winbooksFileConfiguration, ACCOUNT_TABLE_NAME)
                 .map(wbAccountDbfReader::readWbAccountFromAcfDbfRecord);
     }
 
+    public Stream<WbClientSupplier> streamCsf(WinbooksSession winbooksSession) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        return streamCsf(winbooksFileConfiguration);
+
+    }
+
     public Stream<WbClientSupplier> streamCsf(WinbooksFileConfiguration winbooksFileConfiguration) {
         WbClientSupplierDbfReader wbClientSupplierDbfReader = new WbClientSupplierDbfReader();
         return streamTable(winbooksFileConfiguration, CUSTOMER_SUPPLIER_TABLE_NAME)
                 .map(wbClientSupplierDbfReader::readWbClientSupplierFromAcfDbfRecord);
+    }
+
+    public Stream<WbBookYearFull> streamBookYears(WinbooksSession winbooksSession) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+        return streamBookYears(winbooksFileConfiguration);
+
     }
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {

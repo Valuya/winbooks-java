@@ -85,5 +85,12 @@
             <version>1.3-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+
+
+        <dependency>
+            <groupId>be.valuya.accountingtroll</groupId>
+            <artifactId>accountingtroll</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>

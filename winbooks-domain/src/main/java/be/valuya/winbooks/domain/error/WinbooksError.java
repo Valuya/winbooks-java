@@ -6,6 +6,7 @@ package be.valuya.winbooks.domain.error;
 public enum WinbooksError {
 
     UNKNOWN_ERROR,
+    INVALID_PARAMETER,
     USER_FILE_ERROR,
     NOT_INITIALIZED,
     NOT_LOGGED_IN,
