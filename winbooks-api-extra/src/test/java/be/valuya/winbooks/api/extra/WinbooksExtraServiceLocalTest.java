@@ -106,6 +106,15 @@ public class WinbooksExtraServiceLocalTest {
                 .forEach(logger::info);
     }
 
+
+    @Test
+    public void testStreamEntries() {
+        winbooksExtraService.streamAct(winbooksFileConfiguration,  this::logWinbooksEvent)
+                .map(WbEntry::getVatTax)
+                .map(BigDecimal::toPlainString)
+                .forEach(logger::info);
+    }
+
     @Test
     public void testFindDistinctDocOrder() {
         winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)

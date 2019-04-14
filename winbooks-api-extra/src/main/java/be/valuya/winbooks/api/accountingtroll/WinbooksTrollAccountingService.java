@@ -162,7 +162,7 @@ public class WinbooksTrollAccountingService implements AccountingService {
         String lang = wbSupplier.getLang();
 
         ThirdParty thirdParty = new ThirdParty();
-        thirdParty.setNumber(number);
+        thirdParty.setId(number);
         thirdParty.setType(thirdPartyType);
         thirdParty.setFullName(fullName);
         thirdParty.setAddress(address);
@@ -188,7 +188,7 @@ public class WinbooksTrollAccountingService implements AccountingService {
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "No period matching " + periodName + " found for book year " + bookYear));
 
         BigDecimal amount = wbEntry.getAmountEur();
-        BigDecimal vatBase = wbEntry.getVatBase();
+        BigDecimal vatBase = wbEntry.getVatTax();
         BigDecimal currAmount = wbEntry.getCurrAmount(); // FIXME balance has to be computed?
 
         String accountFromNumber = wbEntry.getAccountGl();
@@ -197,7 +197,7 @@ public class WinbooksTrollAccountingService implements AccountingService {
 
         String accountToNumber = wbEntry.getAccountRp();
         Optional<ThirdParty> thirdPartyOptional = Optional.ofNullable(accountToNumber)
-                .flatMap(thirdPartyNumber -> sessionCache.findThirdPartyByNumber(this, thirdPartyNumber));
+                .flatMap(thirdPartyNumber -> sessionCache.findThirdPartyById(this, thirdPartyNumber));
 
         Date entryDate = wbEntry.getDate();
         Date documentDate = wbEntry.getDateDoc();
