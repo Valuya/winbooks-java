@@ -1,23 +1,23 @@
 package be.valuya.winbooks.api.accountingtroll;
 
+import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.WinbooksFileConfiguration;
-import be.valuya.winbooks.api.extra.WinbooksSession;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class WinbooksTrollAccountingServiceTest {
+public class WinbooksTrollAccountingManagerTest {
 
 
-    private WinbooksTrollAccountingService trollSrervice;
-    private WinbooksSession session;
+    private WinbooksTrollAccountingManager trollSrervice;
+    private AccountingEventListener eventListener;
 
     @Before
     public void setup() {
-        trollSrervice = new WinbooksTrollAccountingService();
+        trollSrervice = new WinbooksTrollAccountingManager();
         WinbooksExtraService extraService = new WinbooksExtraService();
 
         String baseFolderLocation = System.getProperty("winbooks.test.folder");
@@ -29,7 +29,7 @@ public class WinbooksTrollAccountingServiceTest {
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
 
-        session = extraService.createSession(winbooksFileConfiguration);
+        eventListener = new TestAccountingEventListener();
 
 //        eventHandler = winbooksEvent -> logger.info(winbooksEvent.getMessage());
     }
@@ -37,31 +37,31 @@ public class WinbooksTrollAccountingServiceTest {
 
     @Test
     public void testStreamAccounts() {
-        trollSrervice.streamAccounts(session)
+        trollSrervice.streamAccounts()
                 .forEach(this::debug);
     }
 
     @Test
     public void testStreamBookYears() {
-        trollSrervice.streamBookYears(session)
+        trollSrervice.streamBookYears()
                 .forEach(this::debug);
     }
 
     @Test
     public void testStreamPeriods() {
-        trollSrervice.streamPeriods(session)
+        trollSrervice.streamPeriods()
                 .forEach(this::debug);
     }
 
     @Test
     public void testStreamThirdParties() {
-        trollSrervice.streamThirdParties(session)
+        trollSrervice.streamThirdParties()
                 .forEach(this::debug);
     }
 
     @Test
     public void testStreamEntries() {
-        trollSrervice.streamAccountingEntries(session)
+        trollSrervice.streamAccountingEntries(eventListener)
                 .forEach(this::debug);
     }
 

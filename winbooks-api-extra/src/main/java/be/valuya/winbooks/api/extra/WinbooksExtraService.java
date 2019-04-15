@@ -1,5 +1,7 @@
 package be.valuya.winbooks.api.extra;
 
+import be.valuya.accountingtroll.AccountingEventListener;
+import be.valuya.accountingtroll.event.ArchiveNotFoundIgnoredEvent;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbBookYearStatus;
@@ -83,18 +85,13 @@ public class WinbooksExtraService {
         }
     }
 
-    public Stream<WbEntry> streamAct(WinbooksSession winbooksSession) {
+    public Stream<WbEntry> streamAct(WinbooksSession winbooksSession, AccountingEventListener eventListener) {
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
-        return streamAct(winbooksFileConfiguration, new WinbooksEventHandler() {
-            @Override
-            public void handleEvent(WinbooksEvent winbooksEvent) {
-
-            }
-        });
+        return streamAct(winbooksFileConfiguration, eventListener);
 
     }
 
-    public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration, WinbooksEventHandler winbooksEventHandler) {
+    public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration, AccountingEventListener eventListener) {
         List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
                 .collect(Collectors.toList());
         List<WbBookYearFull> archivedBookYearFullList = wbBookYearFullList
@@ -111,7 +108,7 @@ public class WinbooksExtraService {
                 .stream()
                 .map(WbBookYearFull::getArchivePathNameOptional)
                 .flatMap(this::streamOptional)
-                .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName, winbooksEventHandler))
+                .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName, eventListener))
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
                 .flatMap(this::streamOptional);
@@ -231,10 +228,12 @@ public class WinbooksExtraService {
                 .map(wbBookYearFullDbfReader::readWbBookYearFromSlbkyDbfRecord);
     }
 
-    public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {
+    public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration,
+                                                 String tableName, String archivePathName,
+                                                 AccountingEventListener eventListener) {
         Charset charset = winbooksFileConfiguration.getCharset();
 
-        return getArchivedTableInputStreamOptional(winbooksFileConfiguration, tableName, archivePathName, winbooksEventHandler)
+        return getArchivedTableInputStreamOptional(winbooksFileConfiguration, tableName, archivePathName, eventListener)
                 .map(tableInputStream -> DbfUtils.streamDbf(tableInputStream, charset))
                 .orElseGet(Stream::empty);
     }
@@ -432,15 +431,18 @@ public class WinbooksExtraService {
         return periodDates;
     }
 
-    private Optional<InputStream> getArchivedTableInputStreamOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName, WinbooksEventHandler winbooksEventHandler) {
+    private Optional<InputStream> getArchivedTableInputStreamOptional(WinbooksFileConfiguration winbooksFileConfiguration,
+                                                                      String tableName, String archivePathName,
+                                                                      AccountingEventListener eventListener) {
         Path archivedTablePath = resolveArchivedTablePath(winbooksFileConfiguration, tableName, archivePathName);
 
         boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
         if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
             Path archiveFolderPath = archivedTablePath.getParent();
-            String archiveFolderName = getPathFileNameString(archiveFolderPath);
-            WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, "Archive not found at expected path {0}. Ignoring as per configuration.", archiveFolderName);
-            winbooksEventHandler.handleEvent(winbooksEvent);
+            String archiveName = getPathFileNameString(archiveFolderPath);
+            ArchiveNotFoundIgnoredEvent ignoredEvent = new ArchiveNotFoundIgnoredEvent(archiveFolderPath);
+            ignoredEvent.setFileNameOptional(Optional.of(archiveName));
+            eventListener.handleArchiveNotFoundIgnoredEvent(ignoredEvent);
             return Optional.empty();
         }
 
@@ -534,13 +536,13 @@ public class WinbooksExtraService {
         return tablePrefix + "_" + tableName + DBF_EXTENSION;
     }
 
-    public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession, WinbooksEventHandler winbooksEventHandler) {
+    public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession, AccountingEventListener winbooksEventHandler) {
         return winbooksSession.getBookYears()
                 .stream()
                 .flatMap(bookYear -> streamBookYearDocuments(winbooksSession, bookYear, winbooksEventHandler));
     }
 
-    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document, WinbooksEventHandler winbooksEventHandler) {
+    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document, AccountingEventListener winbooksEventHandler) {
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
         WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
@@ -552,7 +554,7 @@ public class WinbooksExtraService {
                 .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
     }
 
-    private Stream<WbDocument> streamBookYearDocuments(WinbooksSession winbooksSession, WbBookYearFull bookYear, WinbooksEventHandler winbooksEventHandler) {
+    private Stream<WbDocument> streamBookYearDocuments(WinbooksSession winbooksSession, WbBookYearFull bookYear, AccountingEventListener winbooksEventHandler) {
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
         String bookYearName = bookYear.getShortName();
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
@@ -622,7 +624,7 @@ public class WinbooksExtraService {
                 .reduce(this::mergePdf);
     }
 
-    private Stream<Path> streamBasePaths(WinbooksFileConfiguration fileConfiguration, WbBookYearFull wbBookYearFull, WinbooksEventHandler winbooksEventHandler) {
+    private Stream<Path> streamBasePaths(WinbooksFileConfiguration fileConfiguration, WbBookYearFull wbBookYearFull, AccountingEventListener winbooksEventHandler) {
         boolean resolveArchivePaths = fileConfiguration.isResolveArchivePaths();
         boolean ignoreMissingArchives = fileConfiguration.isIgnoreMissingArchives();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
@@ -640,10 +642,9 @@ public class WinbooksExtraService {
             }
         } catch (ArchivePathNotFoundException archivePathNotFoundException) {
             if (ignoreMissingArchives) {
-                String message = MessageFormat.format("No archive found : {0} - Ignoring as per configuration.",
-                        archivePathNotFoundException.getMessage());
-                WinbooksEvent winbooksEvent = new WinbooksEvent(WinbooksEventCategory.ARCHIVE_NOT_FOUND, message);
-                winbooksEventHandler.handleEvent(winbooksEvent);
+                ArchiveNotFoundIgnoredEvent ignoredEvent = new ArchiveNotFoundIgnoredEvent(baseFolderPath);
+                ignoredEvent.setArchiveYearOptional(Optional.of(wbBookYearFull.getShortName()));
+                winbooksEventHandler.handleArchiveNotFoundIgnoredEvent(ignoredEvent);
                 return Stream.empty();
             } else {
                 throw new WinbooksException(WinbooksError.BOOKYEAR_NOT_FOUND, archivePathNotFoundException);

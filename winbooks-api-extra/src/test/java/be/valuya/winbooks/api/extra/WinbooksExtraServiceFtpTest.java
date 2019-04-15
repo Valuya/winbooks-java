@@ -1,11 +1,13 @@
 package be.valuya.winbooks.api.extra;
 
+import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbDocOrderType;
 import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.github.robtimus.filesystems.ftp.ConnectionMode;
@@ -55,6 +57,7 @@ public class WinbooksExtraServiceFtpTest {
     private WinbooksFileConfiguration winbooksFileConfiguration;
 
     private Logger logger = Logger.getLogger(WinbooksExtraServiceFtpTest.class.getName());
+    private AccountingEventListener eventListener = new TestAccountingEventListener();
 
     @BeforeClass
     public static void initFileSystem() throws IOException {
@@ -117,7 +120,7 @@ public class WinbooksExtraServiceFtpTest {
 
     @Test
     public void testFindDistinctDocOrder() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .map(WbEntry::getWbDocOrderType)
                 .distinct()
                 .map(WbDocOrderType::name)
@@ -126,7 +129,7 @@ public class WinbooksExtraServiceFtpTest {
 
     @Test
     public void testFindDistinctDocStatus() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .map(WbEntry::getDocStatus)
                 .distinct()
                 .map(WbDocStatus::name)
@@ -137,7 +140,7 @@ public class WinbooksExtraServiceFtpTest {
     public void testAccountTotal() {
         Date startDate = new Date(116, Calendar.JANUARY, 01);
         Date endDate = new Date(117, Calendar.JANUARY, 01);
-        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
+        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
@@ -182,31 +185,6 @@ public class WinbooksExtraServiceFtpTest {
                 .stream()
                 .map(WbPeriod::toString)
                 .forEach(logger::info);
-    }
-
-    private void logWinbooksEvent(WinbooksEvent winbooksEvent) {
-        WinbooksEventCategory winbooksEventCategory = winbooksEvent.getWinbooksEventCategory();
-        String message = winbooksEvent.getMessage();
-        List<Object> arguments = winbooksEvent.getArguments();
-        WinbooksEventType winbooksEventType = winbooksEventCategory.getWinbooksEventType();
-
-        Level level;
-        switch (winbooksEventType) {
-            case INFO:
-                level = Level.INFO;
-                break;
-            case WARNING:
-                level = Level.WARNING;
-                break;
-            case ERROR:
-                level = Level.SEVERE;
-                break;
-            default:
-                throw new AssertionError("Unknown winbooks event type: " + winbooksEventType);
-        }
-
-        Object[] argumentArray = arguments.toArray();
-        logger.log(level, message, argumentArray);
     }
 
     private void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {

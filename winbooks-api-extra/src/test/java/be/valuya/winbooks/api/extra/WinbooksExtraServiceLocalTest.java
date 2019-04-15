@@ -1,5 +1,6 @@
 package be.valuya.winbooks.api.extra;
 
+import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
@@ -8,6 +9,7 @@ import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.pdf.PdfReader;
@@ -37,7 +39,8 @@ public class WinbooksExtraServiceLocalTest {
     private WinbooksFileConfiguration winbooksFileConfiguration;
 
     private Logger logger = Logger.getLogger(WinbooksExtraServiceLocalTest.class.getName());
-    private WinbooksEventHandler eventHandler;
+    private AccountingEventListener eventListener;
+
 
     @Before
     public void setup() {
@@ -52,13 +55,13 @@ public class WinbooksExtraServiceLocalTest {
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
 
-        eventHandler = winbooksEvent -> logger.info(winbooksEvent.getMessage());
+        eventListener = new TestAccountingEventListener();
     }
 
     @Test
     public void testStreamDocuments() {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        winbooksExtraService.streamDocuments(winbooksSession, eventHandler)
+        winbooksExtraService.streamDocuments(winbooksSession, eventListener)
                 .peek(this::checkDocument)
                 .forEach(this::printDocument);
     }
@@ -66,13 +69,13 @@ public class WinbooksExtraServiceLocalTest {
     @Test
     public void testStreamDocumentPageData() throws Exception {
         WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession, eventHandler)
+        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession, eventListener)
                 .filter(doc -> doc.getPageCount() > 1)
                 .findAny()
                 .orElseThrow(AssertionError::new);
 
         this.printDocument(testDocument);
-        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument, eventHandler)
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument, eventListener)
                 .orElseThrow(AssertionError::new);
 
         PdfReader pdfReader = new PdfReader(documentData);
@@ -109,7 +112,7 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testStreamEntries() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration,  this::logWinbooksEvent)
+        winbooksExtraService.streamAct(winbooksFileConfiguration,  eventListener)
                 .map(WbEntry::getVatTax)
                 .map(BigDecimal::toPlainString)
                 .forEach(logger::info);
@@ -117,7 +120,7 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testFindDistinctDocOrder() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .map(WbEntry::getWbDocOrderType)
                 .distinct()
                 .map(WbDocOrderType::name)
@@ -126,7 +129,7 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testFindDistinctDocStatus() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
+        winbooksExtraService.streamAct(winbooksFileConfiguration,eventListener)
                 .map(WbEntry::getDocStatus)
                 .distinct()
                 .map(WbDocStatus::name)
@@ -137,7 +140,7 @@ public class WinbooksExtraServiceLocalTest {
     public void testAccountTotal() {
         Date startDate = new Date(119, Calendar.JANUARY, 01);
         Date endDate = new Date(999, Calendar.JANUARY, 01);
-        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, this::logWinbooksEvent)
+        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))
@@ -187,31 +190,6 @@ public class WinbooksExtraServiceLocalTest {
                 .stream()
                 .map(WbPeriod::toString)
                 .forEach(logger::info);
-    }
-
-    private void logWinbooksEvent(WinbooksEvent winbooksEvent) {
-        WinbooksEventCategory winbooksEventCategory = winbooksEvent.getWinbooksEventCategory();
-        String message = winbooksEvent.getMessage();
-        List<Object> arguments = winbooksEvent.getArguments();
-        WinbooksEventType winbooksEventType = winbooksEventCategory.getWinbooksEventType();
-
-        Level level;
-        switch (winbooksEventType) {
-            case INFO:
-                level = Level.INFO;
-                break;
-            case WARNING:
-                level = Level.WARNING;
-                break;
-            case ERROR:
-                level = Level.SEVERE;
-                break;
-            default:
-                throw new AssertionError("Unknown winbooks event type: " + winbooksEventType);
-        }
-
-        Object[] argumentArray = arguments.toArray();
-        logger.log(level, message, argumentArray);
     }
 
     private void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
