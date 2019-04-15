@@ -41,7 +41,8 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     private Map<String, ThirdParty> thirdPartiesById;
 
 
-    public WinbooksTrollAccountingManager() {
+    public WinbooksTrollAccountingManager(WinbooksFileConfiguration fileConfiguration) {
+        this.fileConfiguration = fileConfiguration;
         extraService = new WinbooksExtraService();
     }
 
