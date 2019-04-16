@@ -68,9 +68,9 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     @Override
     public Stream<ATAccount> streamAccounts() {
         return extraService.streamAcf(fileConfiguration)
+                .filter(this::isValidAccount)
                 .map(this::convertToTrollAcccount);
     }
-
 
     @Override
     public Stream<ATBookYear> streamBookYears() {
@@ -106,8 +106,10 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 //
 
         return extraService.streamAct(fileConfiguration, accountingEventListener)
+                .filter(this::isValidAccountingEntry)
                 .flatMap(entry -> convertWithBalanceCheck(entry, accountingEventListener));
     }
+
 
 
 // // TODO:check usage
@@ -170,7 +172,17 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     private boolean isValidClientSupplier(WbClientSupplier wbClientSupplier) {
         String nameNullable = wbClientSupplier.getName1();
-        return Optional.ofNullable(nameNullable).isPresent();
+        return nameNullable != null;
+    }
+
+    private boolean isValidAccount(WbAccount wbAccount) {
+        return wbAccount.getAccountNumber() != null;
+    }
+
+
+    private boolean isValidAccountingEntry(WbEntry wbEntry) {
+        return wbEntry.getAccountGl() != null
+                && wbEntry.getWbPeriod() != null;
     }
 
     private ATAccount convertToTrollAcccount(WbAccount wbAccount) {
@@ -310,7 +322,8 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     private ATBookYear getCachedBookYearOrThrow(String bookYearShortName) {
         if (bookYearsByShortName == null) {
             bookYearsByShortName = streamBookYears().collect(
-                    Collectors.toMap(ATBookYear::getName, Function.identity())
+                    Collectors.toMap(ATBookYear::getName, Function.identity(),
+                            (t1, t2) -> t1)// Override in case of dupplicates
             );
         }
         ATBookYear bookYearNullable = bookYearsByShortName.get(bookYearShortName);
@@ -322,7 +335,8 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     private Optional<ATAccount> getCachedAccountByCodeOptional(String accountCode) {
         if (accountsByCode == null) {
             accountsByCode = streamAccounts().collect(
-                    Collectors.toMap(ATAccount::getCode, Function.identity())
+                    Collectors.toMap(ATAccount::getCode, Function.identity(),
+                            (t1, t2) -> t1)// Override in case of dupplicates
             );
         }
         ATAccount accountNullable = accountsByCode.get(accountCode);
@@ -331,9 +345,11 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     private Optional<ATThirdParty> getCachedThirdPartyOptional(String id) {
         if (thirdPartiesById == null) {
-            thirdPartiesById = streamThirdParties().collect(
-                    Collectors.toMap(ATThirdParty::getId, Function.identity())
-            );
+            thirdPartiesById = streamThirdParties()
+                    .collect(
+                            Collectors.toMap(ATThirdParty::getId, Function.identity(),
+                                    (t1, t2) -> t1)// Override in case of dupplicates
+                    );
         }
         ATThirdParty thirdPartyNullable = thirdPartiesById.get(id);
         return Optional.ofNullable(thirdPartyNullable);
@@ -413,11 +429,9 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
     private static Comparator<AccountWithThirdParty> createAccountWithThirdPartyComparator() {
-        return Comparator
+        return Comparator.nullsFirst(Comparator
                 .comparing((AccountWithThirdParty a) -> a.getAccount().getCode())
-                .thenComparing((AccountWithThirdParty a) -> a.getThirdPartyOptional().map(
-                        ATThirdParty::getId
-                ).orElse(null));
+                .thenComparing((AccountWithThirdParty a) -> a.getThirdPartyOptional().map(ATThirdParty::getId).orElse("")));
     }
 
     public ATPeriodType getAccountingPeriodType(WbPeriod wbPeriod) {
