@@ -1,7 +1,8 @@
 package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
-import be.valuya.accountingtroll.event.ArchiveNotFoundIgnoredEvent;
+import be.valuya.accountingtroll.event.ArchiveFileNotFoundIgnoredEvent;
+import be.valuya.accountingtroll.event.ArchiveFolderNotFoundIgnoredEvent;
 import be.valuya.accountingtroll.event.BalanceChangeEvent;
 
 public class TestAccountingEventListener implements AccountingEventListener {
@@ -12,7 +13,15 @@ public class TestAccountingEventListener implements AccountingEventListener {
     }
 
     @Override
-    public void handleArchiveNotFoundIgnoredEvent(ArchiveNotFoundIgnoredEvent archiveNotFoundIgnoredEvent) {
-        System.err.println(archiveNotFoundIgnoredEvent);
+    public void handleArchiveFileNotFoundIgnoredEvent(ArchiveFileNotFoundIgnoredEvent archiveFileNotFoundIgnoredEvent) {
+        System.err.println(archiveFileNotFoundIgnoredEvent);
+
     }
+
+    @Override
+    public void handleArchiveFolderNotFoundIgnoredEvent(ArchiveFolderNotFoundIgnoredEvent archiveFolderNotFoundIgnoredEvent) {
+        System.err.println(archiveFolderNotFoundIgnoredEvent);
+
+    }
+
 }

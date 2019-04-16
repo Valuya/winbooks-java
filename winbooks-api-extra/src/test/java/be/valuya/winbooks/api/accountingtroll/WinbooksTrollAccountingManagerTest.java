@@ -17,7 +17,6 @@ public class WinbooksTrollAccountingManagerTest {
 
     @Before
     public void setup() {
-        trollSrervice = new WinbooksTrollAccountingManager();
         WinbooksExtraService extraService = new WinbooksExtraService();
 
         String baseFolderLocation = System.getProperty("winbooks.test.folder");
@@ -29,6 +28,7 @@ public class WinbooksTrollAccountingManagerTest {
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
 
+        trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
         eventListener = new TestAccountingEventListener();
 
 //        eventHandler = winbooksEvent -> logger.info(winbooksEvent.getMessage());

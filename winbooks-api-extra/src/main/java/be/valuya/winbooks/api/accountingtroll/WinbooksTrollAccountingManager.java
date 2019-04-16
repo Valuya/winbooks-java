@@ -2,12 +2,12 @@ package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.AccountingManager;
-import be.valuya.accountingtroll.domain.Account;
-import be.valuya.accountingtroll.domain.AccountingEntry;
-import be.valuya.accountingtroll.domain.BookPeriod;
-import be.valuya.accountingtroll.domain.BookYear;
-import be.valuya.accountingtroll.domain.ThirdParty;
-import be.valuya.accountingtroll.domain.ThirdPartyType;
+import be.valuya.accountingtroll.domain.ATAccount;
+import be.valuya.accountingtroll.domain.ATAccountingEntry;
+import be.valuya.accountingtroll.domain.ATBookPeriod;
+import be.valuya.accountingtroll.domain.ATBookYear;
+import be.valuya.accountingtroll.domain.ATThirdParty;
+import be.valuya.accountingtroll.domain.ATThirdPartyType;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
@@ -22,6 +22,7 @@ import be.valuya.winbooks.domain.error.WinbooksException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
@@ -36,9 +37,9 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     private WinbooksExtraService extraService;
     private WinbooksFileConfiguration fileConfiguration;
 
-    private Map<String, BookYear> bookYearsByShortName;
-    private Map<String, Account> accountsByCode;
-    private Map<String, ThirdParty> thirdPartiesById;
+    private Map<String, ATBookYear> bookYearsByShortName;
+    private Map<String, ATAccount> accountsByCode;
+    private Map<String, ATThirdParty> thirdPartiesById;
 
 
     public WinbooksTrollAccountingManager(WinbooksFileConfiguration fileConfiguration) {
@@ -47,26 +48,32 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
     @Override
-    public Stream<Account> streamAccounts() {
+    public Optional<LocalDateTime> getLastAccountModificationTime() {
+        LocalDateTime modificationDateTime = extraService.getActModificationDateTime(fileConfiguration);
+        return Optional.of(modificationDateTime);
+    }
+
+    @Override
+    public Stream<ATAccount> streamAccounts() {
         return extraService.streamAcf(fileConfiguration)
                 .map(this::convertToTrollAcccount);
     }
 
 
     @Override
-    public Stream<BookYear> streamBookYears() {
+    public Stream<ATBookYear> streamBookYears() {
         return extraService.streamBookYears(fileConfiguration)
                 .map(this::convertToTrollBookYear);
     }
 
     @Override
-    public Stream<BookPeriod> streamPeriods() {
+    public Stream<ATBookPeriod> streamPeriods() {
         return extraService.streamBookYears(fileConfiguration)
-                .flatMap(wbYear -> this.streamPeriods(wbYear));
+                .flatMap(this::streamPeriods);
     }
 
     @Override
-    public Stream<ThirdParty> streamThirdParties() {
+    public Stream<ATThirdParty> streamThirdParties() {
         return extraService.streamCsf(fileConfiguration)
                 .filter(this::isValidClientSupplier)
                 .map(this::convertToTrollThirdParty);
@@ -74,12 +81,12 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
 
     @Override
-    public Stream<AccountingEntry> streamAccountingEntries(AccountingEventListener accountingEventListener) {
+    public Stream<ATAccountingEntry> streamAccountingEntries(AccountingEventListener accountingEventListener) {
         return extraService.streamAct(fileConfiguration, accountingEventListener)
                 .map(this::convertToTrollAccountingEntry);
     }
 
-    private Stream<BookPeriod> streamPeriods(WbBookYearFull wbYear) {
+    private Stream<ATBookPeriod> streamPeriods(WbBookYearFull wbYear) {
         return wbYear.getPeriodList().stream()
                 .map(wbPeriod -> this.convertToTrollPeriod(wbYear, wbPeriod));
     }
@@ -89,12 +96,12 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         return Optional.ofNullable(nameNullable).isPresent();
     }
 
-    private Account convertToTrollAcccount(WbAccount wbAccount) {
+    private ATAccount convertToTrollAcccount(WbAccount wbAccount) {
         String accountNumber = wbAccount.getAccountNumber();
         String currency = wbAccount.getCurrency();
         String name = wbAccount.getName11();
 
-        Account account = new Account();
+        ATAccount account = new ATAccount();
         account.setCode(accountNumber);
         account.setCurrency(currency);
         account.setName(name);
@@ -102,26 +109,26 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
 
-    private BookYear convertToTrollBookYear(WbBookYearFull wbYear) {
+    private ATBookYear convertToTrollBookYear(WbBookYearFull wbYear) {
         String shortName = wbYear.getShortName();
         LocalDate startDate = wbYear.getStartDate();
         LocalDate endDate = wbYear.getEndDate();
 
-        BookYear bookYear = new BookYear();
+        ATBookYear bookYear = new ATBookYear();
         bookYear.setName(shortName);
         bookYear.setStartDate(startDate);
         bookYear.setEndDate(endDate);
         return bookYear;
     }
 
-    private BookPeriod convertToTrollPeriod(WbBookYearFull wbYear, WbPeriod wbPeriod) {
+    private ATBookPeriod convertToTrollPeriod(WbBookYearFull wbYear, WbPeriod wbPeriod) {
         String yearShortName = wbYear.getShortName();
-        BookYear bookYear = getCachedBookYearOrThrow(yearShortName);
+        ATBookYear bookYear = getCachedBookYearOrThrow(yearShortName);
         String periodShortName = wbPeriod.getShortName();
         LocalDate periodStartDate = wbPeriod.getStartDate();
         LocalDate periodEndDate = wbPeriod.getEndDate();
 
-        BookPeriod bookPeriod = new BookPeriod();
+        ATBookPeriod bookPeriod = new ATBookPeriod();
         bookPeriod.setBookYear(bookYear);
         bookPeriod.setName(periodShortName);
         bookPeriod.setStartDate(periodStartDate);
@@ -129,11 +136,11 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         return bookPeriod;
     }
 
-    private ThirdParty convertToTrollThirdParty(WbClientSupplier wbSupplier) {
+    private ATThirdParty convertToTrollThirdParty(WbClientSupplier wbSupplier) {
         String number = wbSupplier.getNumber();
         WbClientSupplierType wbClientSupplierType = wbSupplier.getWbClientSupplierType();
-        ThirdPartyType thirdPartyType = wbClientSupplierType == WbClientSupplierType.SUPPLIER ?
-                ThirdPartyType.SUPPLIER : ThirdPartyType.CLIENT;
+        ATThirdPartyType thirdPartyType = wbClientSupplierType == WbClientSupplierType.SUPPLIER ?
+                ATThirdPartyType.SUPPLIER : ATThirdPartyType.CLIENT;
         String fullName = Stream.of(wbSupplier.getCivName1(), wbSupplier.getName1())
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(" "));
@@ -150,7 +157,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         String bankAccount = wbSupplier.getBankAccount();
         String lang = wbSupplier.getLang();
 
-        ThirdParty thirdParty = new ThirdParty();
+        ATThirdParty thirdParty = new ATThirdParty();
         thirdParty.setId(number);
         thirdParty.setType(thirdPartyType);
         thirdParty.setFullName(fullName);
@@ -166,23 +173,23 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         return thirdParty;
     }
 
-    private AccountingEntry convertToTrollAccountingEntry(WbEntry wbEntry) {
+    private ATAccountingEntry convertToTrollAccountingEntry(WbEntry wbEntry) {
         String bookYearName = wbEntry.getWbBookYearFull().getShortName();
-        BookYear bookYear = getCachedBookYearOrThrow(bookYearName);
+        ATBookYear bookYear = getCachedBookYearOrThrow(bookYearName);
 
         WbBookYearFull wbBookYearFull = wbEntry.getWbBookYearFull();
         WbPeriod wbPeriod = wbEntry.getWbPeriod();
-        BookPeriod bookPeriod = convertToTrollPeriod(wbBookYearFull, wbPeriod);
+        ATBookPeriod bookPeriod = convertToTrollPeriod(wbBookYearFull, wbPeriod);
 
         BigDecimal amount = wbEntry.getAmountEur();
         BigDecimal vatBase = wbEntry.getVatTax();
         BigDecimal currAmount = wbEntry.getCurrAmount(); // FIXME balance has to be computed?
 
         String accountFromNumber = wbEntry.getAccountGl();
-        Optional<Account> accountOptional = getCachedAccountByCodeOptional(accountFromNumber);
+        Optional<ATAccount> accountOptional = getCachedAccountByCodeOptional(accountFromNumber);
 
         String accountToId = wbEntry.getAccountRp();
-        Optional<ThirdParty> thirdPartyOptional = getCachedThirdPartyOptional(accountToId);
+        Optional<ATThirdParty> thirdPartyOptional = getCachedThirdPartyOptional(accountToId);
 
         Date entryDate = wbEntry.getDate();
         Date documentDate = wbEntry.getDateDoc();
@@ -193,7 +200,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         Optional<LocalDate> dueDateOptional = this.convertToLocalDate(dueDate);
         String comment = wbEntry.getComment();
 
-        AccountingEntry accountingEntry = new AccountingEntry();
+        ATAccountingEntry accountingEntry = new ATAccountingEntry();
         accountingEntry.setBookPeriod(bookPeriod);
         accountingEntry.setDate(entryLocalDate);
         accountingEntry.setAmount(amount);
@@ -218,35 +225,35 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         return Optional.of(localDate);
     }
 
-    private BookYear getCachedBookYearOrThrow(String bookYearShortName) {
+    private ATBookYear getCachedBookYearOrThrow(String bookYearShortName) {
         if (bookYearsByShortName == null) {
             bookYearsByShortName = streamBookYears().collect(
-                    Collectors.toMap(BookYear::getName, Function.identity())
+                    Collectors.toMap(ATBookYear::getName, Function.identity())
             );
         }
-        BookYear bookYearNullable = bookYearsByShortName.get(bookYearShortName);
+        ATBookYear bookYearNullable = bookYearsByShortName.get(bookYearShortName);
         return Optional.ofNullable(bookYearNullable)
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "No book year matching short name " + bookYearShortName));
     }
 
 
-    private Optional<Account> getCachedAccountByCodeOptional(String accountCode) {
+    private Optional<ATAccount> getCachedAccountByCodeOptional(String accountCode) {
         if (accountsByCode == null) {
             accountsByCode = streamAccounts().collect(
-                    Collectors.toMap(Account::getCode, Function.identity())
+                    Collectors.toMap(ATAccount::getCode, Function.identity())
             );
         }
-        Account accountNullable = accountsByCode.get(accountCode);
+        ATAccount accountNullable = accountsByCode.get(accountCode);
         return Optional.ofNullable(accountNullable);
     }
 
-    private Optional<ThirdParty> getCachedThirdPartyOptional(String id) {
+    private Optional<ATThirdParty> getCachedThirdPartyOptional(String id) {
         if (thirdPartiesById == null) {
             thirdPartiesById = streamThirdParties().collect(
-                    Collectors.toMap(ThirdParty::getId, Function.identity())
+                    Collectors.toMap(ATThirdParty::getId, Function.identity())
             );
         }
-        ThirdParty thirdPartyNullable = thirdPartiesById.get(id);
+        ATThirdParty thirdPartyNullable = thirdPartiesById.get(id);
         return Optional.ofNullable(thirdPartyNullable);
     }
 }

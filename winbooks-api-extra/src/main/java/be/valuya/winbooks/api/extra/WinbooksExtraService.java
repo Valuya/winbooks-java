@@ -1,7 +1,8 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.accountingtroll.AccountingEventListener;
-import be.valuya.accountingtroll.event.ArchiveNotFoundIgnoredEvent;
+import be.valuya.accountingtroll.event.ArchiveFileNotFoundIgnoredEvent;
+import be.valuya.accountingtroll.event.ArchiveFolderNotFoundIgnoredEvent;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbBookYearStatus;
@@ -440,9 +441,8 @@ public class WinbooksExtraService {
         if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
             Path archiveFolderPath = archivedTablePath.getParent();
             String archiveName = getPathFileNameString(archiveFolderPath);
-            ArchiveNotFoundIgnoredEvent ignoredEvent = new ArchiveNotFoundIgnoredEvent(archiveFolderPath);
-            ignoredEvent.setFileNameOptional(Optional.of(archiveName));
-            eventListener.handleArchiveNotFoundIgnoredEvent(ignoredEvent);
+            ArchiveFileNotFoundIgnoredEvent ignoredEvent = new ArchiveFileNotFoundIgnoredEvent(archiveFolderPath, archiveName);
+            eventListener.handleArchiveFileNotFoundIgnoredEvent(ignoredEvent);
             return Optional.empty();
         }
 
@@ -642,9 +642,12 @@ public class WinbooksExtraService {
             }
         } catch (ArchivePathNotFoundException archivePathNotFoundException) {
             if (ignoreMissingArchives) {
-                ArchiveNotFoundIgnoredEvent ignoredEvent = new ArchiveNotFoundIgnoredEvent(baseFolderPath);
-                ignoredEvent.setArchiveYearOptional(Optional.of(wbBookYearFull.getShortName()));
-                winbooksEventHandler.handleArchiveNotFoundIgnoredEvent(ignoredEvent);
+                String archivePathName = wbBookYearFull.getArchivePathNameOptional()
+                        .orElseThrow(IllegalStateException::new);
+                Path archivePath = baseFolderPath.resolveSibling(archivePathName);
+
+                ArchiveFolderNotFoundIgnoredEvent ignoredEvent = new ArchiveFolderNotFoundIgnoredEvent(baseFolderPath, archivePath);
+                winbooksEventHandler.handleArchiveFolderNotFoundIgnoredEvent(ignoredEvent);
                 return Stream.empty();
             } else {
                 throw new WinbooksException(WinbooksError.BOOKYEAR_NOT_FOUND, archivePathNotFoundException);
