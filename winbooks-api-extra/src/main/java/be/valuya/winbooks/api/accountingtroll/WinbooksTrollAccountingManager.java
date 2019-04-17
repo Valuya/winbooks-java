@@ -6,6 +6,7 @@ import be.valuya.accountingtroll.domain.ATAccount;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
+import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATPeriodType;
 import be.valuya.accountingtroll.domain.ATTax;
 import be.valuya.accountingtroll.domain.ATThirdParty;
@@ -109,7 +110,6 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
                 .filter(this::isValidAccountingEntry)
                 .flatMap(entry -> convertWithBalanceCheck(entry, accountingEventListener));
     }
-
 
 
 // // TODO:check usage
@@ -247,7 +247,6 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         String zipCode = wbSupplier.getZipCode();
         String city = wbSupplier.getCity();
         String countryCode = wbSupplier.getCountryCode();
-        String vatCode = wbSupplier.getVatCode();
         String vatNumber = wbSupplier.getVatNumber();
 
         String phoneNumber = wbSupplier.getTelNumber();
@@ -262,7 +261,6 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         thirdParty.setZipCode(zipCode);
         thirdParty.setCity(city);
         thirdParty.setCountryCode(countryCode);
-        thirdParty.setVatCode(vatCode);
         thirdParty.setVatNumber(vatNumber);
         thirdParty.setPhoneNumber(phoneNumber);
         thirdParty.setBankAccountNumber(bankAccount);
@@ -285,7 +283,10 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         Optional<ATThirdParty> thirdPartyOptional = getCachedThirdPartyOptional(accountToId);
 
         Optional<ATTax> taxOptional = Optional.empty(); // TODO
+        Optional<ATDocument> documentOptional = Optional.empty(); //TODO
+        Optional<ATDocument> matchedDocumentOptional = Optional.empty(); //TODO
 
+        Optional<String> matchNo = Optional.ofNullable(wbEntry.getMatchNo()).map(String::trim);
         Date entryDate = wbEntry.getDate();
         Date documentDate = wbEntry.getDateDoc();
         Date dueDate = wbEntry.getDueDate();
@@ -300,12 +301,16 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         accountingEntry.setDate(entryLocalDate);
         accountingEntry.setAmount(amount);
         accountingEntry.setDbkCode(dbkCode);
+        accountingEntry.setMatched(matchNo.isPresent());
+
         accountingEntry.setTaxOptional(taxOptional);
         accountingEntry.setAccountOptional(accountOptional);
         accountingEntry.setThirdPartyOptional(thirdPartyOptional);
         accountingEntry.setDocumentDateOptional(documentLocalDateOptional);
         accountingEntry.setDueDateOptional(dueDateOptional);
         accountingEntry.setCommentOptional(Optional.ofNullable(comment));
+        accountingEntry.setDocumentOptional(documentOptional);
+        accountingEntry.setMatchedDocumentOptional(matchedDocumentOptional);
 
         return accountingEntry;
     }
