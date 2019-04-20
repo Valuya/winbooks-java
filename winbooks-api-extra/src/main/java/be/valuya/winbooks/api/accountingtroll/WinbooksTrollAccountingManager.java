@@ -98,15 +98,15 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     public Stream<ATAccountingEntry> streamAccountingEntries(AccountingEventListener accountingEventListener) {
         accountBalanceMap = new ConcurrentSkipListMap<>(ACCOUNT_WITH_THIRD_PARTY_COMPARATOR);
 
-        // TODO: check
-//
-//        Comparator<WbEntry> wbEntryComparator = Comparator.comparing(WbEntry::getBookYear)
-//                .thenComparing(WbEntry::getPeriod)
-//                .thenComparing(WbEntry::getDate)
-//                .thenComparing(WbEntry::getDocOrder, Comparator.nullsFirst(Comparator.naturalOrder())); // balance first
-//
+        Comparator<WbEntry> wbEntryComparator = Comparator.comparing(WbEntry::getBookYear)
+                .thenComparing(WbEntry::getWbPeriod, Comparator.nullsFirst(
+                        Comparator.comparing(WbPeriod::getIndex)
+                ))
+                .thenComparing(WbEntry::getDate)
+                .thenComparing(WbEntry::getDocOrder, Comparator.nullsFirst(Comparator.naturalOrder())); // balance first
 
         return extraService.streamAct(fileConfiguration, accountingEventListener)
+                .sorted(wbEntryComparator)
                 .filter(this::isValidAccountingEntry)
                 .flatMap(entry -> convertWithBalanceCheck(entry, accountingEventListener));
     }
@@ -153,13 +153,24 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
             return Stream.empty();
         }
 
-        AccountBalance accountBalance = updateAccountBalanceAfterAccountingEntry(accountWithThirdParty, atAccountingEntry);
+//        // TODO: check
+        ATPeriodType periodType = atAccountingEntry.getBookPeriod().getPeriodType();
+        AccountBalance accountBalance;
+        if (periodType == ATPeriodType.OPENING) {
+            resetAccountBalance(accountWithThirdParty, atAccountingEntry);
+            accountBalance = accountBalanceMap.get(accountWithThirdParty);
+        } else {
+            accountBalance = updateAccountBalanceAfterAccountingEntry(accountWithThirdParty, atAccountingEntry);
+        }
+
         BigDecimal newBalance = accountBalance.getBalance();
+        LocalDate balanceDate = accountBalance.getDate();
         Optional<ATAccountingEntry> accountingEntryOptional = Optional.of(atAccountingEntry);
 
         BalanceChangeEvent balanceChangeEvent = new BalanceChangeEvent();
         balanceChangeEvent.setAccount(atAccount);
         balanceChangeEvent.setNewBalance(newBalance);
+        balanceChangeEvent.setDate(balanceDate);
         balanceChangeEvent.setAccountingEntryOptional(accountingEntryOptional);
         accountingEventListener.handleBalanceChangeEvent(balanceChangeEvent);
         return Stream.of(atAccountingEntry);

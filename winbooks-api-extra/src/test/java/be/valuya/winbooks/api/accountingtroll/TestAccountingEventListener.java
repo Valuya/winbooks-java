@@ -9,18 +9,21 @@ public class TestAccountingEventListener implements AccountingEventListener {
 
     @Override
     public void handleBalanceChangeEvent(BalanceChangeEvent balanceChangeEvent) {
-        System.err.println(balanceChangeEvent);
+        System.out.print("BALANCE CHANGE ");
+        System.out.println(balanceChangeEvent);
     }
 
     @Override
     public void handleArchiveFileNotFoundIgnoredEvent(ArchiveFileNotFoundIgnoredEvent archiveFileNotFoundIgnoredEvent) {
-        System.err.println(archiveFileNotFoundIgnoredEvent);
+        System.out.print("ARCHIVE FILE NOT FOUND ");
+        System.out.println(archiveFileNotFoundIgnoredEvent);
 
     }
 
     @Override
     public void handleArchiveFolderNotFoundIgnoredEvent(ArchiveFolderNotFoundIgnoredEvent archiveFolderNotFoundIgnoredEvent) {
-        System.err.println(archiveFolderNotFoundIgnoredEvent);
+        System.out.print("ARCHIVE DIR NOT FOUND ");
+        System.out.println(archiveFolderNotFoundIgnoredEvent);
 
     }
 
