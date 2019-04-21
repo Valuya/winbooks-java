@@ -10,10 +10,16 @@ import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATPeriodType;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.AccountingEntryDocumentNumberType;
+import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.accountingtroll.event.BalanceChangeEvent;
+import be.valuya.jbooks.model.WbDocument;
+import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.WinbooksFileConfiguration;
+import be.valuya.winbooks.domain.error.WinbooksError;
+import be.valuya.winbooks.domain.error.WinbooksException;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -76,14 +82,26 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
                 .flatMap(entry -> convertWithBalanceCheck(entry, accountBalanceMap, accountingEventListener));
     }
 
+
     @Override
     public Stream<ATDocument> streamDocuments() {
-        return null;
+        AccountingEventListener eventListener = new AccountingEventHandler(); //TODO
+
+        ATDocumentConverter documentConverter = new ATDocumentConverter(accountingManagerCache);
+        return accountingManagerCache.streamWbBookYearFulls()
+                .flatMap(bookYear -> extraService.streamBookYearDocuments(fileConfiguration, bookYear, eventListener))
+                .map(documentConverter::convertDocument);
     }
 
     @Override
     public InputStream streamDocumentContent(ATDocument atDocument) throws Exception {
-        return null;
+        AccountingEventListener eventListener = new AccountingEventHandler(); //TODO
+        ATDocumentConverter documentConverter = new ATDocumentConverter(accountingManagerCache);
+        WbDocument wbDocument = documentConverter.convertWbDocument(atDocument);
+        byte[] documentdata = extraService.getDocumentData(fileConfiguration, wbDocument, eventListener)
+                .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find document date"));
+
+        return new ByteArrayInputStream(documentdata);
     }
 
     private Stream<ATAccountingEntry> convertWithBalanceCheck(ATAccountingEntry atAccountingEntry,

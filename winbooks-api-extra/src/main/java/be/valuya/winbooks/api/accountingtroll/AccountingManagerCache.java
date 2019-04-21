@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 public class AccountingManagerCache {
 
+    private List<WbBookYearFull> wbBookYearFulls;
     private Map<String, ATBookYear> bookYearsByShortName;
     private Map<String, List<ATBookPeriod>> bookPeriodsByBookYearShortName;
     private Map<String, ATAccount> accountsByCode;
@@ -55,6 +56,11 @@ public class AccountingManagerCache {
         atBookYearConverter = new ATBookYearConverter();
         atBookPeriodConverter = new ATBookPeriodConverter(this);
         atThirdPartyConverter = new ATThirdPartyConverter();
+    }
+
+    public Stream<WbBookYearFull> streamWbBookYearFulls() {
+        this.cachWbBookYearFull();
+        return wbBookYearFulls.stream();
     }
 
     public Stream<ATAccount> streamAccounts() {
@@ -91,16 +97,17 @@ public class AccountingManagerCache {
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "No book year matching short name " + bookYearShortName));
     }
 
-    public ATBookPeriod getCachedBookPeriodOrThrow(WbBookYearFull bookYearFull, WbPeriod period) {
+    public ATBookPeriod getCachedBookPeriodOrThrow(WbPeriod wbPeriod) {
         cacheBookPeriods();
-        String shortName = bookYearFull.getShortName();
+        WbBookYearFull wbBookYearFull = wbPeriod.getWbBookYearFull();
+        String shortName = wbBookYearFull.getShortName();
         List<ATBookPeriod> periodListNullable = bookPeriodsByBookYearShortName.get(shortName);
         return Optional.ofNullable(periodListNullable)
                 .map(List::stream)
                 .orElse(Stream.empty())
-                .filter(atPeriod -> this.isSamePeriod(atPeriod, period))
+                .filter(atPeriod -> this.isSamePeriod(atPeriod, wbPeriod))
                 .findAny()
-                .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find period for year " + bookYearFull + " and period " + period));
+                .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find period for wbperiod " + wbPeriod));
     }
 
     public Optional<ATAccount> getCachedAccountByCodeOptional(String accountCode) {
@@ -131,11 +138,20 @@ public class AccountingManagerCache {
     }
 
 
+    private void cachWbBookYearFull() {
+        if (wbBookYearFulls != null) {
+            return;
+        }
+        wbBookYearFulls = extraService.streamBookYears(fileConfiguration)
+                .collect(Collectors.toList());
+    }
+
     private void cacheBookYears() {
         if (bookYearsByShortName != null) {
             return;
         }
-        bookYearsByShortName = extraService.streamBookYears(fileConfiguration)
+        cachWbBookYearFull();
+        bookYearsByShortName = wbBookYearFulls.stream()
                 .map(atBookYearConverter::convertToTrollBookYear)
                 .collect(Collectors.toMap(
                         ATBookYear::getName,

@@ -537,30 +537,29 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbDocument> streamDocuments(WinbooksSession winbooksSession, AccountingEventListener winbooksEventHandler) {
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
         return winbooksSession.getBookYears()
                 .stream()
-                .flatMap(bookYear -> streamBookYearDocuments(winbooksSession, bookYear, winbooksEventHandler));
+                .flatMap(bookYear -> streamBookYearDocuments(winbooksFileConfiguration, bookYear, winbooksEventHandler));
     }
 
-    public Optional<byte[]> getDocumentData(WinbooksSession winbooksSession, WbDocument document, AccountingEventListener winbooksEventHandler) {
-        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
-        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+    public Optional<byte[]> getDocumentData(WinbooksFileConfiguration fileConfiguration, WbDocument document, AccountingEventListener winbooksEventHandler) {
+        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
         WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
 
-        return this.streamBasePaths(winbooksFileConfiguration, bookYearFull, winbooksEventHandler)
+        return this.streamBasePaths(fileConfiguration, bookYearFull, winbooksEventHandler)
                 .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
                 .map(documentsPath -> resolveDocumentDirectoryPath(documentsPath, document, resolveCaseInsensitiveSiblings))
                 .findFirst()
                 .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
     }
 
-    private Stream<WbDocument> streamBookYearDocuments(WinbooksSession winbooksSession, WbBookYearFull bookYear, AccountingEventListener winbooksEventHandler) {
-        WinbooksFileConfiguration winbooksFileConfiguration = winbooksSession.getWinbooksFileConfiguration();
+    public Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear, AccountingEventListener winbooksEventHandler) {
         String bookYearName = bookYear.getShortName();
-        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
 
         // Stream documents at /${basePath}/${documentsPath}/${bookYearName}/<book year doc format>
-        List<Path> rootPathSources = streamBasePaths(winbooksFileConfiguration, bookYear, winbooksEventHandler)
+        List<Path> rootPathSources = streamBasePaths(fileConfiguration, bookYear, winbooksEventHandler)
                 .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
                 .map(documentsPath -> resolvePath(documentsPath, bookYearName, resolveCaseInsensitiveSiblings))
                 .flatMap(this::streamOptional)

@@ -75,7 +75,7 @@ public class WinbooksExtraServiceLocalTest {
                 .orElseThrow(AssertionError::new);
 
         this.printDocument(testDocument);
-        byte[] documentData = winbooksExtraService.getDocumentData(winbooksSession, testDocument, eventListener)
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksFileConfiguration, testDocument, eventListener)
                 .orElseThrow(AssertionError::new);
 
         PdfReader pdfReader = new PdfReader(documentData);
