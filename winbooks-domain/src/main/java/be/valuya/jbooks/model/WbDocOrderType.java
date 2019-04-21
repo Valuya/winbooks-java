@@ -4,7 +4,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- *
  * @author Yannick Majoros <yannick@valuya.be>
  */
 public enum WbDocOrderType implements WbValue {

@@ -113,7 +113,7 @@ public class WinbooksExtraServiceLocalTest {
     @Test
     public void testStreamEntries() {
         winbooksExtraService.streamAct(winbooksFileConfiguration,  eventListener)
-                .map(WbEntry::getVatTax)
+                .map(WbEntry::getAmountEur)
                 .map(BigDecimal::toPlainString)
                 .forEach(logger::info);
     }
