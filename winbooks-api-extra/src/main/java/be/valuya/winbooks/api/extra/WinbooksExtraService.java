@@ -273,6 +273,34 @@ public class WinbooksExtraService {
                 .flatMap(root -> this.streamBookYearDocuments(root, bookYear));
     }
 
+    // Should not be exposed
+    @Deprecated
+    public Optional<Path> resolvePath(Path parentPath, String fileName, boolean resolveCaseInsensitiveSiblings) {
+        if (parentPath == null) {
+            return Optional.empty();
+        }
+        Path defaultPath = parentPath.resolve(fileName);
+        if (Files.exists(defaultPath)) {
+            return Optional.of(defaultPath);
+        }
+        boolean parentExists = Files.exists(parentPath);
+        if (!parentExists) {
+            return Optional.empty();
+        }
+        if (fileName.endsWith(".dbf")) {
+            String capitalizedExtensionFileName = fileName.replace(".dbf", ".DBF");
+            Path capitalizedExtensionPath = parentPath.resolve(capitalizedExtensionFileName);
+            if (Files.exists(capitalizedExtensionPath)) {
+                return Optional.of(capitalizedExtensionPath);
+            }
+        }
+        if (resolveCaseInsensitiveSiblings) {
+            return this.resolveCaseInsensitivePathOptional(parentPath, fileName);
+        } else {
+            return Optional.empty();
+        }
+    }
+
 
     private Optional<Path> findSiblingWithSameName(Path parentPath, String fileName) throws IOException {
         BiPredicate<Path, BasicFileAttributes> predicate = (path, attr) -> isSamePathNameIgnoreCase(path, fileName);
@@ -534,7 +562,7 @@ public class WinbooksExtraService {
     private WbDocument getPageNumberDocument(WbDocument pageIndexDocument) {
         WbPeriod wbPeriod = pageIndexDocument.getWbPeriod();
         int pageCount = pageIndexDocument.getPageCount() + 1;
-        String name = pageIndexDocument.getName();
+        String documentNumber = pageIndexDocument.getDocumentNumber();
         LocalDateTime creationTime = pageIndexDocument.getCreationTime();
         LocalDateTime updatedTime = pageIndexDocument.getUpdatedTime();
         String dbkCode = pageIndexDocument.getDbkCode();
@@ -542,7 +570,7 @@ public class WinbooksExtraService {
         WbDocument pageNumberDocument = new WbDocument();
         pageNumberDocument.setWbPeriod(wbPeriod);
         pageNumberDocument.setPageCount(pageCount);
-        pageNumberDocument.setName(name);
+        pageNumberDocument.setDocumentNumber(documentNumber);
         pageNumberDocument.setCreationTime(creationTime);
         pageNumberDocument.setUpdatedTime(updatedTime);
         pageNumberDocument.setDbkCode(dbkCode);
@@ -670,7 +698,7 @@ public class WinbooksExtraService {
         String fileName = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
                 document.getDbkCode(),
                 periodIndexName,
-                document.getName(),
+                document.getDocumentNumber(),
                 pageIndexName
         );
         return fileName;
@@ -687,13 +715,13 @@ public class WinbooksExtraService {
 
         String actualDbkCode = matcher.group(1);
         String periodName = matcher.group(2);
-        String name = matcher.group(3);
+        String documentNumber = matcher.group(3);
         String pageNrStr = matcher.group(4);
         int pageNr = Integer.valueOf(pageNrStr);
 
         WbDocument wbDocument = new WbDocument();
         wbDocument.setDbkCode(actualDbkCode);
-        wbDocument.setName(name);
+        wbDocument.setDocumentNumber(documentNumber);
         wbDocument.setPageCount(pageNr);
         wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
         wbDocument.setUpdatedTime(lastModifiedLocalTime);
@@ -753,32 +781,6 @@ public class WinbooksExtraService {
                     String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, baseFolderPathName);
                     return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
                 });
-    }
-
-    private Optional<Path> resolvePath(Path parentPath, String fileName, boolean resolveCaseInsensitiveSiblings) {
-        if (parentPath == null) {
-            return Optional.empty();
-        }
-        Path defaultPath = parentPath.resolve(fileName);
-        if (Files.exists(defaultPath)) {
-            return Optional.of(defaultPath);
-        }
-        boolean parentExists = Files.exists(parentPath);
-        if (!parentExists) {
-            return Optional.empty();
-        }
-        if (fileName.endsWith(".dbf")) {
-            String capitalizedExtensionFileName = fileName.replace(".dbf", ".DBF");
-            Path capitalizedExtensionPath = parentPath.resolve(capitalizedExtensionFileName);
-            if (Files.exists(capitalizedExtensionPath)) {
-                return Optional.of(capitalizedExtensionPath);
-            }
-        }
-        if (resolveCaseInsensitiveSiblings) {
-            return this.resolveCaseInsensitivePathOptional(parentPath, fileName);
-        } else {
-            return Optional.empty();
-        }
     }
 
 

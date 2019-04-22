@@ -5,20 +5,19 @@ import java.util.Objects;
 
 public class WbDocument {
 
-    private String name;
+    private String documentNumber;
     private String dbkCode;
     private WbPeriod wbPeriod;
     private int pageCount;
     private LocalDateTime creationTime;
     private LocalDateTime updatedTime;
 
-
-    public String getName() {
-        return name;
+    public String getDocumentNumber() {
+        return documentNumber;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setDocumentNumber(String documentNumber) {
+        this.documentNumber = documentNumber;
     }
 
     public String getDbkCode() {
@@ -63,20 +62,16 @@ public class WbDocument {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         WbDocument that = (WbDocument) o;
-        return name.equals(that.name) &&
-                dbkCode.equals(that.dbkCode) &&
-                wbPeriod.equals(that.wbPeriod);
+        return Objects.equals(documentNumber, that.documentNumber) &&
+                Objects.equals(dbkCode, that.dbkCode) &&
+                Objects.equals(wbPeriod, that.wbPeriod);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, dbkCode, wbPeriod);
+        return Objects.hash(documentNumber, dbkCode, wbPeriod);
     }
 }

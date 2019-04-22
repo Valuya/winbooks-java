@@ -18,11 +18,11 @@ public class ATDocumentCacheKey {
     }
 
     public ATDocumentCacheKey(ATDocument document) {
-        String docId = document.getId();
+        String documentNumnber = document.getDocumentNumnber();
         ATBookPeriod bookPeriod = document.getBookPeriod();
         String dbkCode = document.getDbkCode();
 
-        this.documentNumber = docId;
+        this.documentNumber = documentNumnber;
         this.dbkCode = dbkCode;
         this.period = bookPeriod;
     }

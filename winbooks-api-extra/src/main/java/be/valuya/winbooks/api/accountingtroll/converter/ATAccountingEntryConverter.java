@@ -49,7 +49,8 @@ public class ATAccountingEntryConverter {
         Optional<ATThirdParty> thirdPartyOptional = accountingManagerCache.getCachedThirdPartyOptional(accountToId);
 
         Optional<ATTax> taxOptional = Optional.empty(); // TODO
-        Optional<ATDocument> documentOptional = Optional.empty(); //TODO
+        // Matching is done post-conversion
+        Optional<ATDocument> documentOptional = Optional.empty();
 
         Optional<String> matchNo = Optional.ofNullable(wbEntry.getMatchNo()).map(String::trim);
         Date entryDate = wbEntry.getDate();

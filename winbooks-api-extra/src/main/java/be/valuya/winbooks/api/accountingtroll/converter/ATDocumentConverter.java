@@ -10,6 +10,7 @@ import be.valuya.winbooks.api.accountingtroll.AccountingManagerCache;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,7 +26,7 @@ public class ATDocumentConverter {
     }
 
     public ATDocument convertDocument(WbDocument wbDocument) {
-        String name = wbDocument.getName();
+        String documentNumber = wbDocument.getDocumentNumber();
         String dbkCode = wbDocument.getDbkCode();
         WbPeriod wbPeriod = wbDocument.getWbPeriod();
         int pageCount = wbDocument.getPageCount();
@@ -33,9 +34,11 @@ public class ATDocumentConverter {
         LocalDateTime updatedTime = wbDocument.getUpdatedTime();
 
         ATBookPeriod bookPeriod = accountingManagerCache.getCachedBookPeriodOrThrow(wbPeriod);
+        String documentId = this.createDocumentId(dbkCode, bookPeriod, documentNumber);
 
         ATDocument atDocument = new ATDocument();
-        atDocument.setId(name);
+        atDocument.setId(documentId);
+        atDocument.setDocumentNumnber(documentNumber);
         atDocument.setDbkCode(dbkCode);
         atDocument.setBookPeriod(bookPeriod);
         atDocument.setPageCountOptional(Optional.of(pageCount));
@@ -44,10 +47,19 @@ public class ATDocumentConverter {
         return atDocument;
     }
 
+    private String createDocumentId(String dbkCode, ATBookPeriod bookPeriod, String documentNumber) {
+        String bookYearName = bookPeriod.getBookYear().getName();
+        String periodName = bookPeriod.getName();
+        String documentId = MessageFormat.format("wbdoc-{0}-{1}-{2}-{3}",
+                dbkCode, bookYearName, periodName, documentNumber
+        );
+        return documentId;
+    }
+
     public WbDocument convertWbDocument(ATDocument atDocument) {
-        String id = atDocument.getId();
         ATBookPeriod bookPeriod = atDocument.getBookPeriod();
         String dbkCode = atDocument.getDbkCode();
+        String documentNumber = atDocument.getDocumentNumnber();
         Optional<Integer> pageCountOptional = atDocument.getPageCountOptional();
         Optional<LocalDateTime> creationTimeOptional = atDocument.getCreationTimeOptional();
         Optional<LocalDateTime> updateTimeOptional = atDocument.getUpdateTimeOptional();
@@ -57,7 +69,7 @@ public class ATDocumentConverter {
         WbPeriod wbPeriod = this.findWbPeriod(wbBookYearFulls, bookPeriod);
 
         WbDocument wbDocument = new WbDocument();
-        wbDocument.setName(id);
+        wbDocument.setDbkCode(documentNumber);
         wbDocument.setDbkCode(dbkCode);
         wbDocument.setWbPeriod(wbPeriod);
         wbDocument.setUpdatedTime(updateTimeOptional.orElse(null));
