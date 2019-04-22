@@ -59,16 +59,16 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testStreamDocuments() {
-        WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        winbooksExtraService.streamDocuments(winbooksSession, eventListener)
+        winbooksExtraService.streamBookYears(winbooksFileConfiguration)
+                .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year, eventListener))
                 .peek(this::checkDocument)
                 .forEach(this::printDocument);
     }
 
     @Test
     public void testStreamDocumentPageData() throws Exception {
-        WinbooksSession winbooksSession = winbooksExtraService.createSession(winbooksFileConfiguration);
-        WbDocument testDocument = winbooksExtraService.streamDocuments(winbooksSession, eventListener)
+        WbDocument testDocument = winbooksExtraService.streamBookYears(winbooksFileConfiguration)
+                .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year, eventListener))
                 .filter(doc -> doc.getPageCount() > 1)
                 .findAny()
                 .orElseThrow(AssertionError::new);
