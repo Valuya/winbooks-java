@@ -15,7 +15,7 @@ import be.valuya.accountingtroll.event.BalanceChangeEvent;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
-import be.valuya.winbooks.api.extra.WinbooksFileConfiguration;
+import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
@@ -85,12 +85,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     @Override
     public Stream<ATDocument> streamDocuments() {
-        AccountingEventListener eventListener = new AccountingEventHandler(); //TODO
-
-        ATDocumentConverter documentConverter = new ATDocumentConverter(accountingManagerCache);
-        return accountingManagerCache.streamWbBookYearFulls()
-                .flatMap(bookYear -> extraService.streamBookYearDocuments(fileConfiguration, bookYear, eventListener))
-                .map(documentConverter::convertDocument);
+        return accountingManagerCache.streamDocuments();
     }
 
     @Override

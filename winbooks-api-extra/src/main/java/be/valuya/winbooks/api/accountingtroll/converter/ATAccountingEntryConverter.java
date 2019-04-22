@@ -38,7 +38,8 @@ public class ATAccountingEntryConverter {
         BigDecimal amount = wbEntry.getAmountEur();
         String dbkCode = wbEntry.getDbkCode();
         String docNumber = wbEntry.getDocNumber();
-        Integer docOrder = wbEntry.getDocOrder();
+        int docOrder = Optional.ofNullable(wbEntry.getDocOrder())
+                .orElse(0);
 
         String accountFromNumber = wbEntry.getAccountGl();
         ATAccount account = accountingManagerCache.getCachedAccountByCodeOptional(accountFromNumber)

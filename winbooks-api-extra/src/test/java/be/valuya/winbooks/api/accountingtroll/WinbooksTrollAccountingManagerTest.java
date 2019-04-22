@@ -2,7 +2,7 @@ package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
-import be.valuya.winbooks.api.extra.WinbooksFileConfiguration;
+import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 

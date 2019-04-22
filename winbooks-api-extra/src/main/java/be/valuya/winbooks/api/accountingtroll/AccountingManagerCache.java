@@ -5,6 +5,7 @@ import be.valuya.accountingtroll.domain.ATAccount;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
+import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.jbooks.model.WbAccount;
@@ -16,9 +17,11 @@ import be.valuya.winbooks.api.accountingtroll.converter.ATAccountConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountingEntryConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATBookPeriodConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATBookYearConverter;
+import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyConverter;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
-import be.valuya.winbooks.api.extra.WinbooksFileConfiguration;
+import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
+import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
@@ -36,6 +39,7 @@ public class AccountingManagerCache {
     private Map<String, List<ATBookPeriod>> bookPeriodsByBookYearShortName;
     private Map<String, ATAccount> accountsByCode;
     private Map<String, ATThirdParty> thirdPartiesById;
+    private Map<ATDocumentCacheKey, ATDocument> documentsByCacheKey;
     private List<ATAccountingEntry> accountingEntries;
 
     private final WinbooksExtraService extraService;
@@ -46,6 +50,7 @@ public class AccountingManagerCache {
     private final ATBookYearConverter atBookYearConverter;
     private final ATBookPeriodConverter atBookPeriodConverter;
     private final ATThirdPartyConverter atThirdPartyConverter;
+    private final ATDocumentConverter atDocumentConverter;
 
     public AccountingManagerCache(WinbooksFileConfiguration fileConfiguration) {
         this.fileConfiguration = fileConfiguration;
@@ -56,6 +61,7 @@ public class AccountingManagerCache {
         atBookYearConverter = new ATBookYearConverter();
         atBookPeriodConverter = new ATBookPeriodConverter(this);
         atThirdPartyConverter = new ATThirdPartyConverter();
+        atDocumentConverter = new ATDocumentConverter(this);
     }
 
     public Stream<WbBookYearFull> streamWbBookYearFulls() {
@@ -88,6 +94,11 @@ public class AccountingManagerCache {
     public Stream<ATAccountingEntry> streamAccountingEntries() {
         this.cacheAccountingEntries();
         return accountingEntries.stream();
+    }
+
+    public Stream<ATDocument> streamDocuments() {
+        this.cacheDocuments();
+        return documentsByCacheKey.values().stream();
     }
 
     public ATBookYear getCachedBookYearOrThrow(String bookYearShortName) {
@@ -190,11 +201,52 @@ public class AccountingManagerCache {
         if (accountingEntries != null) {
             return;
         }
+
+        DocumentMatchingMode documentMatchingMode = fileConfiguration.getDocumentMatchingMode();
+        if (documentMatchingMode == DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS) {
+            cacheDocuments();
+        }
+
         AccountingEventListener accountingEventListener = new AccountingEventHandler();
         accountingEntries = extraService.streamAct(fileConfiguration, accountingEventListener)
                 .filter(this::isValidAccountingEntry)
                 .map(atAccountingEntryConverter::convertToTrollAccountingEntry)
+                .map(e -> this.linkEntryDocument(e, documentMatchingMode))
                 .collect(Collectors.toList());
+    }
+
+    private ATAccountingEntry linkEntryDocument(ATAccountingEntry accountingEntry, DocumentMatchingMode documentMatchingMode) {
+        if (documentMatchingMode == DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS) {
+            Optional<ATDocument> documentOptional = this.findAccountingEntryDocument(accountingEntry);
+            accountingEntry.setDocumentOptional(documentOptional);
+            return accountingEntry;
+        } else {
+            return accountingEntry;
+        }
+    }
+
+    private Optional<ATDocument> findAccountingEntryDocument(ATAccountingEntry accountingEntry) {
+        String dbkCode = accountingEntry.getDbkCode();
+        ATBookPeriod bookPeriod = accountingEntry.getBookPeriod();
+        String docNumber = accountingEntry.getDocNumber();
+        ATDocumentCacheKey cacheKey = new ATDocumentCacheKey(docNumber, dbkCode, bookPeriod);
+        ATDocument documentNullable = documentsByCacheKey.get(cacheKey);
+
+        return Optional.ofNullable(documentNullable);
+    }
+
+    private void cacheDocuments() {
+        if (documentsByCacheKey != null) {
+            return;
+        }
+        AccountingEventListener accountingEventListener = new AccountingEventHandler();
+        documentsByCacheKey = streamWbBookYearFulls()
+                .flatMap(bookYear -> extraService.streamBookYearDocuments(fileConfiguration, bookYear, accountingEventListener))
+                .map(atDocumentConverter::convertDocument)
+                .collect(Collectors.toMap(
+                        ATDocumentCacheKey::new,
+                        Function.identity()
+                ));
     }
 
 

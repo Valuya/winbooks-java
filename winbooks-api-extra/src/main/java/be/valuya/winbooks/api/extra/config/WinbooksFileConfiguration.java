@@ -1,4 +1,4 @@
-package be.valuya.winbooks.api.extra;
+package be.valuya.winbooks.api.extra.config;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +15,7 @@ public class WinbooksFileConfiguration {
     private boolean readTablesToMemory;
     private boolean resolveArchivePaths;
     private boolean resolveCaseInsensitiveSiblings = true;
+    private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.SKIP;
 
     public String getUsername() {
         return username;
@@ -86,5 +87,13 @@ public class WinbooksFileConfiguration {
 
     public void setResolveCaseInsensitiveSiblings(boolean resolveCaseInsensitiveSiblings) {
         this.resolveCaseInsensitiveSiblings = resolveCaseInsensitiveSiblings;
+    }
+
+    public DocumentMatchingMode getDocumentMatchingMode() {
+        return documentMatchingMode;
+    }
+
+    public void setDocumentMatchingMode(DocumentMatchingMode documentMatchingMode) {
+        this.documentMatchingMode = documentMatchingMode;
     }
 }

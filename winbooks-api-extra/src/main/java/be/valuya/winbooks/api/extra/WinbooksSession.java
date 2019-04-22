@@ -1,6 +1,7 @@
 package be.valuya.winbooks.api.extra;
 
 import be.valuya.jbooks.model.WbBookYearFull;
+import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 
 import java.util.List;
 

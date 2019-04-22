@@ -10,6 +10,7 @@ import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
+import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.pdf.PdfReader;
@@ -25,10 +26,8 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -112,7 +111,7 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testStreamEntries() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration,  eventListener)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .map(WbEntry::getAmountEur)
                 .map(BigDecimal::toPlainString)
                 .forEach(logger::info);
@@ -129,7 +128,7 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testFindDistinctDocStatus() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration,eventListener)
+        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .map(WbEntry::getDocStatus)
                 .distinct()
                 .map(WbDocStatus::name)
