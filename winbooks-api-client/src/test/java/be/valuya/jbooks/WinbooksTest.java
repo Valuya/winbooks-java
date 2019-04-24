@@ -15,21 +15,23 @@ import be.valuya.winbooks.util.WbImportResult;
 import be.valuya.winbooks.util.WbLanguage;
 import be.valuya.winbooks.util.WbWarning;
 import be.valuya.winbooks.util.WbWarningResolution;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- *
  * @author Yannick Majoros <yannick@valuya.be>
  */
-//@Ignore
+@Ignore
 public class WinbooksTest {
 
     private Winbooks winbooks;
@@ -46,7 +48,7 @@ public class WinbooksTest {
     public void bla() {
         winbooks.doStuff();
     }
-    
+
     @Test
     public void testImportDataTest() {
         WbImport wbImport = createTestWbImport();
@@ -93,7 +95,7 @@ public class WinbooksTest {
      * WbGenericMitigation(); wbGenericWarningResolution2.setCode("OUT_DAT");
      * wbGenericWarningResolution2.setTypeSolution(TypeSolution.wbAccept);
      * genericWarningResolutions.add(wbGenericWarningResolution2);
-     *
+     * <p>
      * WbMitigation wbMitigation = new WbMitigation(null, genericWarningResolutions);
      * wbImport.setWbMitigation(wbMitigation);
      */
