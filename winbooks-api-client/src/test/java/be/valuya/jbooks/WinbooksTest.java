@@ -25,13 +25,13 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * @author Yannick Majoros <yannick@valuya.be>
  */
-@Ignore
+@Category(WinbookApiClientTest.class)
 public class WinbooksTest {
 
     private Winbooks winbooks;

@@ -9,6 +9,8 @@ import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
+import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
@@ -18,6 +20,9 @@ import net.iryndin.jdbf.core.DbfRecord;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -32,6 +37,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@RunWith(JUnit4.class)
+@Category(LocalWinbooksDossierCategory.class)
 public class WinbooksExtraServiceLocalTest {
 
     private WinbooksExtraService winbooksExtraService;

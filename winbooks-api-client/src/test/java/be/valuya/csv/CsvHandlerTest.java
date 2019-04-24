@@ -1,12 +1,14 @@
 package be.valuya.csv;
 
+import be.valuya.jbooks.DefaultCategory;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
- *
  * @author Yannick Majoros <yannick@valuya.be>
  */
+@Category(DefaultCategory.class)
 public class CsvHandlerTest {
 
     @Test

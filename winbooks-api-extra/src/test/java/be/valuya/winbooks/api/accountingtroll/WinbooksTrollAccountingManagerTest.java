@@ -1,14 +1,20 @@
 package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
+import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@RunWith(JUnit4.class)
+@Category(LocalWinbooksDossierCategory.class)
 public class WinbooksTrollAccountingManagerTest {
 
 

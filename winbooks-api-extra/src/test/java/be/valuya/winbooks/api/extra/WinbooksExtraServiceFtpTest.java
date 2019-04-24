@@ -7,6 +7,7 @@ import be.valuya.jbooks.model.WbDocOrderType;
 import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
 import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
@@ -18,7 +19,11 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -40,7 +45,8 @@ import java.util.stream.Stream;
 /**
  * @author Yannick
  */
-
+@RunWith(JUnit4.class)
+@Category(FtpWinbooksDossierCategory.class)
 public class WinbooksExtraServiceFtpTest {
 
     private static String FTP_USER_NAME;
