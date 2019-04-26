@@ -22,6 +22,9 @@ import be.valuya.winbooks.domain.error.WinbooksException;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -34,6 +37,8 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     private static final BigDecimal ZERO_EURO = BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_UNNECESSARY);
     private static final Comparator<AccountWithThirdParty> ACCOUNT_WITH_THIRD_PARTY_COMPARATOR = createAccountWithThirdPartyComparator();
+    private static final String DOCUMENTS_PATH_NAME = "Document";
+    private static final String DOCUMENT_UPLOAD_PATH_NAME = "Scans";
 
     private WinbooksExtraService extraService;
     private WinbooksFileConfiguration fileConfiguration;
@@ -97,6 +102,19 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find document date"));
 
         return new ByteArrayInputStream(documentdata);
+    }
+
+    @Override
+    public void uploadDocument(Path documentPath, InputStream inputStream) throws Exception {
+        Path baseFolderPath = fileConfiguration.getBaseFolderPath();
+        Path documentFullPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
+                .resolve(DOCUMENT_UPLOAD_PATH_NAME)
+                .resolve(documentPath);
+        Path documentDirectoryPath = documentFullPath.getParent();
+
+        // TODO: resolve case-insensitive parent paths if they exists
+        Files.createDirectories(documentDirectoryPath);
+        Files.copy(inputStream, documentFullPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private Stream<ATAccountingEntry> convertWithBalanceCheck(ATAccountingEntry atAccountingEntry,

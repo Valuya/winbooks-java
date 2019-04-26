@@ -246,16 +246,19 @@ public class WinbooksExtraService {
         return Optional.of(winbooksFileConfiguration);
     }
 
-
     public Optional<byte[]> getDocumentData(WinbooksFileConfiguration fileConfiguration, WbDocument document, AccountingEventListener winbooksEventHandler) {
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-        WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
+        return getDocumentAbsolutePath(fileConfiguration, document, winbooksEventHandler)
+                .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
+    }
 
+    public Optional<Path> getDocumentAbsolutePath(WinbooksFileConfiguration fileConfiguration, WbDocument document, AccountingEventListener winbooksEventHandler) {
+        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
+        WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
         return this.streamBasePaths(fileConfiguration, bookYearFull, winbooksEventHandler)
                 .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
                 .map(documentsPath -> resolveDocumentDirectoryPath(documentsPath, document, resolveCaseInsensitiveSiblings))
-                .findFirst()
-                .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
+                .findFirst();
     }
 
     public Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear, AccountingEventListener winbooksEventHandler) {
