@@ -162,9 +162,7 @@ public class WinbooksParfiluxDossierTest {
     @Test
     public void testAccountBalances() {
         BalanceAccountingEventListener balanceEventListener = new BalanceAccountingEventListener();
-        trollSrervice.streamAccountingEntries(balanceEventListener)
-                .filter(a -> a.getAccount().getCode().length() == 6) // TODO: 'title' flag
-                .forEach(this::debugEntry);
+        trollSrervice.streamAccountingEntries(balanceEventListener).count(); // consume stream to trigger side effects
         Map<String, BigDecimal> balanceByAccountCode = balanceEventListener.getBalanceByAccountCode();
 
         List<String> balanceCSVLines = new ArrayList<>(GENERAL_BALANCES_CSV_LINES).stream()
@@ -200,9 +198,6 @@ public class WinbooksParfiluxDossierTest {
     private boolean isTestableAccount(String csvAccountNumber) {
         // Special account filled with previous year balance for accounts 6+7
         return !csvAccountNumber.equals("149999");
-    }
-
-    private void debugEntry(ATAccountingEntry accountingEntry) {
     }
 
     private static List<String> readGeneralBalanceCSV() throws IOException {
