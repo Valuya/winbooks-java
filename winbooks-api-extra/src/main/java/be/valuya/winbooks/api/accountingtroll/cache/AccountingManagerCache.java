@@ -268,12 +268,7 @@ public class AccountingManagerCache {
 
     private boolean isValidAccountingEntry(WbEntry wbEntry) {
         String dbkCode = wbEntry.getDbkCode();
-        boolean isSimulationLedger = dbkCode.equals("ODSIMU");
-        WbDbkType wbDbkType = wbEntry.getWbDbkType();
-        boolean isMiscOperationJournal = wbDbkType == WbDbkType.MISC;
-//        if (wbEntry.getAccountGl() == null) {
-//            System.err.println(wbEntry);
-//        }
+        boolean isSimulationLedger = dbkCode.equals("ODSIMU"); // FIXME: flag to be set on accounting entry
 //        return wbEntry.getAccountGl() != null
 //                && wbEntry.getWbPeriod() != null
 //                && !isSimulationLedger;

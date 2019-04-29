@@ -114,14 +114,6 @@ public class WinbooksParfiluxDossierTest {
     }
 
     @Test
-    public void testStreamAccounts() {
-        trollSrervice.streamAccounts()
-                .map(ATAccount::getCode)
-                .sorted()
-                .forEach(this::debug);
-    }
-
-    @Test
     public void testAccounts() throws IOException {
         Map<String, ATAccount> accountsMap = trollSrervice.streamAccounts()
                 .filter(a -> a.getCode().length() == 6) // TODO: 'title' flag
