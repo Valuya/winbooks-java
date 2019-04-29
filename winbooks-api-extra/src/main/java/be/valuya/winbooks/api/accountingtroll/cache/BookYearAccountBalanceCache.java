@@ -11,10 +11,10 @@ import be.valuya.winbooks.domain.error.WinbooksException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 public class BookYearAccountBalanceCache {
@@ -23,7 +23,7 @@ public class BookYearAccountBalanceCache {
 
     private ATBookYear bookYear;
     private ATBookPeriod openingPeriod;
-    private Map<String, AccountBalance> accountBalanceCache = new HashMap<>();
+    private Map<String, AccountBalance> accountBalanceCache = new ConcurrentSkipListMap<>();
     private final AccountingManagerCache accountingManagerCache;
 
     public BookYearAccountBalanceCache(ATBookYear bookYear, AccountingManagerCache accountingManagerCache, Optional<BookYearAccountBalanceCache> lastCache) {

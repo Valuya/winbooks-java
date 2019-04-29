@@ -6,15 +6,15 @@ import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 public class AccountBalanceCache {
 
-    private Map<ATBookYear, BookYearAccountBalanceCache> bookYearBalances = new HashMap<>();
+    private Map<ATBookYear, BookYearAccountBalanceCache> bookYearBalances = new ConcurrentSkipListMap<>();
     private final AccountingManagerCache accountingManagerCache;
 
     public AccountBalanceCache(AccountingManagerCache accountingManagerCache) {
