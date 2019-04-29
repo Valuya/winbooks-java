@@ -11,6 +11,7 @@ import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -25,13 +26,10 @@ import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RunWith(JUnit4.class)
 @Category(ParfiluxDossierCategory.class)
@@ -40,12 +38,19 @@ public class WinbooksParfiluxDossierTest {
     private static final String BOOK_YEAR_2017_NAME = "Ex. 2017";
     private static final String BOOK_YEAR_2016_NAME = "Ex. 2016";
     private static final BigDecimal ZERO = BigDecimal.valueOf(0).setScale(3, RoundingMode.UNNECESSARY);
+    private static List<String> GENERAL_BALANCES_CSV_LINES;
 
     private WinbooksTrollAccountingManager trollSrervice;
     private AccountingEventListener eventListener;
 
+
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        GENERAL_BALANCES_CSV_LINES = readGeneralBalanceCSV();
+    }
+
     @Before
-    public void setup() {
+    public void before() {
         WinbooksExtraService extraService = new WinbooksExtraService();
 
         String baseFolderLocation = System.getProperty("winbooks.test.folder");
@@ -114,7 +119,7 @@ public class WinbooksParfiluxDossierTest {
     }
 
     @Test
-    public void testAccounts() throws IOException {
+    public void testAccounts() {
         Map<String, ATAccount> accountsMap = trollSrervice.streamAccounts()
                 .filter(a -> a.getCode().length() == 6) // TODO: 'title' flag
                 .collect(Collectors.toMap(
@@ -122,7 +127,7 @@ public class WinbooksParfiluxDossierTest {
                         Function.identity()
                 ));
 
-        List<String> balanceCSVLines = readGeneralBalanceCSV().stream()
+        List<String> balanceCSVLines = GENERAL_BALANCES_CSV_LINES.stream()
                 .skip(6) // header
                 .filter(s -> !s.trim().isEmpty())
                 .sorted()
@@ -154,14 +159,14 @@ public class WinbooksParfiluxDossierTest {
 
 
     @Test
-    public void testAccountBalances() throws IOException {
+    public void testAccountBalances() {
         BalanceAccountingEventListener balanceEventListener = new BalanceAccountingEventListener();
         trollSrervice.streamAccountingEntries(balanceEventListener)
                 .filter(a -> a.getAccount().getCode().length() == 6) // TODO: 'title' flag
                 .forEach(this::debugEntry);
         Map<String, BigDecimal> balanceByAccountCode = balanceEventListener.getBalanceByAccountCode();
 
-        List<String> balanceCSVLines = readGeneralBalanceCSV().stream()
+        List<String> balanceCSVLines = GENERAL_BALANCES_CSV_LINES.stream()
                 .skip(6) // header
                 .filter(s -> !s.trim().isEmpty())
                 .sorted()
@@ -199,35 +204,14 @@ public class WinbooksParfiluxDossierTest {
     private void debugEntry(ATAccountingEntry accountingEntry) {
     }
 
-    private List<String> readGeneralBalanceCSV() throws IOException {
-        try (InputStream csvStream = getClass().getClassLoader().getResourceAsStream("PARFILUX Balance périodique générale.csv")) {
+    private static List<String> readGeneralBalanceCSV() throws IOException {
+        try (InputStream csvStream = WinbooksParfiluxDossierTest.class.getClassLoader()
+                .getResourceAsStream("PARFILUX Balance périodique générale.csv")) {
             InputStreamReader streamReader = new InputStreamReader(csvStream);
             BufferedReader bufferedReader = new BufferedReader(streamReader);
             List<String> allLines = bufferedReader.lines().collect(Collectors.toList());
             return allLines;
         }
-    }
-
-    private List<String> readClientBalancesCSV() throws IOException {
-        try (InputStream csvStream = getClass().getClassLoader().getResourceAsStream("PARFILUX Balance périodique clients.csv")) {
-            InputStreamReader streamReader = new InputStreamReader(csvStream);
-            BufferedReader bufferedReader = new BufferedReader(streamReader);
-            List<String> allLines = bufferedReader.lines().collect(Collectors.toList());
-            return allLines;
-        }
-    }
-
-    private List<String> readSuppliersBalancesCSV() throws IOException {
-        try (InputStream csvStream = getClass().getClassLoader().getResourceAsStream("PARFILUX Balance périodique fournisseurs.csv")) {
-            InputStreamReader streamReader = new InputStreamReader(csvStream);
-            BufferedReader bufferedReader = new BufferedReader(streamReader);
-            List<String> allLines = bufferedReader.lines().collect(Collectors.toList());
-            return allLines;
-        }
-    }
-
-    private void debug(Object valueObject) {
-        System.out.println(valueObject);
     }
 
 }
