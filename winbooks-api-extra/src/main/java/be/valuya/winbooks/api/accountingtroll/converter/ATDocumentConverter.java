@@ -6,12 +6,11 @@ import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbPeriod;
-import be.valuya.winbooks.api.accountingtroll.AccountingManagerCache;
+import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
 import java.text.MessageFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

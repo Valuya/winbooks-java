@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 
 @RunWith(JUnit4.class)
 @Category(LocalWinbooksDossierCategory.class)
-public class WinbooksTrollAccountingManagerTest {
+public class WinbooksTrollAccountingManagerLocalTest {
 
 
     private WinbooksTrollAccountingManager trollSrervice;

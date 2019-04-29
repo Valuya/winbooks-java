@@ -5,7 +5,7 @@ import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATPeriodType;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbPeriod;
-import be.valuya.winbooks.api.accountingtroll.AccountingManagerCache;
+import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 
 import java.text.MessageFormat;
 import java.time.LocalDate;

@@ -36,6 +36,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,8 @@ import java.util.stream.Stream;
 public class WinbooksExtraService {
 
     public static final Pattern BOOK_YEAR_DOCUMENT_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
+    public static final String ACCOUNT_PICTURE_PARAM_LENGEN = "LENGEN";
+    public static final int ACCOUNT_NUMBER_DEFAULT_LENGTH = 6;
     private static Logger LOGGER = Logger.getLogger(WinbooksExtraService.class.getName());
 
     // some invalid String that Winbooks likes to have
@@ -199,15 +202,36 @@ public class WinbooksExtraService {
         return wbBookYearFullList;
     }
 
-    public Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+    public int getAccountNumberLength(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
+        String accountPictureValueNullable = paramMap.get("AccountPicture");
+        return Optional.ofNullable(accountPictureValueNullable)
+                .flatMap(this::getAccountNumberLengthFromAccountPictureParamValue)
+                .orElse(ACCOUNT_NUMBER_DEFAULT_LENGTH);
+    }
+
+    private Optional<Integer> getAccountNumberLengthFromAccountPictureParamValue(String accountPictureValue) {
+        String[] paramValues = accountPictureValue.split(",");
+        Map<String, String> accountPictureParams = Arrays.stream(paramValues)
+                .map(keyValue -> keyValue.split("="))
+                .collect(Collectors.toMap(
+                        keyVal -> keyVal[0],
+                        keyVal -> keyVal.length < 2 ? null : keyVal[1]
+                ));
+        return Optional.ofNullable(accountPictureParams.get(ACCOUNT_PICTURE_PARAM_LENGEN))
+                .map(Integer::parseInt);
+    }
+
+
+    private Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
         WbBookYearFullDbfReader wbBookYearFullDbfReader = new WbBookYearFullDbfReader();
         return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)
                 .map(wbBookYearFullDbfReader::readWbBookYearFromSlbkyDbfRecord);
     }
 
-    public Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration,
-                                                 String tableName, String archivePathName,
-                                                 AccountingEventListener eventListener) {
+    private Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration,
+                                                  String tableName, String archivePathName,
+                                                  AccountingEventListener eventListener) {
         Charset charset = winbooksFileConfiguration.getCharset();
 
         return getArchivedTableInputStreamOptional(winbooksFileConfiguration, tableName, archivePathName, eventListener)

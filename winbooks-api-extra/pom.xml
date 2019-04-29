@@ -117,5 +117,48 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>winbooks-parfilux-test</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.4.1</version>
+                        <executions>
+                            <execution>
+                                <id>download-pariflux-data</id>
+                                <phase>generate-test-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>
+                                        https://nexus.valuya.be/nexus/repository/raw-public/accounting/data/winbooks-demo-dossier-pariflux-2019.zip
+                                    </url>
+                                    <unpack>true</unpack>
+                                    <outputDirectory>${project.build.directory}/winbooks</outputDirectory>
+                                    <md5>3d6528e9f652708089f727d40957c388</md5>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <groups>
+                                be.valuya.winbooks.api.DefaultCategory,
+                                be.valuya.winbooks.api.ParfiluxDossierCategory
+                            </groups>
+                            <systemPropertyVariables>
+                                <winbooks.test.folder>${project.build.directory}/winbooks/Parfilux</winbooks.test.folder>
+                                <winbooks.test.base.name>PARFILUX</winbooks.test.base.name>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

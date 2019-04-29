@@ -8,12 +8,13 @@ import java.util.Optional;
 public class ATAccountConverter {
 
 
-    public ATAccount convertToTrollAcccount(WbAccount wbAccount) {
+    public ATAccount convertToTrollAcccount(WbAccount wbAccount, int acountNumberLength) {
         String accountNumber = wbAccount.getAccountNumber();
         String currency = wbAccount.getCurrency();
         String name = wbAccount.getName11();
         boolean analyt = wbAccount.isAnalyt();
         boolean yearlyBalanceReset = this.isYearResetAccount(accountNumber);
+        boolean titleAccount = accountNumber.length() < acountNumberLength;
 
         Optional<String> currencyOptional = Optional.ofNullable(currency);
 
@@ -23,6 +24,7 @@ public class ATAccountConverter {
         account.setAnalytics(analyt);
         account.setYearlyBalanceReset(yearlyBalanceReset);
         account.setCurrencyOptional(currencyOptional);
+        account.setTitle(titleAccount);
         return account;
     }
 

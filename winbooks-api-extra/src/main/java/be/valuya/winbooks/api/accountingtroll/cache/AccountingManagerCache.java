@@ -1,4 +1,4 @@
-package be.valuya.winbooks.api.accountingtroll;
+package be.valuya.winbooks.api.accountingtroll.cache;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccount;
@@ -11,6 +11,7 @@ import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDbkType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountConverter;
@@ -138,9 +139,11 @@ public class AccountingManagerCache {
         if (accountsByCode != null) {
             return;
         }
+
+        int accountNumberLength = extraService.getAccountNumberLength(fileConfiguration);
         accountsByCode = extraService.streamAcf(fileConfiguration)
                 .filter(this::isValidAccount)
-                .map(atAccountConverter::convertToTrollAcccount)
+                .map(wbAccount -> atAccountConverter.convertToTrollAcccount(wbAccount, accountNumberLength))
                 .collect(Collectors.toMap(
                         ATAccount::getCode,
                         Function.identity(),
@@ -266,8 +269,12 @@ public class AccountingManagerCache {
 
 
     private boolean isValidAccountingEntry(WbEntry wbEntry) {
-        return wbEntry.getAccountGl() != null
-                && wbEntry.getWbPeriod() != null;
+        String dbkCode = wbEntry.getDbkCode();
+        boolean isSimulationLedger = dbkCode.equals("ODSIMU"); // FIXME: flag to be set on accounting entry
+//        return wbEntry.getAccountGl() != null
+//                && wbEntry.getWbPeriod() != null
+//                && !isSimulationLedger;
+        return !isSimulationLedger && wbEntry.getAccountGl() != null;
     }
 
     private boolean isSamePeriod(ATBookPeriod atPeriod, WbPeriod period) {

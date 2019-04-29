@@ -11,7 +11,7 @@ import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbDocOrderType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
-import be.valuya.winbooks.api.accountingtroll.AccountingManagerCache;
+import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
