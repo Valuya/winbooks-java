@@ -1,4 +1,4 @@
-package be.valuya.winbooks.api.accountingtroll;
+package be.valuya.winbooks.api.accountingtroll.cache;
 
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATDocument;

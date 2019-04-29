@@ -1,13 +1,13 @@
-package be.valuya.winbooks.api.accountingtroll;
+package be.valuya.winbooks.api.accountingtroll.cache;
 
 import be.valuya.accountingtroll.domain.ATAccount;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
-import be.valuya.accountingtroll.domain.ATBookYear;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class AccountBalance {
+
     private ATAccount account;
     private ATBookPeriod period;
     private LocalDate date;

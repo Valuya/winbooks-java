@@ -1,4 +1,4 @@
-package be.valuya.winbooks.api.accountingtroll;
+package be.valuya.winbooks.api.accountingtroll.cache;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccount;
@@ -11,6 +11,7 @@ import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDbkType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountConverter;
@@ -266,8 +267,17 @@ public class AccountingManagerCache {
 
 
     private boolean isValidAccountingEntry(WbEntry wbEntry) {
-        return wbEntry.getAccountGl() != null
-                && wbEntry.getWbPeriod() != null;
+        String dbkCode = wbEntry.getDbkCode();
+        boolean isSimulationLedger = dbkCode.equals("ODSIMU");
+        WbDbkType wbDbkType = wbEntry.getWbDbkType();
+        boolean isMiscOperationJournal = wbDbkType == WbDbkType.MISC;
+//        if (wbEntry.getAccountGl() == null) {
+//            System.err.println(wbEntry);
+//        }
+//        return wbEntry.getAccountGl() != null
+//                && wbEntry.getWbPeriod() != null
+//                && !isSimulationLedger;
+        return !isSimulationLedger && wbEntry.getAccountGl() != null;
     }
 
     private boolean isSamePeriod(ATBookPeriod atPeriod, WbPeriod period) {

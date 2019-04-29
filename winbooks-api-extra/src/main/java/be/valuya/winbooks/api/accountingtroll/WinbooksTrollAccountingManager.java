@@ -13,6 +13,9 @@ import be.valuya.accountingtroll.domain.AccountingEntryDocumentNumberType;
 import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.accountingtroll.event.BalanceChangeEvent;
 import be.valuya.jbooks.model.WbDocument;
+import be.valuya.winbooks.api.accountingtroll.cache.AccountBalance;
+import be.valuya.winbooks.api.accountingtroll.cache.AccountBalanceCache;
+import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
@@ -27,16 +30,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class WinbooksTrollAccountingManager implements AccountingManager {
 
-    private static final BigDecimal ZERO_EURO = BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_UNNECESSARY);
-    private static final Comparator<AccountWithThirdParty> ACCOUNT_WITH_THIRD_PARTY_COMPARATOR = createAccountWithThirdPartyComparator();
+    private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(3, BigDecimal.ROUND_UNNECESSARY);
     private static final String DOCUMENTS_PATH_NAME = "Document";
     private static final String DOCUMENT_UPLOAD_PATH_NAME = "Scans";
 
@@ -80,11 +81,18 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     @Override
     public Stream<ATAccountingEntry> streamAccountingEntries(AccountingEventListener accountingEventListener) {
-        Map<AccountWithThirdParty, AccountBalance> accountBalanceMap = new ConcurrentSkipListMap<>(ACCOUNT_WITH_THIRD_PARTY_COMPARATOR);
+        AccountBalanceCache accountBalanceCache = new AccountBalanceCache(accountingManagerCache);
 
-        return accountingManagerCache.streamAccountingEntries()
+        List<ATAccountingEntry> atAccountingEntries = accountingManagerCache.streamAccountingEntries()
                 .sorted()
-                .flatMap(entry -> convertWithBalanceCheck(entry, accountBalanceMap, accountingEventListener));
+                .flatMap(entry -> convertWithBalanceCheck(entry, accountBalanceCache, accountingEventListener))
+                .collect(Collectors.toList()); // has to consume the stream to trigger side effects
+
+        // Reemit resetted balances for last book year
+        accountBalanceCache.getLastBookYear()
+                .ifPresent(bookYear -> this.emitResettedBalancesEvents(bookYear, accountBalanceCache, accountingEventListener));
+
+        return atAccountingEntries.stream();
     }
 
 
@@ -118,27 +126,33 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
     private Stream<ATAccountingEntry> convertWithBalanceCheck(ATAccountingEntry atAccountingEntry,
-                                                              Map<AccountWithThirdParty, AccountBalance> accountBalanceMap,
+                                                              AccountBalanceCache accountBalanceCache,
                                                               AccountingEventListener accountingEventListener) {
         AccountingEntryDocumentNumberType documentNumberType = atAccountingEntry.getDocNumberTypeOptional()
                 .orElse(AccountingEntryDocumentNumberType.DEFAULT);
         ATAccount atAccount = atAccountingEntry.getAccount();
-        Optional<ATThirdParty> thirdPartyOptional = atAccountingEntry.getThirdPartyOptional();
-        AccountWithThirdParty accountWithThirdParty = new AccountWithThirdParty(atAccount, thirdPartyOptional);
 
         if (documentNumberType == AccountingEntryDocumentNumberType.BALANCE) {
-            resetAccountBalance(accountWithThirdParty, accountBalanceMap, atAccountingEntry);
+            accountBalanceCache.resetAccountBalance(atAccountingEntry);
             return Stream.empty();
         }
 
-//        // TODO: check
-        ATPeriodType periodType = atAccountingEntry.getBookPeriod().getPeriodType();
+        ATBookPeriod bookPeriod = atAccountingEntry.getBookPeriod();
+        ATBookYear bookYear = bookPeriod.getBookYear();
+        ATPeriodType periodType = bookPeriod.getPeriodType();
         AccountBalance accountBalance;
+
         if (periodType == ATPeriodType.OPENING) {
-            resetAccountBalance(accountWithThirdParty, accountBalanceMap, atAccountingEntry);
-            accountBalance = accountBalanceMap.get(accountWithThirdParty);
+            accountBalanceCache.resetAccountBalance(atAccountingEntry);
+            accountBalance = accountBalanceCache.getAccountBalance(atAccount, bookYear);
+        } else if (periodType == ATPeriodType.CLOSING) {
+            accountBalanceCache.appendToAccountBalance(atAccountingEntry);
+            accountBalance = accountBalanceCache.getAccountBalance(atAccount, bookYear);
+        } else if (periodType == ATPeriodType.GENERAL) {
+            accountBalanceCache.appendToAccountBalance(atAccountingEntry);
+            accountBalance = accountBalanceCache.getAccountBalance(atAccount, bookYear);
         } else {
-            accountBalance = updateAccountBalanceAfterAccountingEntry(accountWithThirdParty, accountBalanceMap, atAccountingEntry);
+            return Stream.empty();
         }
 
         BigDecimal newBalance = accountBalance.getBalance();
@@ -154,93 +168,6 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         return Stream.of(atAccountingEntry);
     }
 
-    private void resetAccountBalance(AccountWithThirdParty accountWithThirdParty,
-                                     Map<AccountWithThirdParty, AccountBalance> accountBalanceMap,
-                                     ATAccountingEntry accountingEntry) {
-        LocalDate date = accountingEntry.getDate();
-        BigDecimal amount = accountingEntry.getAmount();
-        ATBookPeriod bookPeriod = accountingEntry.getBookPeriod();
-
-        AccountBalance accountBalanceNullable = accountBalanceMap.get(accountWithThirdParty);
-        BigDecimal newBalanceAmount = Optional.ofNullable(accountBalanceNullable)
-                // if there already is a balance for this date / account combination, add it (we probably get an entry per accountGl)
-                .filter(oldBalance -> oldBalance.getDate().equals(date))
-                .map(AccountBalance::getBalance)
-                .map(amount::add)
-                .orElse(amount);
-
-        setAccountBalance(accountWithThirdParty, date, bookPeriod, newBalanceAmount, accountBalanceMap);
-    }
-
-    private AccountBalance updateAccountBalanceAfterAccountingEntry(AccountWithThirdParty accountWithThirdParty,
-                                                                    Map<AccountWithThirdParty, AccountBalance> accountBalanceMap,
-                                                                    ATAccountingEntry accountingEntry) {
-        BigDecimal entryAmount = accountingEntry.getAmount();
-        BigDecimal newBalance = getYearlyAdjustedAccountBalanceOptional(accountWithThirdParty, accountBalanceMap, accountingEntry)
-                .map(AccountBalance::getBalance)
-                .map(entryAmount::add)
-                .orElse(entryAmount);
-        LocalDate date = accountingEntry.getDate();
-        ATBookPeriod bookPeriod = accountingEntry.getBookPeriod();
-        return setAccountBalance(accountWithThirdParty, date, bookPeriod, newBalance, accountBalanceMap);
-    }
-
-    private Optional<AccountBalance> getYearlyAdjustedAccountBalanceOptional(AccountWithThirdParty accountWithThirdParty,
-                                                                             Map<AccountWithThirdParty, AccountBalance> accountBalanceMap,
-                                                                             ATAccountingEntry accountingEntry) {
-        AccountBalance accountBalanceNullable = accountBalanceMap.get(accountWithThirdParty);
-        return Optional.ofNullable(accountBalanceNullable)
-                .map(accountBalance -> getAdjustedBalance(accountWithThirdParty, accountBalanceMap, accountBalance, accountingEntry));
-    }
-
-    private AccountBalance getAdjustedBalance(AccountWithThirdParty accountWithThirdParty,
-                                              Map<AccountWithThirdParty, AccountBalance> accountBalanceMap,
-                                              AccountBalance accountBalance,
-                                              ATAccountingEntry accountingEntry) {
-        ATAccount account = accountWithThirdParty.getAccount();
-        if (!account.isYearlyBalanceReset()) {
-            return accountBalance;
-        }
-        if (isSamePeriod(accountBalance, accountingEntry)) {
-            return accountBalance;
-        }
-        LocalDate date = accountingEntry.getDate();
-        ATBookPeriod bookPeriod = accountingEntry.getBookPeriod();
-        if (!isSamePeriod(accountBalance, accountingEntry)) {
-            return setAccountBalance(accountWithThirdParty, date, bookPeriod, ZERO_EURO, accountBalanceMap);
-        }
-        return accountBalance;
-    }
-
-
-    private boolean isSamePeriod(AccountBalance accountBalance, ATAccountingEntry accountingEntry) {
-        ATBookPeriod balancePeriod = accountBalance.getPeriod();
-        ATBookPeriod entryPeriod = accountingEntry.getBookPeriod();
-        return balancePeriod.equals(entryPeriod);
-    }
-
-    private AccountBalance setAccountBalance(AccountWithThirdParty accountWithThirdParty,
-                                             LocalDate date,
-                                             ATBookPeriod bookPeriod,
-                                             BigDecimal newBalanceAmount,
-                                             Map<AccountWithThirdParty, AccountBalance> accountBalanceMap
-    ) {
-        ATAccount account = accountWithThirdParty.getAccount();
-        AccountBalance newBalance = new AccountBalance();
-        newBalance.setAccount(account);
-        newBalance.setBalance(newBalanceAmount);
-        newBalance.setPeriod(bookPeriod);
-        newBalance.setDate(date);
-
-        accountBalanceMap.put(accountWithThirdParty, newBalance);
-        return newBalance;
-    }
-
-    private static Comparator<AccountWithThirdParty> createAccountWithThirdPartyComparator() {
-        return Comparator.nullsFirst(Comparator
-                .comparing((AccountWithThirdParty a) -> a.getAccount().getCode())
-                .thenComparing((AccountWithThirdParty a) -> a.getThirdPartyOptional().map(ATThirdParty::getId).orElse("")));
-    }
 
 // // TODO:check usage
 //    /**
@@ -265,5 +192,39 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 //
 //        return entityManager.merge(startBookYear);
 //    }
+
+
+    private void emitResettedBalancesEvents(ATBookYear bookYear, AccountBalanceCache accountBalanceCache, AccountingEventListener accountingEventListener) {
+        List<ATAccount> accountWithoutBalanceInLastBookYear = accountBalanceCache.findAccountWithoutBalanceInBookYear(bookYear);
+        accountWithoutBalanceInLastBookYear.stream()
+                .filter(ATAccount::isYearlyBalanceReset)
+                .forEach(account -> this.emitBalanceResetEvent(bookYear, account, accountingEventListener));
+    }
+
+    private void emitBalanceResetEvent(ATBookYear bookYear, ATAccount account, AccountingEventListener accountingEventListener) {
+        ATBookPeriod openingPeriod = this.findBookyearOpeningPeriod(bookYear);
+        LocalDate startDate = openingPeriod.getStartDate();
+
+        BalanceChangeEvent balanceChangeEvent = new BalanceChangeEvent();
+        balanceChangeEvent.setDate(startDate);
+        balanceChangeEvent.setNewBalance(ZERO);
+        balanceChangeEvent.setAccount(account);
+
+        accountingEventListener.handleBalanceChangeEvent(balanceChangeEvent);
+    }
+
+    private ATBookPeriod findBookyearOpeningPeriod(ATBookYear bookYear) {
+        return accountingManagerCache.streamPeriods()
+                .filter(period -> this.isBookyearOpeningPeriod(period, bookYear))
+                .findAny()
+                .orElseThrow(() -> new WinbooksException(WinbooksError.UNKNOWN_ERROR, "No opening period for book year " + bookYear));
+    }
+
+    private boolean isBookyearOpeningPeriod(ATBookPeriod bookPeriod, ATBookYear bookYear) {
+        ATBookYear periodBookYear = bookPeriod.getBookYear();
+        ATPeriodType periodType = bookPeriod.getPeriodType();
+        return periodType == ATPeriodType.OPENING && periodBookYear.equals(bookYear);
+    }
+
 
 }
