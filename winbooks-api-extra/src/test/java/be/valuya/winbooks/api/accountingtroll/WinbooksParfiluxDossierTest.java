@@ -26,6 +26,7 @@ import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -127,7 +128,7 @@ public class WinbooksParfiluxDossierTest {
                         Function.identity()
                 ));
 
-        List<String> balanceCSVLines = GENERAL_BALANCES_CSV_LINES.stream()
+        List<String> balanceCSVLines = new ArrayList<>(GENERAL_BALANCES_CSV_LINES).stream()
                 .skip(6) // header
                 .filter(s -> !s.trim().isEmpty())
                 .sorted()
@@ -166,7 +167,7 @@ public class WinbooksParfiluxDossierTest {
                 .forEach(this::debugEntry);
         Map<String, BigDecimal> balanceByAccountCode = balanceEventListener.getBalanceByAccountCode();
 
-        List<String> balanceCSVLines = GENERAL_BALANCES_CSV_LINES.stream()
+        List<String> balanceCSVLines = new ArrayList<>(GENERAL_BALANCES_CSV_LINES).stream()
                 .skip(6) // header
                 .filter(s -> !s.trim().isEmpty())
                 .sorted()
