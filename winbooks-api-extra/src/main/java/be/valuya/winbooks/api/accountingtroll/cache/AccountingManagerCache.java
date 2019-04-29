@@ -139,9 +139,11 @@ public class AccountingManagerCache {
         if (accountsByCode != null) {
             return;
         }
+
+        int accountNumberLength = extraService.getAccountNumberLength(fileConfiguration);
         accountsByCode = extraService.streamAcf(fileConfiguration)
                 .filter(this::isValidAccount)
-                .map(atAccountConverter::convertToTrollAcccount)
+                .map(wbAccount -> atAccountConverter.convertToTrollAcccount(wbAccount, accountNumberLength))
                 .collect(Collectors.toMap(
                         ATAccount::getCode,
                         Function.identity(),

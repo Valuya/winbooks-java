@@ -122,7 +122,7 @@ public class WinbooksParfiluxDossierTest {
     @Test
     public void testAccounts() {
         Map<String, ATAccount> accountsMap = trollSrervice.streamAccounts()
-                .filter(a -> a.getCode().length() == 6) // TODO: 'title' flag
+                .filter(a -> !a.isTitle())
                 .collect(Collectors.toMap(
                         ATAccount::getCode,
                         Function.identity()
