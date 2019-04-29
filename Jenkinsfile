@@ -20,7 +20,7 @@ pipeline {
                     }
                 }
                 withMaven(maven: 'maven', mavenSettingsConfig: 'ossrh-settings-xml') {
-                    sh "mvn $MVN_ARGS -DskipTests=${params.SKIP_TESTS} clean compile install"
+                    sh "mvn $MVN_ARGS -Pwinbooks-parfilux-test -DskipTests=${params.SKIP_TESTS} clean compile install"
                 }
             }
         }
