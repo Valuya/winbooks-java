@@ -67,7 +67,7 @@ public class WinbooksTrollAccountingManagerLocalTest {
 
     @Test
     public void testStreamEntries() {
-        trollSrervice.streamAccountingEntries(eventListener)
+        trollSrervice.streamAccountingEntries()
                 .forEach(this::debug);
     }
 

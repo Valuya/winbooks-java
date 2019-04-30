@@ -15,6 +15,7 @@ public class WinbooksFileConfiguration {
     private boolean readTablesToMemory;
     private boolean resolveArchivePaths;
     private boolean resolveCaseInsensitiveSiblings = true;
+    private boolean resolveUnmappedPeriodFromEntryDate = true;
     private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.SKIP;
 
     public String getUsername() {
@@ -87,6 +88,14 @@ public class WinbooksFileConfiguration {
 
     public void setResolveCaseInsensitiveSiblings(boolean resolveCaseInsensitiveSiblings) {
         this.resolveCaseInsensitiveSiblings = resolveCaseInsensitiveSiblings;
+    }
+
+    public boolean isResolveUnmappedPeriodFromEntryDate() {
+        return resolveUnmappedPeriodFromEntryDate;
+    }
+
+    public void setResolveUnmappedPeriodFromEntryDate(boolean resolveUnmappedPeriodFromEntryDate) {
+        this.resolveUnmappedPeriodFromEntryDate = resolveUnmappedPeriodFromEntryDate;
     }
 
     public DocumentMatchingMode getDocumentMatchingMode() {

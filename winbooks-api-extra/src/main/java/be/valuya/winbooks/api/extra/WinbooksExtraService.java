@@ -97,7 +97,8 @@ public class WinbooksExtraService {
                 .filter(this::isArchived)
                 .collect(Collectors.toList());
 
-        PeriodResolver periodResolver = new PeriodResolver();
+        boolean resolveUnmappedPeriodFromEntryDate = winbooksFileConfiguration.isResolveUnmappedPeriodFromEntryDate();
+        PeriodResolver periodResolver = new PeriodResolver(resolveUnmappedPeriodFromEntryDate);
         periodResolver.init(wbBookYearFullList);
 
         WbEntryDbfReader wbEntryDbfReader = new WbEntryDbfReader(periodResolver);

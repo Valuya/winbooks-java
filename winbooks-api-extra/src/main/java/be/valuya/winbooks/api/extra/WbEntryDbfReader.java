@@ -36,6 +36,16 @@ public class WbEntryDbfReader {
             BigDecimal amount = dbfRecord.getBigDecimal("AMOUNT");
             BigDecimal amountEur = dbfRecord.getBigDecimal("AMOUNTEUR");
 
+            String comment = dbfRecord.getString("COMMENT");
+            String commentExt = dbfRecord.getString("COMMENTEXT");
+            BigDecimal curEurBase = dbfRecord.getBigDecimal("CUREURBASE");
+            BigDecimal curRate = dbfRecord.getBigDecimal("CURRATE");
+            BigDecimal currAmount = dbfRecord.getBigDecimal("CURRAMOUNT");
+            String currCode = dbfRecord.getString("CURRCODE");
+            Date date = getDate(dbfRecord, "DATE");
+            Date dateDoc = getDate(dbfRecord, "DATEDOC");
+            String docOrderNullable = dbfRecord.getString("DOCORDER");
+
             String bookYear = dbfRecord.getString("BOOKYEAR");
             if (bookYear == null) {
                 return Optional.empty();
@@ -48,17 +58,7 @@ public class WbEntryDbfReader {
                 return Optional.empty();
             }
             int periodIndex = Integer.parseInt(period);
-            WbPeriod wbPeriod = periodResolver.findWbPeriod(wbBookYearFull, periodIndex);
-
-            String comment = dbfRecord.getString("COMMENT");
-            String commentExt = dbfRecord.getString("COMMENTEXT");
-            BigDecimal curEurBase = dbfRecord.getBigDecimal("CUREURBASE");
-            BigDecimal curRate = dbfRecord.getBigDecimal("CURRATE");
-            BigDecimal currAmount = dbfRecord.getBigDecimal("CURRAMOUNT");
-            String currCode = dbfRecord.getString("CURRCODE");
-            Date date = getDate(dbfRecord, "DATE");
-            Date dateDoc = getDate(dbfRecord, "DATEDOC");
-            String docOrderNullable = dbfRecord.getString("DOCORDER");
+            WbPeriod wbPeriod = periodResolver.findWbPeriod(wbBookYearFull, periodIndex, Optional.ofNullable(date));
 
             WbDocOrderType docOrderType = Optional.ofNullable(docOrderNullable)
                     .map(WbDocOrderType::fromStringOptional)

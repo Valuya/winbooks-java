@@ -3,9 +3,13 @@ package be.valuya.winbooks.api.extra;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbPeriod;
 
+import java.time.LocalDate;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -13,6 +17,12 @@ public class PeriodResolver {
 
     private Map<Integer, WbBookYearFull> wbBookYearFullMap;
     private Map<WbBookYearFull, Map<Integer, WbPeriod>> wbBookYearPeriodFullMap;
+
+    private boolean resolveUnmappedPeriodsFromDates;
+
+    public PeriodResolver(boolean resolveUnmappedPeriodsFromDates) {
+        this.resolveUnmappedPeriodsFromDates = resolveUnmappedPeriodsFromDates;
+    }
 
     public void init(List<WbBookYearFull> wbBookYearFullList) {
         wbBookYearFullMap = wbBookYearFullList.stream()
@@ -33,11 +43,60 @@ public class PeriodResolver {
         return wbBookYearFullMap.get(bookYearInt);
     }
 
-    public WbPeriod findWbPeriod(WbBookYearFull wbBookYearFull, int periodIndex) {
+    public WbPeriod findWbPeriod(WbBookYearFull wbBookYearFull, int periodIndex, Optional<Date> dateOptional) {
         if (wbBookYearFull == null) {
-            return null;
+            if (resolveUnmappedPeriodsFromDates && dateOptional.isPresent()) {
+                Date date = dateOptional.get();
+                return this.findPeriodFromDate(date)
+                        .orElse(null);
+            } else {
+                return null;
+            }
+        } else {
+            Map<Integer, WbPeriod> periodMap = wbBookYearPeriodFullMap.get(wbBookYearFull);
+            return periodMap.get(periodIndex);
         }
-        Map<Integer, WbPeriod> periodMap = wbBookYearPeriodFullMap.get(wbBookYearFull);
-        return periodMap.get(periodIndex);
+    }
+
+    private Optional<WbPeriod> findPeriodFromDate(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH) + 1;
+
+        Optional<WbPeriod> firstPeriodOptional = wbBookYearFullMap.values().stream()
+                .findFirst()
+                .flatMap(bookYear -> bookYear.getPeriodList().stream().findFirst());
+        return wbBookYearFullMap.values()
+                .stream()
+                .filter(bookYear -> this.dateMatchBookYear(bookYear, year, month))
+                .map(bookyear -> this.findBookYearPeriod(bookyear, year, month))
+                .map(Optional::of)
+                .findAny()
+                .orElse(firstPeriodOptional);
+    }
+
+
+    private boolean dateMatchBookYear(WbBookYearFull bookYear, int year, int month) {
+        LocalDate testDate = LocalDate.of(year, month, 1);
+        LocalDate startDate = bookYear.getStartDate();
+        LocalDate endDate = bookYear.getEndDate();
+        return !testDate.isBefore(startDate) && testDate.isBefore(endDate);
+    }
+
+
+    private WbPeriod findBookYearPeriod(WbBookYearFull bookyear, int year, int month) {
+        return bookyear.getPeriodList().stream()
+                .filter(wbPeriod -> this.dateMatchPeriod(wbPeriod, year, month))
+                .findAny()
+                .orElseThrow(() -> new IllegalStateException("Could not find period within book year"));
+    }
+
+    private boolean dateMatchPeriod(WbPeriod wbPeriod, int year, int month) {
+        LocalDate periodStartDate = wbPeriod.getStartDate();
+        int periodMonth = periodStartDate.getMonthValue();
+        int periodYear = periodStartDate.getYear();
+        return periodMonth == month && periodYear == year;
     }
 }

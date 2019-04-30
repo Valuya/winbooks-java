@@ -204,6 +204,8 @@ public class AccountingManagerCache {
         if (accountingEntries != null) {
             return;
         }
+        cacheBookYears();
+        cacheBookPeriods();
 
         DocumentMatchingMode documentMatchingMode = fileConfiguration.getDocumentMatchingMode();
         if (documentMatchingMode == DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS) {
@@ -270,11 +272,11 @@ public class AccountingManagerCache {
 
     private boolean isValidAccountingEntry(WbEntry wbEntry) {
         String dbkCode = wbEntry.getDbkCode();
-        boolean isSimulationLedger = dbkCode.equals("ODSIMU"); // FIXME: flag to be set on accounting entry
-//        return wbEntry.getAccountGl() != null
-//                && wbEntry.getWbPeriod() != null
-//                && !isSimulationLedger;
-        return !isSimulationLedger && wbEntry.getAccountGl() != null;
+        boolean isSimulationLedger = dbkCode.equals("ODSIMU"); // TODO: read from journal table, set flag on accounting entry?
+        return wbEntry.getAccountGl() != null // TODO: find out how to handle these
+                && wbEntry.getWbPeriod() != null // TODO: throw or warn?
+                && !isSimulationLedger;
+//        return !isSimulationLedger && wbEntry.getAccountGl() != null;
     }
 
     private boolean isSamePeriod(ATBookPeriod atPeriod, WbPeriod period) {

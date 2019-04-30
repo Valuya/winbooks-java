@@ -31,11 +31,10 @@ public class ATAccountingEntryConverter {
     }
 
     public ATAccountingEntry convertToTrollAccountingEntry(WbEntry wbEntry) {
-        WbBookYearFull wbBookYearFull = wbEntry.getWbBookYearFull();
         WbPeriod wbPeriod = wbEntry.getWbPeriod();
         ATBookPeriod bookPeriod = accountingManagerCache.getCachedBookPeriodOrThrow(wbPeriod);
 
-        BigDecimal amount = wbEntry.getAmountEur();
+        BigDecimal amount = wbEntry.getAmountEur().negate();
         String dbkCode = wbEntry.getDbkCode();
         String docNumber = wbEntry.getDocNumber();
         int docOrder = Optional.ofNullable(wbEntry.getDocOrder())
