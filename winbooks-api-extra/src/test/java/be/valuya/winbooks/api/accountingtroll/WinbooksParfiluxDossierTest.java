@@ -166,7 +166,7 @@ public class WinbooksParfiluxDossierTest {
                 .peek(System.out::println)
                 .collect(Collectors.toMap(
                         balance -> balance.getAccount().getCode(),
-                        ATAccountBalance::getBalance,
+                        ATAccountBalance::getPeriodEndBalance,
                         (prev, next) -> next
                 ));
         List<String> balanceCSVLines = new ArrayList<>(GENERAL_BALANCES_CSV_LINES).stream()

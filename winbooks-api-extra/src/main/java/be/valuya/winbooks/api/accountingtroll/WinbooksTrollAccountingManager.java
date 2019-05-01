@@ -85,11 +85,9 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     @Override
     public Stream<ATAccountBalance> streamAccountBalances() {
-        List<ATBookPeriod> openingPeriods = streamPeriods().sorted()
-                .filter(p -> p.getPeriodType() == ATPeriodType.OPENING)
-                .collect(Collectors.toList());
+        List<ATBookPeriod> allPeriods = streamPeriods().collect(Collectors.toList());
         Stream<ATAccountingEntry> entryStream = streamAccountingEntries();
-        AccountBalanceSpliterator balanceSpliterator = new AccountBalanceSpliterator(entryStream, openingPeriods);
+        AccountBalanceSpliterator balanceSpliterator = new AccountBalanceSpliterator(entryStream, allPeriods);
         return StreamSupport.stream(balanceSpliterator, false);
     }
 
@@ -121,31 +119,6 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         Files.createDirectories(documentDirectoryPath);
         Files.copy(inputStream, documentFullPath, StandardCopyOption.REPLACE_EXISTING);
     }
-
-
-// // TODO:check usage
-//    /**
-//     * Get the book year that is before index 0.
-//     */
-//    private BookYear getStartBookYear(AccountingCache accountingCache, Customer customer) {
-//        BookYear firstBookYear = accountingCache.streamBookYears()
-//                .findFirst()
-//                .orElseThrow(() -> new IllegalArgumentException("No book year with index 1!"));
-//
-//        int firstYear = firstBookYear.getYear();
-//        int startYear = firstYear - 1;
-//        LocalDate startDate = firstBookYear.getStartDate().minusYears(1);
-//        LocalDate endDate = firstBookYear.getEndDate().minusYears(1);
-//
-//        BookYear startBookYear = new BookYear();
-//        startBookYear.setWbIndex(0);
-//        startBookYear.setCustomer(customer);
-//        startBookYear.setYear(startYear);
-//        startBookYear.setStartDate(startDate);
-//        startBookYear.setEndDate(endDate);
-//
-//        return entityManager.merge(startBookYear);
-//    }
 
 
 }

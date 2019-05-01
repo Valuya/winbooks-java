@@ -71,6 +71,12 @@ public class WinbooksTrollAccountingManagerLocalTest {
                 .forEach(this::debug);
     }
 
+    @Test
+    public void testStreamBalances() {
+        trollSrervice.streamAccountingEntries()
+                .forEach(this::debug);
+    }
+
     private void debug(Object valueObject) {
         System.out.println(valueObject);
     }
