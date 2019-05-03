@@ -35,7 +35,6 @@ import java.util.stream.StreamSupport;
 
 public class WinbooksTrollAccountingManager implements AccountingManager {
 
-    private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(3, BigDecimal.ROUND_UNNECESSARY);
     private static final String DOCUMENTS_PATH_NAME = "Document";
     private static final String DOCUMENT_UPLOAD_PATH_NAME = "Scans";
 
@@ -88,6 +87,11 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         List<ATBookPeriod> allPeriods = streamPeriods().collect(Collectors.toList());
         Stream<ATAccountingEntry> entryStream = streamAccountingEntries();
         AccountBalanceSpliterator balanceSpliterator = new AccountBalanceSpliterator(entryStream, allPeriods);
+
+        balanceSpliterator.setResetOnBookYearOpening(true);
+        balanceSpliterator.setResetEveryYear(false);
+        balanceSpliterator.setIgnoreIntermediatePeriodOpeningEntry(false);
+
         return StreamSupport.stream(balanceSpliterator, false);
     }
 

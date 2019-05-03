@@ -163,7 +163,7 @@ public class WinbooksParfiluxDossierTest {
     @Test
     public void testAccountBalances() {
         Map<String, BigDecimal> balancesMap = trollSrervice.streamAccountBalances()
-                .peek(System.out::println)
+                .peek(this::debug)
                 .collect(Collectors.toMap(
                         balance -> balance.getAccount().getCode(),
                         ATAccountBalance::getPeriodEndBalance,
@@ -190,13 +190,22 @@ public class WinbooksParfiluxDossierTest {
             BigDecimal accountBalance = balancesMap.getOrDefault(csvAccountNumber, ZERO);
 
             if (isTestableAccount(csvAccountNumber)) {
-//                boolean balanceMatch = accountBalance.equals(csvAccountBalance);
-//                if (!balanceMatch) {
-//                    System.err.println("Balance mismatch for " + csvAccountNumber + " : " + csvAccountBalance + " but got " + accountBalance);
-//                }
+                boolean balanceMatch = accountBalance.equals(csvAccountBalance);
+                if (!balanceMatch) {
+                    System.err.println("Balance mismatch for " + csvAccountNumber + " : " + csvAccountBalance + " but got " + accountBalance);
+                }
                 Assert.assertEquals("Balance mismatch for " + csvAccountNumber, csvAccountBalance, accountBalance);
             }
             accountIndex += 1;
+        }
+    }
+
+    private void debug(ATAccountBalance accountBalance) {
+        if (accountBalance.getAccount().getCode().equals("200009")) {
+            String periodName = accountBalance.getPeriod().getName();
+            BigDecimal periodStartBalance = accountBalance.getPeriodStartBalance();
+            BigDecimal periodEndBalance = accountBalance.getPeriodEndBalance();
+            System.out.println(periodName + " : " + periodStartBalance + " -> " + periodEndBalance);
         }
     }
 
