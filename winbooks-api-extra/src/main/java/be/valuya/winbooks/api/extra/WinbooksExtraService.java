@@ -150,6 +150,13 @@ public class WinbooksExtraService {
         int bookYearCount = Integer.parseInt(bookYearCountStr);
         for (int i = 1; i <= bookYearCount; i++) {
             String bookYearParamPrefix = "BOOKYEAR" + i;
+            // some book year data may not be present in archived dossiers
+            long bookyearKeysCount = paramMap.keySet().stream()
+                    .filter(k -> k.startsWith(bookYearParamPrefix))
+                    .count();
+            if (bookyearKeysCount == 0) {
+                continue;
+            }
             String bookYearLongLabel = paramMap.get(bookYearParamPrefix + "." + "LONGLABEL");
             String bookYearShortLabel = paramMap.get(bookYearParamPrefix + "." + "SHORTLABEL");
             String archivePathName = paramMap.get(bookYearParamPrefix + "." + "PATHARCH");

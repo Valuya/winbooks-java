@@ -124,6 +124,18 @@ public class WinbooksExtraServiceFtpTest {
     }
 
     @Test
+    public void testStreamEntries() {
+        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+                .filter(e -> {
+                    if (e.getAmount() == null) return false;
+                    BigDecimal remaining = e.getAmount().subtract(BigDecimal.valueOf(109.3)).abs();
+                    return remaining.compareTo(BigDecimal.valueOf(0.01d)) < 0;
+                })
+                .map(WbEntry::toString)
+                .forEach(logger::info);
+    }
+
+    @Test
     public void testFindDistinctDocOrder() {
         winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
                 .map(WbEntry::getWbDocOrderType)
