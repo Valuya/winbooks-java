@@ -105,6 +105,7 @@
                                 be.valuya.winbooks.api.FtpWinbooksDossierCategory
                             </groups>
                             <systemPropertyVariables>
+                                <winbooks.test.base.name>${winbooks.test.base.name}</winbooks.test.base.name>
                                 <winbooks.test.ftp.host>${winbooks.test.ftp.host}</winbooks.test.ftp.host>
                                 <winbooks.test.ftp.path>${winbooks.test.ftp.path}</winbooks.test.ftp.path>
                                 <winbooks.test.ftp.ssl>${winbooks.test.ftp.ssl}</winbooks.test.ftp.ssl>

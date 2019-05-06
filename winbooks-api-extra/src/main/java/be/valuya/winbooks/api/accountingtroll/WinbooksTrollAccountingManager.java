@@ -1,6 +1,5 @@
 package be.valuya.winbooks.api.accountingtroll;
 
-import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.AccountingManager;
 import be.valuya.accountingtroll.cache.AccountBalanceSpliterator;
 import be.valuya.accountingtroll.domain.ATAccount;
@@ -9,9 +8,7 @@ import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATDocument;
-import be.valuya.accountingtroll.domain.ATPeriodType;
 import be.valuya.accountingtroll.domain.ATThirdParty;
-import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
@@ -22,7 +19,6 @@ import be.valuya.winbooks.domain.error.WinbooksException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -101,11 +97,10 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
     @Override
-    public InputStream streamDocumentContent(ATDocument atDocument) throws Exception {
-        AccountingEventListener eventListener = new AccountingEventHandler(); //TODO
+    public InputStream streamDocumentContent(ATDocument atDocument) {
         ATDocumentConverter documentConverter = new ATDocumentConverter(accountingManagerCache);
         WbDocument wbDocument = documentConverter.convertWbDocument(atDocument);
-        byte[] documentdata = extraService.getDocumentData(fileConfiguration, wbDocument, eventListener)
+        byte[] documentdata = extraService.getDocumentData(fileConfiguration, wbDocument)
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find document date"));
 
         return new ByteArrayInputStream(documentdata);
