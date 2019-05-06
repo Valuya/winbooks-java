@@ -12,8 +12,8 @@ public class WinbooksFileConfiguration {
     private String baseName;
     private Charset charset = StandardCharsets.ISO_8859_1;
     private boolean ignoreMissingArchives = true;
-    private boolean readTablesToMemory;
-    private boolean resolveArchivePaths;
+    private boolean readTablesToMemory = true;
+    private boolean resolveArchivedBookYears = true;
     private boolean resolveCaseInsensitiveSiblings = true;
     private boolean resolveUnmappedPeriodFromEntryDate = true;
     private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.SKIP;
@@ -74,12 +74,12 @@ public class WinbooksFileConfiguration {
         this.readTablesToMemory = readTablesToMemory;
     }
 
-    public boolean isResolveArchivePaths() {
-        return resolveArchivePaths;
+    public boolean isResolveArchivedBookYears() {
+        return resolveArchivedBookYears;
     }
 
-    public void setResolveArchivePaths(boolean resolveArchivePaths) {
-        this.resolveArchivePaths = resolveArchivePaths;
+    public void setResolveArchivedBookYears(boolean resolveArchivedBookYears) {
+        this.resolveArchivedBookYears = resolveArchivedBookYears;
     }
 
     public boolean isResolveCaseInsensitiveSiblings() {

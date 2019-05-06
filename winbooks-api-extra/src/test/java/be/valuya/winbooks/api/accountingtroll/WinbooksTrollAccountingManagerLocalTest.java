@@ -2,7 +2,6 @@ package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
-import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
@@ -18,7 +17,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RunWith(JUnit4.class)
@@ -42,7 +40,7 @@ public class WinbooksTrollAccountingManagerLocalTest {
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.SKIP);
-        winbooksFileConfiguration.setResolveArchivePaths(false);
+        winbooksFileConfiguration.setResolveArchivedBookYears(false);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
         eventListener = new TestAccountingEventListener();

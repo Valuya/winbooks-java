@@ -26,15 +26,20 @@ class WinbooksPathUtils {
 
 
     static Optional<Path> getBookYearBasePath(WinbooksFileConfiguration fileConfiguration, WbBookYearFull wbBookYearFull) {
-        boolean resolveArchivePaths = fileConfiguration.isResolveArchivePaths();
+        boolean resolveArchivedBookYears = fileConfiguration.isResolveArchivedBookYears();
         boolean ignoreMissingArchives = fileConfiguration.isIgnoreMissingArchives();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
         Path baseFolderPath = fileConfiguration.getBaseFolderPath();
+        boolean archivedBookYear = isArchivedBookYear(wbBookYearFull);
 
         try {
-            if (resolveArchivePaths && isArchivedBookYear(wbBookYearFull)) {
-                Path archivePath = resolveArchivePathOrThrow(baseFolderPath, wbBookYearFull, resolveCaseInsensitiveSiblings);
-                return Optional.of(archivePath);
+            if (archivedBookYear) {
+                if (resolveArchivedBookYears) {
+                    Path archivePath = resolveArchivePathOrThrow(baseFolderPath, wbBookYearFull, resolveCaseInsensitiveSiblings);
+                    return Optional.of(archivePath);
+                } else {
+                    return Optional.empty();
+                }
             } else {
                 return Optional.of(baseFolderPath);
             }

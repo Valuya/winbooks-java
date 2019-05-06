@@ -1,9 +1,7 @@
 package be.valuya.winbooks.api.accountingtroll;
 
-import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
-import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
@@ -85,7 +83,7 @@ public class WinbooksTrollAccountingManagerFtpTest {
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.SKIP);
-        winbooksFileConfiguration.setResolveArchivePaths(false);
+        winbooksFileConfiguration.setResolveArchivedBookYears(false);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
     }
