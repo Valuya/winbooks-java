@@ -118,7 +118,7 @@ public class WinbooksExtraService {
 
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
-        if (false && tableExists(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
+        if (false && tableExistsForCurrentBookYear(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
             return streamBookYearsFromBookYearsTable(winbooksFileConfiguration);
         }
         // fall-back: a lot of customers seem not to have table above
@@ -153,7 +153,7 @@ public class WinbooksExtraService {
         winbooksFileConfiguration.setBaseName(customerWinbooksPathName);
         winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
 
-        if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
+        if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
             return Optional.empty();
         }
 
@@ -374,8 +374,9 @@ public class WinbooksExtraService {
         }
     }
 
-    private boolean tableExists(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        String tableFileName = getTableFileName(winbooksFileConfiguration, tableName);
+    private boolean tableExistsForCurrentBookYear(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        String baseName = winbooksFileConfiguration.getBaseName();
+        String tableFileName = getTableFileName(baseName, tableName);
         Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
         Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(baseFolderPath, tableFileName, resolveCaseInsensitiveSiblings);
@@ -383,7 +384,8 @@ public class WinbooksExtraService {
     }
 
     private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
-        String tableFileName = getTableFileName(winbooksFileConfiguration, tableName);
+        String baseName = basePath.getFileName().toString();
+        String tableFileName = getTableFileName(baseName, tableName);
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
         Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(basePath, tableFileName, resolveCaseInsensitiveSiblings);
         return tablePathOptional.orElseThrow(() -> {
@@ -396,8 +398,7 @@ public class WinbooksExtraService {
     }
 
 
-    private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        String baseName = winbooksFileConfiguration.getBaseName();
+    private String getTableFileName(String baseName, String tableName) {
         String tablePrefix = baseName.replace("_", "");
         return tablePrefix + "_" + tableName + DBF_EXTENSION;
     }
