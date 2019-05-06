@@ -3,6 +3,8 @@ package be.valuya.winbooks.api.extra.config;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.Optional;
 
 public class WinbooksFileConfiguration {
 
@@ -16,7 +18,9 @@ public class WinbooksFileConfiguration {
     private boolean resolveArchivedBookYears = true;
     private boolean resolveCaseInsensitiveSiblings = true;
     private boolean resolveUnmappedPeriodFromEntryDate = true;
-    private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.SKIP;
+    private boolean resolveDocumentTimes = true;
+    private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS;
+    private Optional<LocalDate> bookYearStartMinDate = Optional.empty();
 
     public String getUsername() {
         return username;
@@ -104,5 +108,21 @@ public class WinbooksFileConfiguration {
 
     public void setDocumentMatchingMode(DocumentMatchingMode documentMatchingMode) {
         this.documentMatchingMode = documentMatchingMode;
+    }
+
+    public boolean isResolveDocumentTimes() {
+        return resolveDocumentTimes;
+    }
+
+    public void setResolveDocumentTimes(boolean resolveDocumentTimes) {
+        this.resolveDocumentTimes = resolveDocumentTimes;
+    }
+
+    public Optional<LocalDate> getBookYearStartMinDate() {
+        return bookYearStartMinDate;
+    }
+
+    public void setBookYearStartMinDate(LocalDate bookYearStartMinLoclDate) {
+        this.bookYearStartMinDate = Optional.of(bookYearStartMinLoclDate);
     }
 }

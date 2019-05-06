@@ -38,9 +38,8 @@ public class WinbooksTrollAccountingManagerLocalTest {
                 .resolve(baseName);
         WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
                 .orElseThrow(AssertionError::new);
-        winbooksFileConfiguration.setReadTablesToMemory(true);
-        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.SKIP);
-        winbooksFileConfiguration.setResolveArchivedBookYears(false);
+        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
+        winbooksFileConfiguration.setResolveArchivedBookYears(true);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
         eventListener = new TestAccountingEventListener();
@@ -104,8 +103,6 @@ public class WinbooksTrollAccountingManagerLocalTest {
 
         System.out.println("Time: " + duration.toString() + " .With doc: " + withDocumentCount + ", without: " + withoutDocumentCount);
 
-//        trollSrervice.streamAccountingEntries()
-//                .forEach(this::debug);
     }
 
 

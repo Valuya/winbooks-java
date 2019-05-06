@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
@@ -27,6 +28,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 class WinbooksDocumentsService {
+    private static Logger LOGGER = Logger.getLogger(WinbooksDocumentsService.class.getName());
 
     // Documents path: /<book year>/<dbk>/<file_name>
     private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
@@ -35,12 +37,13 @@ class WinbooksDocumentsService {
     Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear) {
         String bookYearName = bookYear.getShortName();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
+        boolean resolveDocumentTimes = fileConfiguration.isResolveDocumentTimes();
 
         // Stream documents at /${basePath}/${documentsPath}/${bookYearName}/<book year doc format>
         return WinbooksPathUtils.getBookYearBasePath(fileConfiguration, bookYear)
-                .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
+                .flatMap(this::resolveDocumentsPath)
                 .flatMap(documentsPath -> WinbooksPathUtils.resolvePath(documentsPath, bookYearName, resolveCaseInsensitiveSiblings))
-                .map(root -> this.streamBookYearDocuments(root, bookYear))
+                .map(root -> this.streamBookYearDocuments(root, bookYear, resolveDocumentTimes))
                 .orElseGet(Stream::empty);
     }
 
@@ -50,21 +53,19 @@ class WinbooksDocumentsService {
                 .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
     }
 
-    private Stream<WbDocument> streamBookYearDocuments(Path bookYearDocumentFolderPath, WbBookYearFull bookYear) {
+    private Stream<WbDocument> streamBookYearDocuments(Path bookYearDocumentFolderPath, WbBookYearFull bookYear, boolean resolveAccessTimes) {
         try {
             return Files.list(bookYearDocumentFolderPath)
-                    .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear));
+                    .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear, resolveAccessTimes));
         } catch (IOException e) {
             return Stream.empty();
         }
     }
 
-    private Stream<WbDocument> streamDbkBookYearDocuments(Path path, WbBookYearFull bookYear) {
-        String dbkCode = path.getFileName().toString();
-
+    private Stream<WbDocument> streamDbkBookYearDocuments(Path path, WbBookYearFull bookYear, boolean resolveAccessTime) {
         Collector<WbDocument, ?, Optional<WbDocument>> maxPageNrComparator = Collectors.maxBy(Comparator.comparing(WbDocument::getPageCount));
         return WinbooksPathUtils.streamDirectoryFiles(path, this::isDocument)
-                .map(documentPath -> getDocumentOptional(documentPath, bookYear, dbkCode))
+                .map(documentPath -> getDocumentOptional(documentPath, bookYear, resolveAccessTime))
                 .flatMap(this::streamOptional)
                 .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
                 .values()
@@ -94,9 +95,16 @@ class WinbooksDocumentsService {
     }
 
 
-    private Path resolveDocumentsPath(Path basePath, boolean resolveCaseInsensitiveSiblings) {
-        return WinbooksPathUtils.resolvePath(basePath, "Document", resolveCaseInsensitiveSiblings)
-                .orElseGet(() -> basePath.resolve("Document"));
+    private Optional<Path> resolveDocumentsPath(Path basePath) {
+        String defaultDocumentPathName = "Document";
+        Path defaultDocumentsPath = basePath.resolve(defaultDocumentPathName);
+        return Stream.of(
+                defaultDocumentsPath,
+                basePath.resolve("document"),
+                basePath.resolve("DOCUMENT")
+        )
+                .filter(Files::exists)
+                .findAny();
     }
 
     private <T> Stream<T> streamOptional(Optional<T> optional) {
@@ -111,14 +119,12 @@ class WinbooksDocumentsService {
     }
 
 
-    private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
+    private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, boolean resolveAccessTimes) {
         String fileName = documentPath.getFileName().toString();
         Matcher matcher = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN.matcher(fileName);
         if (!matcher.matches()) {
             return Optional.empty();
         }
-        LocalDateTime lastModifiedLocalTime = WinbooksPathUtils.getLastModifiedTime(documentPath);
-        LocalDateTime creationTime = WinbooksPathUtils.getCreationTime(documentPath);
 
         String actualDbkCode = matcher.group(1);
         String periodName = matcher.group(2);
@@ -131,8 +137,18 @@ class WinbooksDocumentsService {
         wbDocument.setDocumentNumber(documentNumber);
         wbDocument.setPageCount(pageNr);
         wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
-        wbDocument.setUpdatedTime(lastModifiedLocalTime);
-        wbDocument.setCreationTime(creationTime);
+
+        if (resolveAccessTimes) {
+            long time0 = System.currentTimeMillis();
+            LocalDateTime lastModifiedLocalTime = WinbooksPathUtils.getLastModifiedTime(documentPath);
+            LocalDateTime creationTime = WinbooksPathUtils.getCreationTime(documentPath);
+            long time1 = System.currentTimeMillis();
+            long totalTIme = time1 - time0;
+            LOGGER.finer("*** file times(" + documentPath.toString() + ": " + totalTIme + "ms");
+
+            wbDocument.setUpdatedTime(lastModifiedLocalTime);
+            wbDocument.setCreationTime(creationTime);
+        }
 
         return Optional.of(wbDocument);
     }
@@ -156,7 +172,7 @@ class WinbooksDocumentsService {
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
         WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
         return WinbooksPathUtils.getBookYearBasePath(fileConfiguration, bookYearFull)
-                .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
+                .flatMap(this::resolveDocumentsPath)
                 .map(documentsPath -> resolveDocumentDirectoryPath(documentsPath, document, resolveCaseInsensitiveSiblings));
     }
 

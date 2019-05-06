@@ -33,9 +33,7 @@ public class WinbooksTrollAccountingManagerFtpTest {
 
 
     private static String FTP_USER_NAME;
-    private static String FTP_PASSWORD;
     private static String FTP_HOST_NAME;
-    private static boolean FTP_SSL_ENABLED;
     private static String PROTOCOL;
     private static String FTP_PATH_NAME;
     private static String BASE_NAME;
@@ -47,10 +45,10 @@ public class WinbooksTrollAccountingManagerFtpTest {
     @BeforeClass
     public static void initFileSystem() throws IOException {
         FTP_USER_NAME = System.getProperty("winbooks.test.ftp.user.name");
-        FTP_PASSWORD = System.getProperty("winbooks.test.ftp.password");
+        String FTP_PASSWORD = System.getProperty("winbooks.test.ftp.password");
         FTP_HOST_NAME = System.getProperty("winbooks.test.ftp.host");
         String sslEnabledStr = System.getProperty("winbooks.test.ftp.ssl");
-        FTP_SSL_ENABLED = Boolean.parseBoolean(sslEnabledStr);
+        boolean FTP_SSL_ENABLED = Boolean.parseBoolean(sslEnabledStr);
         PROTOCOL = FTP_SSL_ENABLED ? "ftps" : "ftp";
         FTP_PATH_NAME = System.getProperty("winbooks.test.ftp.path");
         BASE_NAME = System.getProperty("winbooks.test.base.name");
@@ -81,9 +79,9 @@ public class WinbooksTrollAccountingManagerFtpTest {
                 .resolve(FTP_PATH_NAME);
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME)
                 .orElseThrow(AssertionError::new);
-        winbooksFileConfiguration.setReadTablesToMemory(true);
-        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.SKIP);
-        winbooksFileConfiguration.setResolveArchivedBookYears(false);
+        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
+        winbooksFileConfiguration.setResolveArchivedBookYears(true);
+        winbooksFileConfiguration.setResolveDocumentTimes(false);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
     }

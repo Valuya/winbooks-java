@@ -15,12 +15,13 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.Spliterator;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -84,26 +85,33 @@ class WinbooksPathUtils {
 
     static Stream<Path> streamDirectoryFiles(Path path, Predicate<Path> acceptFilePredicate) {
         try {
-            return Files.find(path, Integer.MAX_VALUE,
-                    (visitedPath, attr) -> checkAcceptFilePredicate(acceptFilePredicate, visitedPath, attr));
+            long time0 = System.currentTimeMillis();
+            List<Path> filesContent = Files.find(path, 1,
+                    (visitedPath, attr) -> checkAcceptFilePredicate(acceptFilePredicate, visitedPath, attr))
+                    .collect(Collectors.toList());
+            long time1 = System.currentTimeMillis();
+            long deltaTimeWalk = time1 - time0;
+            LOGGER.finer("**** FIND dir files(" + path.toString() + ") " + deltaTimeWalk);
+
+            return filesContent.stream();
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
     }
 
 
-    static LocalDateTime getLastModifiedTime(Path documentPath) {
+    static LocalDateTime getLastModifiedTime(Path path) {
         try {
-            FileTime lastModifiedTime = Files.getLastModifiedTime(documentPath);
+            FileTime lastModifiedTime = Files.getLastModifiedTime(path);
             return toLocalDateTime(lastModifiedTime);
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
         }
     }
 
-    static LocalDateTime getCreationTime(Path documentPath) {
+    static LocalDateTime getCreationTime(Path path) {
         try {
-            BasicFileAttributes basicFileAttributes = Files.readAttributes(documentPath, BasicFileAttributes.class);
+            BasicFileAttributes basicFileAttributes = Files.readAttributes(path, BasicFileAttributes.class);
             FileTime creationFileTime = basicFileAttributes.creationTime();
             return toLocalDateTime(creationFileTime);
         } catch (IOException exception) {
@@ -119,7 +127,7 @@ class WinbooksPathUtils {
             Optional<Path> firstFoundPathOptional = findSiblingWithSameName(parentPath, fileName);
             long timeAfterWalk = System.currentTimeMillis();
             long deltaTimeWalk = timeAfterWalk - time0;
-            LOGGER.log(Level.FINE, "****FIND TIME (" + fileName + "): " + deltaTimeWalk);
+            LOGGER.finer("****FIND case-insensitive-sibling (" + fileName + "): " + deltaTimeWalk);
             return firstFoundPathOptional;
         } catch (IOException exception) {
             throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);

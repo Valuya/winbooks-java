@@ -68,6 +68,26 @@ public class WinbooksExtraService {
                 .flatMap(this::createWinbooksFileConfigurationOptional);
     }
 
+    private Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path basePath) {
+        Optional<String> customerWinbooksPathNameOptional = Optional.ofNullable(basePath.getFileName())
+                .map(Path::toString);
+        if (!customerWinbooksPathNameOptional.isPresent()) {
+            return Optional.empty();
+        }
+        String baseName = customerWinbooksPathNameOptional.get();
+
+        WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
+        winbooksFileConfiguration.setBaseFolderPath(basePath);
+        winbooksFileConfiguration.setBaseName(baseName);
+        winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
+
+        if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(winbooksFileConfiguration);
+    }
+
     public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
         Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         Path actPath = resolveTablePathOrThrow(winbooksFileConfiguration, baseFolderPath, ACCOUNTING_ENTRY_TABLE_NAME);
@@ -140,26 +160,6 @@ public class WinbooksExtraService {
         return DbfUtils.streamDbf(tableInputStream, charset);
     }
 
-    private Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path customerWinbooksPath) {
-        Optional<String> customerWinbooksPathNameOptional = Optional.ofNullable(customerWinbooksPath.getFileName())
-                .map(Path::toString);
-        if (!customerWinbooksPathNameOptional.isPresent()) {
-            return Optional.empty();
-        }
-        String customerWinbooksPathName = customerWinbooksPathNameOptional.get();
-
-        WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
-        winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
-        winbooksFileConfiguration.setBaseName(customerWinbooksPathName);
-        winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
-
-        if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
-            return Optional.empty();
-        }
-
-        return Optional.of(winbooksFileConfiguration);
-    }
-
 
     private List<WbBookYearFull> listBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
         Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
@@ -200,6 +200,12 @@ public class WinbooksExtraService {
                     .max(LocalDate::compareTo)
                     .map(date -> date.plusDays(1)) // exclusive upper bound is day after
                     .orElseThrow(IllegalArgumentException::new);
+            boolean skpiBookYear = winbooksFileConfiguration.getBookYearStartMinDate()
+                    .map(minStartDate -> minStartDate.isAfter(startDate))
+                    .orElse(false);
+            if (skpiBookYear) {
+                continue;
+            }
 
             int startYear = startDate.getYear();
             int endYear = endDate.getYear();
@@ -365,7 +371,7 @@ public class WinbooksExtraService {
             byte[] bytes = Files.readAllBytes(path);
             long time1 = System.currentTimeMillis();
             long deltaTime = time1 - time0;
-            LOGGER.log(Level.FINE, "READ TIME (" + path + "): " + deltaTime);
+            LOGGER.log(Level.FINER, "READ table (" + path + "): " + deltaTime);
 
             return new ByteArrayInputStream(bytes);
         } catch (IOException exception) {
