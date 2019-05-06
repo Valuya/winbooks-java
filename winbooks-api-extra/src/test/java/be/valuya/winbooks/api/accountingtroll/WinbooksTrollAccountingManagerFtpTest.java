@@ -2,52 +2,92 @@ package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
-import be.valuya.accountingtroll.domain.ATBookYear;
+import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
 import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
+import com.github.robtimus.filesystems.ftp.ConnectionMode;
+import com.github.robtimus.filesystems.ftp.FTPEnvironment;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RunWith(JUnit4.class)
-@Category(LocalWinbooksDossierCategory.class)
-public class WinbooksTrollAccountingManagerLocalTest {
+@Category(FtpWinbooksDossierCategory.class)
+public class WinbooksTrollAccountingManagerFtpTest {
+
+
+    private static String FTP_USER_NAME;
+    private static String FTP_PASSWORD;
+    private static String FTP_HOST_NAME;
+    private static boolean FTP_SSL_ENABLED;
+    private static String PROTOCOL;
+    private static String FTP_PATH_NAME;
+    private static String BASE_NAME;
+    private static FileSystem FILESYSTEM;
 
 
     private WinbooksTrollAccountingManager trollSrervice;
-    private AccountingEventListener eventListener;
+
+    @BeforeClass
+    public static void initFileSystem() throws IOException {
+        FTP_USER_NAME = System.getProperty("winbooks.test.ftp.user.name");
+        FTP_PASSWORD = System.getProperty("winbooks.test.ftp.password");
+        FTP_HOST_NAME = System.getProperty("winbooks.test.ftp.host");
+        String sslEnabledStr = System.getProperty("winbooks.test.ftp.ssl");
+        FTP_SSL_ENABLED = Boolean.parseBoolean(sslEnabledStr);
+        PROTOCOL = FTP_SSL_ENABLED ? "ftps" : "ftp";
+        FTP_PATH_NAME = System.getProperty("winbooks.test.ftp.path");
+        BASE_NAME = System.getProperty("winbooks.test.base.name");
+
+        char[] passwordChars = FTP_PASSWORD.toCharArray();
+        FTPEnvironment ftpEnvironment = new FTPEnvironment()
+                .withConnectionMode(ConnectionMode.PASSIVE)
+                .withCredentials(FTP_USER_NAME, passwordChars);
+        String uriStr = MessageFormat.format("{0}://{1}", PROTOCOL, FTP_HOST_NAME);
+        URI uri = URI.create(uriStr);
+        FILESYSTEM = FileSystems.newFileSystem(uri, ftpEnvironment);
+    }
+
+    @AfterClass
+    public static void closeFileSystem() throws IOException {
+        if (FILESYSTEM != null) {
+            FILESYSTEM.close();
+        }
+    }
 
     @Before
     public void setup() {
-        WinbooksExtraService extraService = new WinbooksExtraService();
+        WinbooksExtraService winbooksExtraService = new WinbooksExtraService();
 
-        String baseFolderLocation = System.getProperty("winbooks.test.folder");
-        String baseName = System.getProperty("winbooks.test.base.name");
-
-        Path baseFolderPath = Paths.get(baseFolderLocation)
-                .resolve(baseName);
-        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
+        String uriStr = MessageFormat.format("{0}://{1}@{2}", PROTOCOL, FTP_USER_NAME, FTP_HOST_NAME);
+        URI uri = URI.create(uriStr);
+        Path ftpBasePath = Paths.get(uri)
+                .resolve(FTP_PATH_NAME);
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME)
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.SKIP);
         winbooksFileConfiguration.setResolveArchivePaths(false);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
-        eventListener = new TestAccountingEventListener();
-
-//        eventHandler = winbooksEvent -> logger.info(winbooksEvent.getMessage());
     }
 
 
@@ -82,13 +122,6 @@ public class WinbooksTrollAccountingManagerLocalTest {
     }
 
     @Test
-    public void testStreamBalances() {
-        trollSrervice.streamAccountingEntries()
-                .forEach(this::debug);
-    }
-
-
-    @Test
     public void testStreamEntriesTime() {
         long startTime = System.currentTimeMillis();
         List<ATAccountingEntry> allEntries = trollSrervice.streamAccountingEntries()
@@ -110,6 +143,12 @@ public class WinbooksTrollAccountingManagerLocalTest {
 //                .forEach(this::debug);
     }
 
+
+    @Test
+    public void testStreamBalances() {
+        trollSrervice.streamAccountingEntries()
+                .forEach(this::debug);
+    }
 
     private void debug(Object valueObject) {
         System.out.println(valueObject);

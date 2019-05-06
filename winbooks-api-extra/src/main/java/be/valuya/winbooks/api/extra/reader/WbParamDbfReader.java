@@ -1,4 +1,4 @@
-package be.valuya.winbooks.api.extra;
+package be.valuya.winbooks.api.extra.reader;
 
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbParam;

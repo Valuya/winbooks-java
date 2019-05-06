@@ -1,8 +1,5 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.accountingtroll.AccountingEventListener;
-import be.valuya.accountingtroll.event.ArchiveFileNotFoundIgnoredEvent;
-import be.valuya.accountingtroll.event.ArchiveFolderNotFoundIgnoredEvent;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbBookYearStatus;
@@ -12,56 +9,46 @@ import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbParam;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
-import be.valuya.winbooks.domain.error.ArchivePathNotFoundException;
+import be.valuya.winbooks.api.extra.reader.DbfUtils;
+import be.valuya.winbooks.api.extra.reader.PeriodResolver;
+import be.valuya.winbooks.api.extra.reader.WbAccountDbfReader;
+import be.valuya.winbooks.api.extra.reader.WbBookYearFullDbfReader;
+import be.valuya.winbooks.api.extra.reader.WbClientSupplierDbfReader;
+import be.valuya.winbooks.api.extra.reader.WbEntryDbfReader;
+import be.valuya.winbooks.api.extra.reader.WbParamDbfReader;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.PdfCopyFields;
-import com.lowagie.text.pdf.PdfReader;
 import net.iryndin.jdbf.core.DbfRecord;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.text.MessageFormat;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class WinbooksExtraService {
 
-    public static final Pattern BOOK_YEAR_DOCUMENT_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
-    public static final String ACCOUNT_PICTURE_PARAM_LENGEN = "LENGEN";
-    public static final int ACCOUNT_NUMBER_DEFAULT_LENGTH = 6;
     private static Logger LOGGER = Logger.getLogger(WinbooksExtraService.class.getName());
+    private static final String ACCOUNT_PICTURE_PARAM_LENGEN = "LENGEN";
+    private static final int ACCOUNT_NUMBER_DEFAULT_LENGTH = 6;
 
     // some invalid String that Winbooks likes to have
-    public static final String CHAR0_STRING = Character.toString((char) 0);
+    private static final String CHAR0_STRING = Character.toString((char) 0);
     private static final String PARAM_TABLE_NAME = "param";
     private static final String BOOKYEARS_TABLE_NAME = "SLBKY";
     private static final String PERIOD_TABLE_NAME = "SLPRD";
@@ -72,29 +59,23 @@ public class WinbooksExtraService {
     private static final String ACCOUNTING_ENTRY_TABLE_NAME = "ACT";
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
-//
-//    public WinbooksSession createSession(WinbooksFileConfiguration winbooksFileConfiguration) {
-//        List<WbBookYearFull> bookYears = streamBookYears(winbooksFileConfiguration)
-//                .collect(Collectors.toList());
-//        return new WinbooksSession(winbooksFileConfiguration, bookYears);
-//    }
 
-    public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path path = resolveTablePath(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME);
-        try {
-            FileTime lastModifiedTime = Files.getLastModifiedTime(path);
-            return toLocalDateTime(lastModifiedTime);
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
-        }
+
+    private final WinbooksDocumentsService documentService = new WinbooksDocumentsService();
+
+    public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path parentPath, String baseName) {
+        return WinbooksPathUtils.resolvePath(parentPath, baseName, true)
+                .flatMap(this::createWinbooksFileConfigurationOptional);
     }
 
-    public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration, AccountingEventListener eventListener) {
+    public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path actPath = resolveTablePathOrThrow(winbooksFileConfiguration, baseFolderPath, ACCOUNTING_ENTRY_TABLE_NAME);
+        return WinbooksPathUtils.getLastModifiedTime(actPath);
+    }
+
+    public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
         List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
-                .collect(Collectors.toList());
-        List<WbBookYearFull> archivedBookYearFullList = wbBookYearFullList
-                .stream()
-                .filter(this::isArchived)
                 .collect(Collectors.toList());
 
         boolean resolveUnmappedPeriodFromEntryDate = winbooksFileConfiguration.isResolveUnmappedPeriodFromEntryDate();
@@ -103,45 +84,84 @@ public class WinbooksExtraService {
 
         WbEntryDbfReader wbEntryDbfReader = new WbEntryDbfReader(periodResolver);
 
-        Stream<WbEntry> archivedEntryStream = archivedBookYearFullList
-                .stream()
-                .map(WbBookYearFull::getArchivePathNameOptional)
+        return wbBookYearFullList.stream()
+                .map(bookyear -> WinbooksPathUtils.getBookYearBasePath(winbooksFileConfiguration, bookyear))
                 .flatMap(this::streamOptional)
-                .flatMap(archivePathName -> streamArchivedTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME, archivePathName, eventListener))
+                .distinct()
+                .flatMap(basePath -> streamTable(winbooksFileConfiguration, basePath, ACCOUNTING_ENTRY_TABLE_NAME))
                 .filter(this::isValidActRecord)
                 .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
                 .flatMap(this::streamOptional);
-
-        Stream<WbEntry> unarchivedEntryStream = streamTable(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)
-                .filter(this::isValidActRecord)
-                .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
-                .flatMap(this::streamOptional)
-                .filter(this::isCurrent);
-
-        return Stream.concat(archivedEntryStream, unarchivedEntryStream);
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         WbAccountDbfReader wbAccountDbfReader = new WbAccountDbfReader();
-        return streamTable(winbooksFileConfiguration, ACCOUNT_TABLE_NAME)
+        return streamTable(winbooksFileConfiguration, baseFolderPath, ACCOUNT_TABLE_NAME)
                 .map(wbAccountDbfReader::readWbAccountFromAcfDbfRecord);
     }
 
     public Stream<WbClientSupplier> streamCsf(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         WbClientSupplierDbfReader wbClientSupplierDbfReader = new WbClientSupplierDbfReader();
-        return streamTable(winbooksFileConfiguration, CUSTOMER_SUPPLIER_TABLE_NAME)
+        return streamTable(winbooksFileConfiguration, baseFolderPath, CUSTOMER_SUPPLIER_TABLE_NAME)
                 .map(wbClientSupplierDbfReader::readWbClientSupplierFromAcfDbfRecord);
     }
 
+    public Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear) {
+        return documentService.streamBookYearDocuments(fileConfiguration, bookYear);
+    }
+
+    public Optional<byte[]> getDocumentData(WinbooksFileConfiguration fileConfiguration, WbDocument document) {
+        return documentService.getDocumentData(fileConfiguration, document);
+    }
+
+
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
         if (false && tableExists(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
-            return streamBookYearsFromBookyearsTable(winbooksFileConfiguration);
+            return streamBookYearsFromBookYearsTable(winbooksFileConfiguration);
         }
         // fall-back: a lot of customers seem not to have table above
         return listBookYearsFromParamTable(winbooksFileConfiguration).stream();
     }
 
-    public List<WbBookYearFull> listBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+    public int getAccountNumberLengthFromParamsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
+        String accountPictureValueNullable = paramMap.get("AccountPicture");
+        return Optional.ofNullable(accountPictureValueNullable)
+                .flatMap(this::getAccountNumberLengthFromAccountPictureParamValue)
+                .orElse(ACCOUNT_NUMBER_DEFAULT_LENGTH);
+    }
+
+    Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, baseFolderPath, tableName);
+        Charset charset = winbooksFileConfiguration.getCharset();
+        return DbfUtils.streamDbf(tableInputStream, charset);
+    }
+
+    private Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path customerWinbooksPath) {
+        Optional<String> customerWinbooksPathNameOptional = Optional.ofNullable(customerWinbooksPath.getFileName())
+                .map(Path::toString);
+        if (!customerWinbooksPathNameOptional.isPresent()) {
+            return Optional.empty();
+        }
+        String customerWinbooksPathName = customerWinbooksPathNameOptional.get();
+
+        WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
+        winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
+        winbooksFileConfiguration.setBaseName(customerWinbooksPathName);
+        winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
+
+        if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(winbooksFileConfiguration);
+    }
+
+
+    private List<WbBookYearFull> listBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
         Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
 
         List<WbBookYearFull> wbBookYearFullList = new ArrayList<>();
@@ -210,14 +230,6 @@ public class WinbooksExtraService {
         return wbBookYearFullList;
     }
 
-    public int getAccountNumberLength(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
-        String accountPictureValueNullable = paramMap.get("AccountPicture");
-        return Optional.ofNullable(accountPictureValueNullable)
-                .flatMap(this::getAccountNumberLengthFromAccountPictureParamValue)
-                .orElse(ACCOUNT_NUMBER_DEFAULT_LENGTH);
-    }
-
     private Optional<Integer> getAccountNumberLengthFromAccountPictureParamValue(String accountPictureValue) {
         String[] paramValues = accountPictureValue.split(",");
         Map<String, String> accountPictureParams = Arrays.stream(paramValues)
@@ -230,127 +242,17 @@ public class WinbooksExtraService {
                 .map(Integer::parseInt);
     }
 
-
-    private Stream<WbBookYearFull> streamBookYearsFromBookyearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+    private Stream<WbBookYearFull> streamBookYearsFromBookYearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         WbBookYearFullDbfReader wbBookYearFullDbfReader = new WbBookYearFullDbfReader();
-        return streamTable(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)
+        return streamTable(winbooksFileConfiguration, baseFolderPath, BOOKYEARS_TABLE_NAME)
                 .map(wbBookYearFullDbfReader::readWbBookYearFromSlbkyDbfRecord);
     }
 
-    private Stream<DbfRecord> streamArchivedTable(WinbooksFileConfiguration winbooksFileConfiguration,
-                                                  String tableName, String archivePathName,
-                                                  AccountingEventListener eventListener) {
-        Charset charset = winbooksFileConfiguration.getCharset();
-
-        return getArchivedTableInputStreamOptional(winbooksFileConfiguration, tableName, archivePathName, eventListener)
-                .map(tableInputStream -> DbfUtils.streamDbf(tableInputStream, charset))
-                .orElseGet(Stream::empty);
-    }
-
-    public Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, tableName);
+    private Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+        InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, basePath, tableName);
         Charset charset = winbooksFileConfiguration.getCharset();
         return DbfUtils.streamDbf(tableInputStream, charset);
-    }
-
-    public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path parentPath, String baseName) {
-        return resolvePath(parentPath, baseName, true)
-                .flatMap(this::createWinbooksFileConfigurationOptional);
-    }
-
-    public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path customerWinbooksPath) {
-        Optional<String> customerWinbooksPathNameOptional = Optional.ofNullable(customerWinbooksPath.getFileName())
-                .map(Path::toString);
-        if (!customerWinbooksPathNameOptional.isPresent()) {
-            return Optional.empty();
-        }
-        String customerWinbooksPathName = customerWinbooksPathNameOptional.get();
-
-        WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
-        winbooksFileConfiguration.setBaseFolderPath(customerWinbooksPath);
-        winbooksFileConfiguration.setBaseName(customerWinbooksPathName);
-        winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
-
-        if (!tableExists(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
-            return Optional.empty();
-        }
-
-        return Optional.of(winbooksFileConfiguration);
-    }
-
-    public Optional<byte[]> getDocumentData(WinbooksFileConfiguration fileConfiguration, WbDocument document, AccountingEventListener winbooksEventHandler) {
-        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-        return getDocumentAbsolutePath(fileConfiguration, document, winbooksEventHandler)
-                .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
-    }
-
-    public Optional<Path> getDocumentAbsolutePath(WinbooksFileConfiguration fileConfiguration, WbDocument document, AccountingEventListener winbooksEventHandler) {
-        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-        WbBookYearFull bookYearFull = document.getWbPeriod().getWbBookYearFull();
-        return this.streamBasePaths(fileConfiguration, bookYearFull, winbooksEventHandler)
-                .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
-                .map(documentsPath -> resolveDocumentDirectoryPath(documentsPath, document, resolveCaseInsensitiveSiblings))
-                .findFirst();
-    }
-
-    public Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear, AccountingEventListener winbooksEventHandler) {
-        String bookYearName = bookYear.getShortName();
-        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-
-        // Stream documents at /${basePath}/${documentsPath}/${bookYearName}/<book year doc format>
-        List<Path> rootPathSources = streamBasePaths(fileConfiguration, bookYear, winbooksEventHandler)
-                .map(basePath -> resolveDocumentsPath(basePath, resolveCaseInsensitiveSiblings))
-                .map(documentsPath -> resolvePath(documentsPath, bookYearName, resolveCaseInsensitiveSiblings))
-                .flatMap(this::streamOptional)
-                .collect(Collectors.toList());
-
-        return rootPathSources.stream()
-                .flatMap(root -> this.streamBookYearDocuments(root, bookYear));
-    }
-
-    // Should not be exposed
-    @Deprecated
-    public Optional<Path> resolvePath(Path parentPath, String fileName, boolean resolveCaseInsensitiveSiblings) {
-        if (parentPath == null) {
-            return Optional.empty();
-        }
-        Path defaultPath = parentPath.resolve(fileName);
-        if (Files.exists(defaultPath)) {
-            return Optional.of(defaultPath);
-        }
-        boolean parentExists = Files.exists(parentPath);
-        if (!parentExists) {
-            return Optional.empty();
-        }
-        if (fileName.endsWith(".dbf")) {
-            String capitalizedExtensionFileName = fileName.replace(".dbf", ".DBF");
-            Path capitalizedExtensionPath = parentPath.resolve(capitalizedExtensionFileName);
-            if (Files.exists(capitalizedExtensionPath)) {
-                return Optional.of(capitalizedExtensionPath);
-            }
-        }
-        if (resolveCaseInsensitiveSiblings) {
-            return this.resolveCaseInsensitivePathOptional(parentPath, fileName);
-        } else {
-            return Optional.empty();
-        }
-    }
-
-
-    private Optional<Path> findSiblingWithSameName(Path parentPath, String fileName) throws IOException {
-        BiPredicate<Path, BasicFileAttributes> predicate = (path, attr) -> isSamePathNameIgnoreCase(path, fileName);
-        return Files.find(parentPath, 1, predicate).findFirst();
-    }
-
-    private boolean isCurrent(WbEntry wbEntry) {
-        WbBookYearFull wbBookYearFull = wbEntry.getWbBookYearFull();
-        return !isArchived(wbBookYearFull);
-    }
-
-    private boolean isArchived(WbBookYearFull wbBookYearFull) {
-        Optional<String> archivePathNameOptional = Optional.ofNullable(wbBookYearFull)
-                .flatMap(WbBookYearFull::getArchivePathNameOptional);
-        return archivePathNameOptional.isPresent();
     }
 
     private <T> Stream<T> streamOptional(Optional<T> optional) {
@@ -359,7 +261,8 @@ public class WinbooksExtraService {
     }
 
     private Map<String, String> getParamMap(WinbooksFileConfiguration winbooksFileConfiguration) {
-        return streamTable(winbooksFileConfiguration, PARAM_TABLE_NAME)
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        return streamTable(winbooksFileConfiguration, baseFolderPath, PARAM_TABLE_NAME)
                 .map(new WbParamDbfReader()::readWbParamFromDbfRecord)
                 .filter(wbParam -> wbParam.getValue() != null)
                 .collect(Collectors.toMap(WbParam::getId, WbParam::getValue, (id1, id2) -> id2));
@@ -376,26 +279,6 @@ public class WinbooksExtraService {
         return str == null || !str.startsWith(CHAR0_STRING);
     }
 
-    private Optional<Path> resolveCaseInsensitivePathOptional(Path parentPath, String fileName) {
-        try {
-            // Find another child of parent with a similar name
-            long time0 = System.currentTimeMillis();
-            Optional<Path> firstFoundPathOptional = findSiblingWithSameName(parentPath, fileName);
-            long timeAfterWalk = System.currentTimeMillis();
-            long deltaTimeWalk = timeAfterWalk - time0;
-            LOGGER.log(Level.FINE, "****FIND TIME (" + fileName + "): " + deltaTimeWalk);
-            return firstFoundPathOptional;
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.UNKNOWN_ERROR, exception);
-        }
-    }
-
-    private boolean isSamePathNameIgnoreCase(Path path, String fileName) {
-        return Optional.ofNullable(path.getFileName())
-                .map(Path::toString)
-                .map(fileName::equalsIgnoreCase)
-                .orElse(false);
-    }
 
     private List<WbPeriod> convertWinbooksPeriods(List<String> periodNames, List<LocalDate> periodDates, int durationInMonths) {
         int periodCount = periodNames.size();
@@ -460,24 +343,6 @@ public class WinbooksExtraService {
         return periodDates;
     }
 
-    private Optional<InputStream> getArchivedTableInputStreamOptional(WinbooksFileConfiguration winbooksFileConfiguration,
-                                                                      String tableName, String archivePathName,
-                                                                      AccountingEventListener eventListener) {
-        Path archivedTablePath = resolveArchivedTablePath(winbooksFileConfiguration, tableName, archivePathName);
-
-        boolean ignoreMissingArchives = winbooksFileConfiguration.isIgnoreMissingArchives();
-        if (!Files.exists(archivedTablePath) && ignoreMissingArchives) {
-            Path archiveFolderPath = archivedTablePath.getParent();
-            String archiveName = getPathFileNameString(archiveFolderPath);
-            ArchiveFileNotFoundIgnoredEvent ignoredEvent = new ArchiveFileNotFoundIgnoredEvent(archiveFolderPath, archiveName);
-            eventListener.handleArchiveFileNotFoundIgnoredEvent(ignoredEvent);
-            return Optional.empty();
-        }
-
-        InputStream inputStream = getFastInputStream(winbooksFileConfiguration, archivedTablePath);
-
-        return Optional.of(inputStream);
-    }
 
     private String getPathFileNameString(Path archiveFolderPath) {
         return Optional.ofNullable(archiveFolderPath.getFileName())
@@ -485,8 +350,8 @@ public class WinbooksExtraService {
                 .orElse("");
     }
 
-    private InputStream getTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        Path path = resolveTablePath(winbooksFileConfiguration, tableName);
+    private InputStream getTableInputStream(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+        Path path = resolveTablePathOrThrow(winbooksFileConfiguration, basePath, tableName);
         return getFastInputStream(winbooksFileConfiguration, path);
     }
 
@@ -509,315 +374,33 @@ public class WinbooksExtraService {
         }
     }
 
-    private Optional<Path> resolveArchivePath(Path baseFolderPath, WbBookYearFull wbBookYearFull, boolean resolveCaseInsensitiveSibling) {
-        if (!isArchived(wbBookYearFull)) {
-            return Optional.empty();
-        }
-        String archiveFileName = wbBookYearFull.getArchivePathNameOptional().orElseThrow(IllegalStateException::new);
-        return resolveArchivePath(baseFolderPath, archiveFileName, resolveCaseInsensitiveSibling);
-    }
-
-    private Optional<Path> resolveArchivePath(Path baseFolderPath, String archivePathName, boolean resolveCaseInsensitiveSiblings) {
-        String archiveFolderName = archivePathName
-                .replace("\\", "/")
-                .replaceAll("/$", "")
-                .replaceAll("^.*/", "");
-        Path baseParent = baseFolderPath.getParent();
-        return Optional.ofNullable(baseParent)
-                .flatMap(parent -> this.resolvePath(parent, archiveFolderName, resolveCaseInsensitiveSiblings));
-    }
-
-    private Path resolveArchivedTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName, String archivePathName) {
-        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-        Path baseParent = baseFolderPath.getParent();
-        Path archivePath = resolveArchivePath(baseFolderPath, archivePathName, resolveCaseInsensitiveSiblings)
-                .orElse(baseFolderPath.resolveSibling(archivePathName));
-        String archiveFolderName = archivePath.getFileName().toString();
-
-        // Look for archived table in /${archivePath}/${tableFileName}
-        Path archiveFolderPath = resolvePath(baseParent, archiveFolderName, resolveCaseInsensitiveSiblings)
-                .orElse(baseFolderPath.resolveSibling(archiveFolderName));
-        String tableFileName = archiveFolderName + "_" + tableName + ".dbf";
-
-        return resolvePath(archiveFolderPath, tableFileName, resolveCaseInsensitiveSiblings)
-                .orElseGet(() -> archiveFolderPath.resolve(tableFileName));  // we return an unexisting path if needed, to at least show a relevant error
-    }
-
     private boolean tableExists(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        return resolveTablePathOptional(winbooksFileConfiguration, tableName)
-                .isPresent();
-    }
-
-    private Optional<Path> resolveTablePathOptional(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        Path basePath = winbooksFileConfiguration.getBaseFolderPath();
+        String tableFileName = getTableFileName(winbooksFileConfiguration, tableName);
+        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
-        String fileName = getTableFileName(winbooksFileConfiguration, tableName);
-
-        // Look for table in /${base}/${fileName}
-        return resolvePath(basePath, fileName, resolveCaseInsensitiveSiblings);
+        Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(baseFolderPath, tableFileName, resolveCaseInsensitiveSiblings);
+        return tablePathOptional.isPresent();
     }
+
+    private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+        String tableFileName = getTableFileName(winbooksFileConfiguration, tableName);
+        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+        Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(basePath, tableFileName, resolveCaseInsensitiveSiblings);
+        return tablePathOptional.orElseThrow(() -> {
+            Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+            String baseFolderPathName = getPathFileNameString(baseFolderPath);
+
+            String message = MessageFormat.format("Could not find file {0} in folder {1}", tableFileName, baseFolderPathName);
+            return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
+        });
+    }
+
 
     private String getTableFileName(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         String baseName = winbooksFileConfiguration.getBaseName();
         String tablePrefix = baseName.replace("_", "");
         return tablePrefix + "_" + tableName + DBF_EXTENSION;
     }
-
-
-    private Stream<WbDocument> streamBookYearDocuments(Path bookYearDocumentFolderPath, WbBookYearFull bookYear) {
-        try {
-            return Files.list(bookYearDocumentFolderPath)
-                    .flatMap(bookYearDbkPath -> streamDbkBookYearDocuments(bookYearDbkPath, bookYear));
-        } catch (IOException e) {
-            return Stream.empty();
-        }
-    }
-
-    private Stream<WbDocument> streamDbkBookYearDocuments(Path path, WbBookYearFull bookYear) {
-        String dbkCode = path.getFileName().toString();
-
-        Collector<WbDocument, ?, Optional<WbDocument>> maxPageNrComparator = Collectors.maxBy(Comparator.comparing(WbDocument::getPageCount));
-        return streamDirectoryContent(path, this::isDocument)
-                .map(documentPath -> getDocumentOptional(documentPath, bookYear, dbkCode))
-                .flatMap(this::streamOptional)
-                .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
-                .values()
-                .stream()
-                .flatMap(this::streamOptional)
-                .map(this::getPageNumberDocument);
-    }
-
-    private boolean isDocument(Path documentPath) {
-        String fileName = documentPath.getFileName().toString();
-        Matcher matcher = BOOK_YEAR_DOCUMENT_PATTERN.matcher(fileName);
-        return matcher.matches();
-    }
-
-    private WbDocument getPageNumberDocument(WbDocument pageIndexDocument) {
-        WbPeriod wbPeriod = pageIndexDocument.getWbPeriod();
-        int pageCount = pageIndexDocument.getPageCount() + 1;
-        String documentNumber = pageIndexDocument.getDocumentNumber();
-        LocalDateTime creationTime = pageIndexDocument.getCreationTime();
-        LocalDateTime updatedTime = pageIndexDocument.getUpdatedTime();
-        String dbkCode = pageIndexDocument.getDbkCode();
-
-        WbDocument pageNumberDocument = new WbDocument();
-        pageNumberDocument.setWbPeriod(wbPeriod);
-        pageNumberDocument.setPageCount(pageCount);
-        pageNumberDocument.setDocumentNumber(documentNumber);
-        pageNumberDocument.setCreationTime(creationTime);
-        pageNumberDocument.setUpdatedTime(updatedTime);
-        pageNumberDocument.setDbkCode(dbkCode);
-
-        return pageNumberDocument;
-    }
-
-    private Optional<byte[]> getDocumentAllPagesPdfContent(Path documentPath, WbDocument document, boolean resolveCaseInsitiveSiblings) {
-        return streamDocumentPagesPaths(documentPath, document, resolveCaseInsitiveSiblings)
-                .map(this::readAllBytes)
-                .reduce(this::mergePdf);
-    }
-
-    private Stream<Path> streamBasePaths(WinbooksFileConfiguration fileConfiguration, WbBookYearFull wbBookYearFull, AccountingEventListener winbooksEventHandler) {
-        boolean resolveArchivePaths = fileConfiguration.isResolveArchivePaths();
-        boolean ignoreMissingArchives = fileConfiguration.isIgnoreMissingArchives();
-        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-
-        Path baseFolderPath = fileConfiguration.getBaseFolderPath();
-
-        // Try to resolve the book year archive path (at /${basePath/../${bookyearArchivePathName})
-        // Return this archive path - if any - and the base path
-        try {
-            if (resolveArchivePaths && isArchived(wbBookYearFull)) {
-                Path archivePath = resolveArchivePathOrThrow(baseFolderPath, wbBookYearFull, resolveCaseInsensitiveSiblings);
-                return Stream.of(archivePath, baseFolderPath);
-            } else {
-                return Stream.of(baseFolderPath);
-            }
-        } catch (ArchivePathNotFoundException archivePathNotFoundException) {
-            if (ignoreMissingArchives) {
-                String archivePathName = wbBookYearFull.getArchivePathNameOptional()
-                        .orElseThrow(IllegalStateException::new);
-                Path archivePath = baseFolderPath.resolveSibling(archivePathName);
-
-                ArchiveFolderNotFoundIgnoredEvent ignoredEvent = new ArchiveFolderNotFoundIgnoredEvent(baseFolderPath, archivePath);
-                winbooksEventHandler.handleArchiveFolderNotFoundIgnoredEvent(ignoredEvent);
-                return Stream.empty();
-            } else {
-                throw new WinbooksException(WinbooksError.BOOKYEAR_NOT_FOUND, archivePathNotFoundException);
-            }
-        }
-    }
-
-    private Path resolveArchivePathOrThrow(Path baseFolderPath, WbBookYearFull wbBookYearFull, boolean resolveCaseInsitiveSiblings) throws ArchivePathNotFoundException {
-        return resolveArchivePath(baseFolderPath, wbBookYearFull, resolveCaseInsitiveSiblings)
-                .orElseThrow(() -> new ArchivePathNotFoundException(baseFolderPath, wbBookYearFull));
-    }
-
-    private Path resolveDocumentDirectoryPath(Path baseDocumentPath, WbDocument document, boolean resolveCaseInsensitiveSiblings) {
-        WbBookYearFull wbBookYearFull = document.getWbPeriod().getWbBookYearFull();
-        String bookYearShortName = wbBookYearFull.getShortName();
-        String dbCode = document.getDbkCode();
-        return resolvePath(baseDocumentPath, bookYearShortName, resolveCaseInsensitiveSiblings)
-                .flatMap(bookYearPath -> resolvePath(bookYearPath, dbCode, resolveCaseInsensitiveSiblings))
-                .orElseGet(() -> baseDocumentPath.resolve(bookYearShortName).resolve(dbCode));
-    }
-
-    private Path resolveDocumentsPath(Path basePath, boolean resolveCaseInsensitiveSiblings) {
-        return resolvePath(basePath, "Document", resolveCaseInsensitiveSiblings)
-                .orElseGet(() -> basePath.resolve("Document"));
-    }
-
-    private byte[] readAllBytes(Path path) {
-        try {
-            return Files.readAllBytes(path);
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
-        }
-    }
-
-    private byte[] mergePdf(byte[] pdfData1, byte[] pdfData2) {
-        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            PdfCopyFields pdfCopyFields = new PdfCopyFields(byteArrayOutputStream);
-
-            PdfReader pdfReader1 = new PdfReader(pdfData1);
-            pdfCopyFields.addDocument(pdfReader1);
-
-            PdfReader pdfReader2 = new PdfReader(pdfData2);
-            pdfCopyFields.addDocument(pdfReader2);
-
-            pdfCopyFields.close();
-            pdfReader1.close();
-            pdfReader2.close();
-
-            return byteArrayOutputStream.toByteArray();
-        } catch (IOException | DocumentException exception) {
-            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Error while processing pdf files", exception);
-        }
-    }
-
-    private Stream<Path> streamDirectoryContent(Path path, Predicate<Path> acceptFilePredicate) {
-        try {
-            return Files.find(path, Integer.MAX_VALUE,
-                    (visitedPath, attr) -> checkFindDirectoryPredicate(acceptFilePredicate, visitedPath, attr));
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
-        }
-    }
-
-    private boolean checkFindDirectoryPredicate(Predicate<Path> acceptPredicate, Path visitedPath, BasicFileAttributes attr) {
-        boolean directory = attr.isDirectory();
-        if (!directory) {
-            return acceptPredicate.test(visitedPath);
-        } else {
-            return false;
-        }
-    }
-
-    private Stream<Path> streamDocumentPagesPaths(Path basePath, WbDocument document, boolean resolveCaseInsensitiveSiblings) {
-        int pageCount = document.getPageCount();
-
-        return IntStream.range(0, pageCount)
-                .mapToObj(pageIndex -> getDocumentPagePathName(pageIndex, document))
-                .map(pagePathName -> resolvePath(basePath, pagePathName, resolveCaseInsensitiveSiblings))
-                .flatMap(this::streamOptional);
-    }
-
-    private String getDocumentPagePathName(int pageIndex, WbDocument document) {
-        WbPeriod wbPeriod = document.getWbPeriod();
-        int wbPeriodIndex = wbPeriod.getIndex();
-        String periodIndexName = String.format("%02d", wbPeriodIndex);
-        String pageIndexName = String.format("%02d", pageIndex);
-
-        String fileName = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
-                document.getDbkCode(),
-                periodIndexName,
-                document.getDocumentNumber(),
-                pageIndexName
-        );
-        return fileName;
-    }
-
-    private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, String expectedDbkCode) {
-        String fileName = documentPath.getFileName().toString();
-        Matcher matcher = BOOK_YEAR_DOCUMENT_PATTERN.matcher(fileName);
-        if (!matcher.matches()) {
-            return Optional.empty();
-        }
-        LocalDateTime lastModifiedLocalTime = getLastModifiedTime(documentPath);
-        LocalDateTime creationTime = getCreationTime(documentPath);
-
-        String actualDbkCode = matcher.group(1);
-        String periodName = matcher.group(2);
-        String documentNumber = matcher.group(3);
-        String pageNrStr = matcher.group(4);
-        int pageNr = Integer.valueOf(pageNrStr);
-
-        WbDocument wbDocument = new WbDocument();
-        wbDocument.setDbkCode(actualDbkCode);
-        wbDocument.setDocumentNumber(documentNumber);
-        wbDocument.setPageCount(pageNr);
-        wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
-        wbDocument.setUpdatedTime(lastModifiedLocalTime);
-        wbDocument.setCreationTime(creationTime);
-
-        return Optional.of(wbDocument);
-    }
-
-    private LocalDateTime getLastModifiedTime(Path documentPath) {
-        try {
-            FileTime lastModifiedTime = Files.getLastModifiedTime(documentPath);
-            return toLocalDateTime(lastModifiedTime);
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
-        }
-    }
-
-    private LocalDateTime getCreationTime(Path documentPath) {
-        try {
-            BasicFileAttributes basicFileAttributes = Files.readAttributes(documentPath, BasicFileAttributes.class);
-            FileTime creationFileTime = basicFileAttributes.creationTime();
-            return toLocalDateTime(creationFileTime);
-        } catch (IOException exception) {
-            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, exception);
-        }
-    }
-
-    private WbPeriod getWbPeriod(WbBookYearFull bookYear, String periodName) {
-        return bookYear.getPeriodList()
-                .stream()
-                .filter(wbPeriod -> isPeriodIndex(wbPeriod, periodName))
-                .findFirst()
-                .orElseThrow(() -> new WinbooksException(WinbooksError.NO_PERIOD, "Period not found: " + periodName));
-    }
-
-    private boolean isPeriodIndex(WbPeriod wbPeriod, String expectedPeriodName) {
-        int periodIndex = wbPeriod.getIndex();
-        String periodIndexName = String.format("%02d", periodIndex);
-        return expectedPeriodName.equals(periodIndexName);
-    }
-
-
-    private LocalDateTime toLocalDateTime(FileTime fileTime) {
-        Instant lastModifiedInstant = fileTime.toInstant();
-        return LocalDateTime.ofInstant(lastModifiedInstant, ZoneId.systemDefault());
-    }
-
-
-    private Path resolveTablePath(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        return resolveTablePathOptional(winbooksFileConfiguration, tableName)
-                .orElseThrow(() -> {
-                    Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-                    String baseFolderPathName = getPathFileNameString(baseFolderPath);
-
-                    String fileName = getTableFileName(winbooksFileConfiguration, tableName);
-
-                    String message = MessageFormat.format("Could not find file {0} in folder {1}", fileName, baseFolderPathName);
-                    return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
-                });
-    }
-
 
 }
 

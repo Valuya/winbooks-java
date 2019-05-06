@@ -1,4 +1,4 @@
-package be.valuya.winbooks.api.extra;
+package be.valuya.winbooks.api.extra.reader;
 
 /**
  *
