@@ -7,6 +7,7 @@ import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -15,11 +16,13 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.Spliterator;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 class WinbooksPathUtils {
     private static Logger LOGGER = Logger.getLogger(WinbooksPathUtils.class.getName());
@@ -178,9 +181,18 @@ class WinbooksPathUtils {
                 .replace("\\", "/")
                 .replaceAll("/$", "")
                 .replaceAll("^.*/", "");
-        Path baseParent = baseFolderPath.getParent();
-        return Optional.ofNullable(baseParent)
+        Optional<Path> parentPathOptional = Optional.ofNullable(baseFolderPath.getParent())
+                .map(Optional::of)
+                .orElseGet(() -> getFileSystemRoot(baseFolderPath));
+        return parentPathOptional
                 .flatMap(parent -> resolvePath(parent, archiveFolderName, resolveCaseInsensitiveSiblings));
+    }
+
+    private static Optional<Path> getFileSystemRoot(Path baseFolderPath) {
+        FileSystem fileSystem = baseFolderPath.getFileSystem();
+        Spliterator<Path> rootDirectoriesSpliterator = fileSystem.getRootDirectories().spliterator();
+        return StreamSupport.stream(rootDirectoriesSpliterator, false)
+                .findFirst();
     }
 
 }
