@@ -68,7 +68,7 @@ public class ATDocumentConverter {
         WbPeriod wbPeriod = this.findWbPeriod(wbBookYearFulls, bookPeriod);
 
         WbDocument wbDocument = new WbDocument();
-        wbDocument.setDbkCode(documentNumber);
+        wbDocument.setDocumentNumber(documentNumber);
         wbDocument.setDbkCode(dbkCode);
         wbDocument.setWbPeriod(wbPeriod);
         wbDocument.setUpdatedTime(updateTimeOptional.orElse(null));

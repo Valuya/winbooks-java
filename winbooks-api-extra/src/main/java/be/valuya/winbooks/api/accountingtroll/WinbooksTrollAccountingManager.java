@@ -101,7 +101,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         ATDocumentConverter documentConverter = new ATDocumentConverter(accountingManagerCache);
         WbDocument wbDocument = documentConverter.convertWbDocument(atDocument);
         byte[] documentdata = extraService.getDocumentData(fileConfiguration, wbDocument)
-                .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find document date"));
+                .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find document"));
 
         return new ByteArrayInputStream(documentdata);
     }
