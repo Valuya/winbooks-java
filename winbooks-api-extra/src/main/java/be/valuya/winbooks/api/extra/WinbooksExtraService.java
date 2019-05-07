@@ -97,21 +97,15 @@ public class WinbooksExtraService {
     public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
         List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
                 .collect(Collectors.toList());
-
         boolean resolveUnmappedPeriodFromEntryDate = winbooksFileConfiguration.isResolveUnmappedPeriodFromEntryDate();
+
         PeriodResolver periodResolver = new PeriodResolver(resolveUnmappedPeriodFromEntryDate);
         periodResolver.init(wbBookYearFullList);
-
         WbEntryDbfReader wbEntryDbfReader = new WbEntryDbfReader(periodResolver);
 
+
         return wbBookYearFullList.stream()
-                .map(bookyear -> WinbooksPathUtils.getBookYearBasePath(winbooksFileConfiguration, bookyear))
-                .flatMap(this::streamOptional)
-                .distinct()
-                .flatMap(basePath -> streamTable(winbooksFileConfiguration, basePath, ACCOUNTING_ENTRY_TABLE_NAME))
-                .filter(this::isValidActRecord)
-                .map(wbEntryDbfReader::readWbEntryFromActDbfRecord)
-                .flatMap(this::streamOptional);
+                .flatMap(year -> this.streamBookYearAct(winbooksFileConfiguration, wbEntryDbfReader, year));
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
@@ -160,6 +154,26 @@ public class WinbooksExtraService {
         return DbfUtils.streamDbf(tableInputStream, charset);
     }
 
+    private Stream<WbEntry> streamBookYearAct(WinbooksFileConfiguration winbooksFileConfiguration,
+                                              WbEntryDbfReader dbfReader, WbBookYearFull bookYearFull) {
+        Optional<Path> bookYearBasePath = WinbooksPathUtils.getBookYearBasePath(winbooksFileConfiguration, bookYearFull);
+        return streamOptional(bookYearBasePath)
+                .flatMap(basePath -> streamTable(winbooksFileConfiguration, basePath, ACCOUNTING_ENTRY_TABLE_NAME))
+                .filter(this::isValidActRecord)
+                .map(dbfReader::readWbEntryFromActDbfRecord)
+                .flatMap(this::streamOptional)
+                .filter(wbEntry -> isEntryForBookYear(bookYearFull, wbEntry));
+    }
+
+    private boolean isEntryForBookYear(WbBookYearFull bookYearFull, WbEntry wbEntry) {
+        String entryBookyear = wbEntry.getBookYear();
+        if (entryBookyear == null || entryBookyear.trim().isEmpty()) {
+            return false;
+        }
+        int entryBookYearIndex = Integer.valueOf(entryBookyear);
+        int bookYearIndex = bookYearFull.getIndex();
+        return entryBookYearIndex == bookYearIndex;
+    }
 
     private List<WbBookYearFull> listBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
         Map<String, String> paramMap = getParamMap(winbooksFileConfiguration);
