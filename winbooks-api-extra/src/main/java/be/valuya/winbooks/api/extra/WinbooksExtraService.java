@@ -214,10 +214,13 @@ public class WinbooksExtraService {
                     .max(LocalDate::compareTo)
                     .map(date -> date.plusDays(1)) // exclusive upper bound is day after
                     .orElseThrow(IllegalArgumentException::new);
-            boolean skpiBookYear = winbooksFileConfiguration.getBookYearStartMinDate()
+            boolean bookYearMinStartViolated = winbooksFileConfiguration.getBookYearStartMinDate()
                     .map(minStartDate -> minStartDate.isAfter(startDate))
                     .orElse(false);
-            if (skpiBookYear) {
+            boolean bookYearMaxStartViolated = winbooksFileConfiguration.getBookYearStartMaxDate()
+                    .map(maxStartDate -> maxStartDate.isBefore(startDate))
+                    .orElse(false);
+            if (bookYearMinStartViolated || bookYearMaxStartViolated) {
                 continue;
             }
 

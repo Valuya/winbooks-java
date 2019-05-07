@@ -21,6 +21,7 @@ public class WinbooksFileConfiguration {
     private boolean resolveDocumentTimes = true;
     private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS;
     private Optional<LocalDate> bookYearStartMinDate = Optional.empty();
+    private Optional<LocalDate> bookYearStartMaxDate = Optional.empty();
 
     public String getUsername() {
         return username;
@@ -124,5 +125,13 @@ public class WinbooksFileConfiguration {
 
     public void setBookYearStartMinDate(LocalDate bookYearStartMinLoclDate) {
         this.bookYearStartMinDate = Optional.of(bookYearStartMinLoclDate);
+    }
+
+    public Optional<LocalDate> getBookYearStartMaxDate() {
+        return bookYearStartMaxDate;
+    }
+
+    public void setBookYearStartMaxDate(LocalDate bookYearStartMaxLoclDate) {
+        this.bookYearStartMaxDate = Optional.of(bookYearStartMaxLoclDate);
     }
 }
