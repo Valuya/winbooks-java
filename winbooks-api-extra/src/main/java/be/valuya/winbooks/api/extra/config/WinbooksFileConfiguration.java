@@ -20,8 +20,8 @@ public class WinbooksFileConfiguration {
     private boolean resolveUnmappedPeriodFromEntryDate = true;
     private boolean resolveDocumentTimes = true;
     private DocumentMatchingMode documentMatchingMode = DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS;
-    private Optional<LocalDate> bookYearStartMinDate = Optional.empty();
-    private Optional<LocalDate> bookYearStartMaxDate = Optional.empty();
+    private Optional<LocalDate> bookYearStartMinDateOptional = Optional.empty();
+    private Optional<LocalDate> bookYearStartMaxDateOptional = Optional.empty();
 
     public String getUsername() {
         return username;
@@ -119,19 +119,19 @@ public class WinbooksFileConfiguration {
         this.resolveDocumentTimes = resolveDocumentTimes;
     }
 
-    public Optional<LocalDate> getBookYearStartMinDate() {
-        return bookYearStartMinDate;
+    public Optional<LocalDate> getBookYearStartMinDateOptional() {
+        return bookYearStartMinDateOptional;
     }
 
     public void setBookYearStartMinDate(LocalDate bookYearStartMinLoclDate) {
-        this.bookYearStartMinDate = Optional.of(bookYearStartMinLoclDate);
+        this.bookYearStartMinDateOptional = Optional.of(bookYearStartMinLoclDate);
     }
 
-    public Optional<LocalDate> getBookYearStartMaxDate() {
-        return bookYearStartMaxDate;
+    public Optional<LocalDate> getBookYearStartMaxDateOptional() {
+        return bookYearStartMaxDateOptional;
     }
 
     public void setBookYearStartMaxDate(LocalDate bookYearStartMaxLoclDate) {
-        this.bookYearStartMaxDate = Optional.of(bookYearStartMaxLoclDate);
+        this.bookYearStartMaxDateOptional = Optional.of(bookYearStartMaxLoclDate);
     }
 }
