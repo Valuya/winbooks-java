@@ -1,6 +1,5 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
@@ -9,9 +8,7 @@ import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
-import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
 import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
-import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
@@ -45,7 +42,6 @@ public class WinbooksExtraServiceLocalTest {
     private WinbooksFileConfiguration winbooksFileConfiguration;
 
     private Logger logger = Logger.getLogger(WinbooksExtraServiceLocalTest.class.getName());
-    private AccountingEventListener eventListener;
 
 
     @Before
@@ -61,13 +57,12 @@ public class WinbooksExtraServiceLocalTest {
                 .orElseThrow(AssertionError::new);
         winbooksFileConfiguration.setReadTablesToMemory(true);
 
-        eventListener = new TestAccountingEventListener();
     }
 
     @Test
     public void testStreamDocuments() {
         winbooksExtraService.streamBookYears(winbooksFileConfiguration)
-                .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year, eventListener))
+                .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year))
                 .peek(this::checkDocument)
                 .forEach(this::printDocument);
     }
@@ -75,13 +70,13 @@ public class WinbooksExtraServiceLocalTest {
     @Test
     public void testStreamDocumentPageData() throws Exception {
         WbDocument testDocument = winbooksExtraService.streamBookYears(winbooksFileConfiguration)
-                .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year, eventListener))
+                .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year))
                 .filter(doc -> doc.getPageCount() > 1)
                 .findAny()
                 .orElseThrow(AssertionError::new);
 
         this.printDocument(testDocument);
-        byte[] documentData = winbooksExtraService.getDocumentData(winbooksFileConfiguration, testDocument, eventListener)
+        byte[] documentData = winbooksExtraService.getDocumentData(winbooksFileConfiguration, testDocument)
                 .orElseThrow(AssertionError::new);
 
         PdfReader pdfReader = new PdfReader(documentData);
@@ -118,15 +113,14 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testStreamEntries() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
-                .map(WbEntry::getAmountEur)
-                .map(BigDecimal::toPlainString)
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
+                .map(WbEntry::toString)
                 .forEach(logger::info);
     }
 
     @Test
     public void testFindDistinctDocOrder() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .map(WbEntry::getWbDocOrderType)
                 .distinct()
                 .map(WbDocOrderType::name)
@@ -135,7 +129,7 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testFindDistinctDocStatus() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .map(WbEntry::getDocStatus)
                 .distinct()
                 .map(WbDocStatus::name)
@@ -146,7 +140,7 @@ public class WinbooksExtraServiceLocalTest {
     public void testAccountTotal() {
         Date startDate = new Date(119, Calendar.JANUARY, 01);
         Date endDate = new Date(999, Calendar.JANUARY, 01);
-        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))

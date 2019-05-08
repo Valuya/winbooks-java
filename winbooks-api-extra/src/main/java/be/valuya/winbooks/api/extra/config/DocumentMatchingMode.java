@@ -11,5 +11,5 @@ public enum DocumentMatchingMode {
     /**
      * Do not attempt to find a document for each entry.
      */
-    SKIP;
+    SKIP
 }

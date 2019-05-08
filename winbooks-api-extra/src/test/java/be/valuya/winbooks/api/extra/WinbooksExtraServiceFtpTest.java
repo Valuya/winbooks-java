@@ -50,9 +50,7 @@ import java.util.stream.Stream;
 public class WinbooksExtraServiceFtpTest {
 
     private static String FTP_USER_NAME;
-    private static String FTP_PASSWORD;
     private static String FTP_HOST_NAME;
-    private static boolean FTP_SSL_ENABLED;
     private static String PROTOCOL;
     private static String FTP_PATH_NAME;
     private static String BASE_NAME;
@@ -62,15 +60,14 @@ public class WinbooksExtraServiceFtpTest {
     private WinbooksFileConfiguration winbooksFileConfiguration;
 
     private Logger logger = Logger.getLogger(WinbooksExtraServiceFtpTest.class.getName());
-    private AccountingEventListener eventListener = new TestAccountingEventListener();
 
     @BeforeClass
     public static void initFileSystem() throws IOException {
         FTP_USER_NAME = System.getProperty("winbooks.test.ftp.user.name");
-        FTP_PASSWORD = System.getProperty("winbooks.test.ftp.password");
+        String FTP_PASSWORD = System.getProperty("winbooks.test.ftp.password");
         FTP_HOST_NAME = System.getProperty("winbooks.test.ftp.host");
         String sslEnabledStr = System.getProperty("winbooks.test.ftp.ssl");
-        FTP_SSL_ENABLED = Boolean.parseBoolean(sslEnabledStr);
+        boolean FTP_SSL_ENABLED = Boolean.parseBoolean(sslEnabledStr);
         PROTOCOL = FTP_SSL_ENABLED ? "ftps" : "ftp";
         FTP_PATH_NAME = System.getProperty("winbooks.test.ftp.path");
         BASE_NAME = System.getProperty("winbooks.test.base.name");
@@ -124,8 +121,20 @@ public class WinbooksExtraServiceFtpTest {
     }
 
     @Test
+    public void testStreamEntries() {
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
+                .filter(e -> {
+                    if (e.getAmount() == null) return false;
+                    BigDecimal remaining = e.getAmount().subtract(BigDecimal.valueOf(109.3)).abs();
+                    return remaining.compareTo(BigDecimal.valueOf(0.01d)) < 0;
+                })
+                .map(WbEntry::toString)
+                .forEach(logger::info);
+    }
+
+    @Test
     public void testFindDistinctDocOrder() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .map(WbEntry::getWbDocOrderType)
                 .distinct()
                 .map(WbDocOrderType::name)
@@ -134,7 +143,7 @@ public class WinbooksExtraServiceFtpTest {
 
     @Test
     public void testFindDistinctDocStatus() {
-        winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+        winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .map(WbEntry::getDocStatus)
                 .distinct()
                 .map(WbDocStatus::name)
@@ -145,7 +154,7 @@ public class WinbooksExtraServiceFtpTest {
     public void testAccountTotal() {
         Date startDate = new Date(116, Calendar.JANUARY, 01);
         Date endDate = new Date(117, Calendar.JANUARY, 01);
-        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration, eventListener)
+        TreeMap<String, Map<Integer, BigDecimal>> categoryMonthTotalMap = winbooksExtraService.streamAct(winbooksFileConfiguration)
                 .filter(wbEntry -> wbEntry.getDate() != null)
                 .filter(wbEntry -> !wbEntry.getDate().before(startDate))
                 .filter(wbEntry -> wbEntry.getDate().before(endDate))

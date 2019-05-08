@@ -2,6 +2,7 @@ package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccount;
+import be.valuya.accountingtroll.domain.ATAccountBalance;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
@@ -161,10 +162,13 @@ public class WinbooksParfiluxDossierTest {
 
     @Test
     public void testAccountBalances() {
-        BalanceAccountingEventListener balanceEventListener = new BalanceAccountingEventListener();
-        trollSrervice.streamAccountingEntries(balanceEventListener).count(); // consume stream to trigger side effects
-        Map<String, BigDecimal> balanceByAccountCode = balanceEventListener.getBalanceByAccountCode();
-
+        Map<String, BigDecimal> balancesMap = trollSrervice.streamAccountBalances()
+                .peek(this::debug)
+                .collect(Collectors.toMap(
+                        balance -> balance.getAccount().getCode(),
+                        ATAccountBalance::getPeriodEndBalance,
+                        (prev, next) -> next
+                ));
         List<String> balanceCSVLines = new ArrayList<>(GENERAL_BALANCES_CSV_LINES).stream()
                 .skip(6) // header
                 .filter(s -> !s.trim().isEmpty())
@@ -180,18 +184,28 @@ public class WinbooksParfiluxDossierTest {
             String csvAccountBalanceString = csvColumns[5].trim();
             double csvAccountBalanceDouble = Double.parseDouble(csvAccountBalanceString);
             BigDecimal csvAccountBalance = BigDecimal.valueOf(csvAccountBalanceDouble)
+                    .negate() // We want negative number for debit, positive for credit
                     .setScale(3, RoundingMode.HALF_UP);
 
-            BigDecimal accountBalance = balanceByAccountCode.getOrDefault(csvAccountNumber, ZERO);
+            BigDecimal accountBalance = balancesMap.getOrDefault(csvAccountNumber, ZERO);
 
             if (isTestableAccount(csvAccountNumber)) {
-//                boolean balanceMatch = accountBalance.equals(csvAccountBalance);
-//                if (!balanceMatch) {
-//                    System.err.println("Balance mismatch for " + csvAccountNumber + " : " + csvAccountBalance + " but got " + accountBalance);
-//                }
+                boolean balanceMatch = accountBalance.equals(csvAccountBalance);
+                if (!balanceMatch) {
+                    System.err.println("Balance mismatch for " + csvAccountNumber + " : " + csvAccountBalance + " but got " + accountBalance);
+                }
                 Assert.assertEquals("Balance mismatch for " + csvAccountNumber, csvAccountBalance, accountBalance);
             }
             accountIndex += 1;
+        }
+    }
+
+    private void debug(ATAccountBalance accountBalance) {
+        if (accountBalance.getAccount().getCode().equals("200009")) {
+            String periodName = accountBalance.getPeriod().getName();
+            BigDecimal periodStartBalance = accountBalance.getPeriodStartBalance();
+            BigDecimal periodEndBalance = accountBalance.getPeriodEndBalance();
+            System.out.println(periodName + " : " + periodStartBalance + " -> " + periodEndBalance);
         }
     }
 

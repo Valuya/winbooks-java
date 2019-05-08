@@ -41,8 +41,8 @@ public class ATDocumentConverter {
         atDocument.setDbkCode(dbkCode);
         atDocument.setBookPeriod(bookPeriod);
         atDocument.setPageCountOptional(Optional.of(pageCount));
-        atDocument.setCreationTimeOptional(Optional.of(creationTime));
-        atDocument.setUpdateTimeOptional(Optional.of(updatedTime));
+        atDocument.setCreationTimeOptional(Optional.ofNullable(creationTime));
+        atDocument.setUpdateTimeOptional(Optional.ofNullable(updatedTime));
         return atDocument;
     }
 
@@ -68,7 +68,7 @@ public class ATDocumentConverter {
         WbPeriod wbPeriod = this.findWbPeriod(wbBookYearFulls, bookPeriod);
 
         WbDocument wbDocument = new WbDocument();
-        wbDocument.setDbkCode(documentNumber);
+        wbDocument.setDocumentNumber(documentNumber);
         wbDocument.setDbkCode(dbkCode);
         wbDocument.setWbPeriod(wbPeriod);
         wbDocument.setUpdatedTime(updateTimeOptional.orElse(null));

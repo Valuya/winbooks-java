@@ -1,17 +1,14 @@
 package be.valuya.winbooks.api.accountingtroll.cache;
 
-import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.accountingtroll.domain.ATAccount;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATThirdParty;
-import be.valuya.accountingtroll.event.AccountingEventHandler;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
-import be.valuya.jbooks.model.WbDbkType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountConverter;
@@ -140,7 +137,7 @@ public class AccountingManagerCache {
             return;
         }
 
-        int accountNumberLength = extraService.getAccountNumberLength(fileConfiguration);
+        int accountNumberLength = extraService.getAccountNumberLengthFromParamsTable(fileConfiguration);
         accountsByCode = extraService.streamAcf(fileConfiguration)
                 .filter(this::isValidAccount)
                 .map(wbAccount -> atAccountConverter.convertToTrollAcccount(wbAccount, accountNumberLength))
@@ -204,14 +201,15 @@ public class AccountingManagerCache {
         if (accountingEntries != null) {
             return;
         }
+        cacheBookYears();
+        cacheBookPeriods();
 
         DocumentMatchingMode documentMatchingMode = fileConfiguration.getDocumentMatchingMode();
         if (documentMatchingMode == DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS) {
             cacheDocuments();
         }
 
-        AccountingEventListener accountingEventListener = new AccountingEventHandler();
-        accountingEntries = extraService.streamAct(fileConfiguration, accountingEventListener)
+        accountingEntries = extraService.streamAct(fileConfiguration)
                 .filter(this::isValidAccountingEntry)
                 .map(atAccountingEntryConverter::convertToTrollAccountingEntry)
                 .map(e -> this.linkEntryDocument(e, documentMatchingMode))
@@ -242,9 +240,8 @@ public class AccountingManagerCache {
         if (documentsByCacheKey != null) {
             return;
         }
-        AccountingEventListener accountingEventListener = new AccountingEventHandler();
         documentsByCacheKey = streamWbBookYearFulls()
-                .flatMap(bookYear -> extraService.streamBookYearDocuments(fileConfiguration, bookYear, accountingEventListener))
+                .flatMap(bookYear -> extraService.streamBookYearDocuments(fileConfiguration, bookYear))
                 .map(atDocumentConverter::convertDocument)
                 .collect(Collectors.toMap(
                         ATDocumentCacheKey::new,
@@ -270,11 +267,11 @@ public class AccountingManagerCache {
 
     private boolean isValidAccountingEntry(WbEntry wbEntry) {
         String dbkCode = wbEntry.getDbkCode();
-        boolean isSimulationLedger = dbkCode.equals("ODSIMU"); // FIXME: flag to be set on accounting entry
-//        return wbEntry.getAccountGl() != null
-//                && wbEntry.getWbPeriod() != null
-//                && !isSimulationLedger;
-        return !isSimulationLedger && wbEntry.getAccountGl() != null;
+        boolean isSimulationLedger = dbkCode.equals("ODSIMU"); // TODO: read from journal table, set flag on accounting entry?
+        return wbEntry.getAccountGl() != null // TODO: find out how to handle these
+                && wbEntry.getWbPeriod() != null // TODO: throw or warn?
+                && !isSimulationLedger;
+//        return !isSimulationLedger && wbEntry.getAccountGl() != null;
     }
 
     private boolean isSamePeriod(ATBookPeriod atPeriod, WbPeriod period) {
