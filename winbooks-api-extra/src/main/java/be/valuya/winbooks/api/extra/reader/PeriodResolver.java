@@ -71,10 +71,10 @@ public class PeriodResolver {
         return wbBookYearFullMap.values()
                 .stream()
                 .filter(bookYear -> this.dateMatchBookYear(bookYear, year, month))
-                .map(bookyear -> this.findBookYearPeriod(bookyear, year, month))
-                .map(Optional::of)
+                .map(bookyear -> this.findBookYearPeriodOptional(bookyear, year, month))
+                .flatMap(Optional::stream)
                 .findAny()
-                .orElse(firstPeriodOptional);
+                .or(() -> firstPeriodOptional);
     }
 
 
@@ -86,11 +86,10 @@ public class PeriodResolver {
     }
 
 
-    private WbPeriod findBookYearPeriod(WbBookYearFull bookyear, int year, int month) {
+    private Optional<WbPeriod> findBookYearPeriodOptional(WbBookYearFull bookyear, int year, int month) {
         return bookyear.getPeriodList().stream()
                 .filter(wbPeriod -> this.dateMatchPeriod(wbPeriod, year, month))
-                .findAny()
-                .orElseThrow(() -> new IllegalStateException("Could not find period within book year"));
+                .findAny();
     }
 
     private boolean dateMatchPeriod(WbPeriod wbPeriod, int year, int month) {

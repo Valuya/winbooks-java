@@ -13,6 +13,8 @@ public class WinbooksFileConfiguration {
     private Path baseFolderPath;
     private String baseName;
     private Charset charset = StandardCharsets.ISO_8859_1;
+
+    private boolean ignoreConversionErrors = true;
     private boolean ignoreMissingArchives = true;
     private boolean readTablesToMemory = true;
     private boolean resolveArchivedBookYears = true;
@@ -133,5 +135,13 @@ public class WinbooksFileConfiguration {
 
     public void setBookYearStartMaxDate(LocalDate bookYearStartMaxLoclDate) {
         this.bookYearStartMaxDateOptional = Optional.of(bookYearStartMaxLoclDate);
+    }
+
+    public boolean isIgnoreConversionErrors() {
+        return ignoreConversionErrors;
+    }
+
+    public void setIgnoreConversionErrors(boolean ignoreConversionErrors) {
+        this.ignoreConversionErrors = ignoreConversionErrors;
     }
 }
