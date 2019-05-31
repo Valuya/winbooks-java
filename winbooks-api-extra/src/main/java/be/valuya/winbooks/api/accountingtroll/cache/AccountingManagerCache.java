@@ -9,6 +9,7 @@ import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountConverter;
@@ -140,12 +141,21 @@ public class AccountingManagerCache {
         int accountNumberLength = extraService.getAccountNumberLengthFromParamsTable(fileConfiguration);
         accountsByCode = extraService.streamAcf(fileConfiguration)
                 .filter(this::isValidAccount)
-                .map(wbAccount -> atAccountConverter.convertToTrollAcccount(wbAccount, accountNumberLength))
+                .map(wbAccount -> this.safeConvertToTrollAccount(wbAccount, accountNumberLength))
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.CANNOT_OPEN_DOSSIER))
+                .flatMap(Optional::stream)
                 .collect(Collectors.toMap(
                         ATAccount::getCode,
                         Function.identity(),
                         (t1, t2) -> t1)// Override in case of dupplicates
                 );
+    }
+
+    private <T> void checkThrowOnConversion(Optional<T> converterEntity, WinbooksError error) {
+        boolean ignoreConversionErrors = fileConfiguration.isIgnoreConversionErrors();
+        if (!ignoreConversionErrors && !converterEntity.isPresent()) {
+            throw new WinbooksException(error, "Conversion errored");
+        }
     }
 
 
@@ -163,7 +173,9 @@ public class AccountingManagerCache {
         }
         cachWbBookYearFull();
         bookYearsByShortName = wbBookYearFulls.stream()
-                .map(atBookYearConverter::convertToTrollBookYear)
+                .map(this::safeConvertToTrollBookYear)
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.NO_BOOKYEAR))
+                .flatMap(Optional::stream)
                 .collect(Collectors.toMap(
                         ATBookYear::getName,
                         Function.identity() // throw in case of duplicates
@@ -188,7 +200,9 @@ public class AccountingManagerCache {
         }
         thirdPartiesById = extraService.streamCsf(fileConfiguration)
                 .filter(this::isValidClientSupplier)
-                .map(atThirdPartyConverter::convertToTrollThirdParty)
+                .map(this::safeConvertToTrollThirdParty)
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.CANNOT_OPEN_DOSSIER))
+                .flatMap(Optional::stream)
                 .collect(Collectors.toMap(
                         ATThirdParty::getId,
                         Function.identity(),
@@ -211,9 +225,65 @@ public class AccountingManagerCache {
 
         accountingEntries = extraService.streamAct(fileConfiguration)
                 .filter(this::isValidAccountingEntry)
-                .map(atAccountingEntryConverter::convertToTrollAccountingEntry)
+                .map(this::safeConvertToTrollAccountingEntry)
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.USER_FILE_ERROR))
+                .flatMap(Optional::stream)
                 .map(e -> this.linkEntryDocument(e, documentMatchingMode))
                 .collect(Collectors.toList());
+    }
+
+    private Optional<ATAccountingEntry> safeConvertToTrollAccountingEntry(WbEntry wbEntry) {
+        try {
+            ATAccountingEntry atAccountingEntry = atAccountingEntryConverter.convertToTrollAccountingEntry(wbEntry);
+            return Optional.of(atAccountingEntry);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<ATThirdParty> safeConvertToTrollThirdParty(WbClientSupplier wbSupplier) {
+        try {
+            ATThirdParty aThirdParty = atThirdPartyConverter.convertToTrollThirdParty(wbSupplier);
+            return Optional.of(aThirdParty);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<ATBookYear> safeConvertToTrollBookYear(WbBookYearFull wbBookYearFull) {
+        try {
+            ATBookYear atBookYear = atBookYearConverter.convertToTrollBookYear(wbBookYearFull);
+            return Optional.of(atBookYear);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<ATAccount> safeConvertToTrollAccount(WbAccount wbAccount, int accountNumberLengths) {
+        try {
+            ATAccount atAccount = atAccountConverter.convertToTrollAcccount(wbAccount, accountNumberLengths);
+            return Optional.of(atAccount);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<ATBookPeriod> safeConvertToTrollPeriod(WbPeriod wbPeriod, WbBookYearFull bookYearFull) {
+        try {
+            ATBookPeriod atBookPeriod = atBookPeriodConverter.convertToTrollPeriod(bookYearFull, wbPeriod);
+            return Optional.of(atBookPeriod);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<ATDocument> safeConvertToDocument(WbDocument wbDocument) {
+        try {
+            ATDocument atDocument = atDocumentConverter.convertDocument(wbDocument);
+            return Optional.of(atDocument);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
     }
 
     private ATAccountingEntry linkEntryDocument(ATAccountingEntry accountingEntry, DocumentMatchingMode documentMatchingMode) {
@@ -242,7 +312,9 @@ public class AccountingManagerCache {
         }
         documentsByCacheKey = streamWbBookYearFulls()
                 .flatMap(bookYear -> extraService.streamBookYearDocuments(fileConfiguration, bookYear))
-                .map(atDocumentConverter::convertDocument)
+                .map(this::safeConvertToDocument)
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.USER_FILE_ERROR))
+                .flatMap(Optional::stream)
                 .collect(Collectors.toMap(
                         ATDocumentCacheKey::new,
                         Function.identity()
@@ -252,7 +324,9 @@ public class AccountingManagerCache {
 
     private Stream<ATBookPeriod> streamYearPeriods(WbBookYearFull bookYearFull) {
         return bookYearFull.getPeriodList().stream()
-                .map(period -> atBookPeriodConverter.convertToTrollPeriod(bookYearFull, period));
+                .map(period -> this.safeConvertToTrollPeriod(period, bookYearFull))
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.BOOKYEAR_NOT_FOUND))
+                .flatMap(Optional::stream);
     }
 
     private boolean isValidClientSupplier(WbClientSupplier wbClientSupplier) {
