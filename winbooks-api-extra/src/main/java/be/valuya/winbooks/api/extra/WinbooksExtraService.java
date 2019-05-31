@@ -166,13 +166,10 @@ public class WinbooksExtraService {
     }
 
     private boolean isEntryForBookYear(WbBookYearFull bookYearFull, WbEntry wbEntry) {
-        String entryBookyear = wbEntry.getBookYear();
-        if (entryBookyear == null || entryBookyear.trim().isEmpty()) {
-            return false;
-        }
-        int entryBookYearIndex = Integer.valueOf(entryBookyear);
-        int bookYearIndex = bookYearFull.getIndex();
-        return entryBookYearIndex == bookYearIndex;
+        return Optional.ofNullable(wbEntry.getWbBookYearFull())
+                .map(WbBookYearFull::getIndex)
+                .map(i -> i == bookYearFull.getIndex())
+                .orElse(false);
     }
 
     private List<WbBookYearFull> listBookYearsFromParamTable(WinbooksFileConfiguration winbooksFileConfiguration) {
