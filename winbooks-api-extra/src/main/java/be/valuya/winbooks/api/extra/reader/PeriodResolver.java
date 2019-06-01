@@ -9,9 +9,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PeriodResolver {
 
@@ -68,13 +70,17 @@ public class PeriodResolver {
         Optional<WbPeriod> firstPeriodOptional = wbBookYearFullMap.values().stream()
                 .findFirst()
                 .flatMap(bookYear -> bookYear.getPeriodList().stream().findFirst());
-        return wbBookYearFullMap.values()
+        Optional<WbPeriod> foundPeriodOptionlal = wbBookYearFullMap.values()
                 .stream()
                 .filter(bookYear -> this.dateMatchBookYear(bookYear, year, month))
                 .map(bookyear -> this.findBookYearPeriodOptional(bookyear, year, month))
-                .flatMap(Optional::stream)
-                .findAny()
-                .or(() -> firstPeriodOptional);
+                .flatMap(this::streamOptional)
+                .findAny();
+        if (foundPeriodOptionlal.isPresent()) {
+            return foundPeriodOptionlal;
+        } else {
+            return firstPeriodOptional;
+        }
     }
 
 
@@ -98,4 +104,11 @@ public class PeriodResolver {
         int periodYear = periodStartDate.getYear();
         return periodMonth == month && periodYear == year;
     }
+
+
+    private <T> Stream<T> streamOptional(Optional<T> optionalValue) {
+        return Stream.of(optionalValue.orElse(null))
+                .filter(Objects::nonNull);
+    }
+
 }
