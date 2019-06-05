@@ -107,11 +107,11 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
     @Override
-    public void uploadDocument(Path documentPath, InputStream inputStream) throws Exception {
+    public void uploadDocument(String documentRelativePathName, InputStream inputStream) throws Exception {
         Path baseFolderPath = fileConfiguration.getBaseFolderPath();
         Path documentFullPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
                 .resolve(DOCUMENT_UPLOAD_PATH_NAME)
-                .resolve(documentPath);
+                .resolve(documentRelativePathName);
         Path documentDirectoryPath = documentFullPath.getParent();
 
         // TODO: resolve case-insensitive parent paths if they exists
