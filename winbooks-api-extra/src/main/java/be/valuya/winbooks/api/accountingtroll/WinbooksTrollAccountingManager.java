@@ -18,6 +18,7 @@ import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -114,10 +115,8 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
                 .resolve(documentRelativePathName);
         Path documentDirectoryPath = documentFullPath.getParent();
 
-        // TODO: resolve case-insensitive parent paths if they exists
-        Files.createDirectories(documentDirectoryPath);
+        extraService.createDirectories(fileConfiguration, documentDirectoryPath);
         Files.copy(inputStream, documentFullPath, StandardCopyOption.REPLACE_EXISTING);
     }
-
 
 }
