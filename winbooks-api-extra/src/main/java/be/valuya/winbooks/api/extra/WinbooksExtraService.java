@@ -147,6 +147,44 @@ public class WinbooksExtraService {
                 .orElse(ACCOUNT_NUMBER_DEFAULT_LENGTH);
     }
 
+    /**
+     * Creates directory hierarchy, honoring config case-insensitive settings, and preventing ftp errors on exsting
+     * directories.
+     *
+     * @param fileConfiguration
+     * @param path
+     */
+    public void createDirectories(WinbooksFileConfiguration fileConfiguration, Path path) {
+        // To handle ftp errors, create directories at each level after checking it does not exist yet
+        int pathNameCount = path.getNameCount();
+        boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
+        Path curPath = path.getFileSystem().getRootDirectories().iterator().next();
+
+        for (int nameIndex = 0; nameIndex < pathNameCount; nameIndex++) {
+            Path nextName = path.getName(nameIndex);
+            Optional<Path> resolvedPathOptional = WinbooksPathUtils.resolvePath(curPath, nextName.toString(), resolveCaseInsensitiveSiblings);
+
+            if (resolvedPathOptional.isPresent()) {
+                Path resolvedPath = resolvedPathOptional.get();
+                boolean resovedPathIsDirectory = Files.isDirectory(resolvedPath);
+                if (!resovedPathIsDirectory) {
+                    throw new WinbooksException(WinbooksError.USER_FILE_ERROR,
+                            "Attempt to create directory " + resolvedPath + ", but this is already a file.");
+                }
+                curPath = resolvedPath;
+
+            } else {
+                Path pathToCreate = curPath.resolve(nextName);
+                try {
+                    Files.createDirectory(pathToCreate);
+                    curPath = pathToCreate;
+                } catch (IOException e) {
+                    throw new WinbooksException(WinbooksError.USER_FILE_ERROR, e);
+                }
+            }
+        }
+    }
+
     Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
         Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
         InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, baseFolderPath, tableName);
