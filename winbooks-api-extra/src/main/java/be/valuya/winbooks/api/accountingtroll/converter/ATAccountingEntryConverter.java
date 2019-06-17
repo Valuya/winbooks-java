@@ -7,7 +7,6 @@ import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATTax;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.AccountingEntryDocumentNumberType;
-import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbDocOrderType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
@@ -51,10 +50,10 @@ public class ATAccountingEntryConverter {
         // Matching is done post-conversion
         Optional<ATDocument> documentOptional = Optional.empty();
 
-        Optional<String> matchNo = Optional.ofNullable(wbEntry.getMatchNo()).map(String::trim);
         Date entryDate = wbEntry.getDate();
         Date documentDate = wbEntry.getDateDoc();
         Date dueDate = wbEntry.getDueDate();
+        boolean matched = wbEntry.isMatched();
 
         WbDocOrderType wbDocOrderType = wbEntry.getWbDocOrderType();
         AccountingEntryDocumentNumberType documentNumberType = this.getDocNumberType(wbDocOrderType);
@@ -71,7 +70,7 @@ public class ATAccountingEntryConverter {
         accountingEntry.setAmount(amount);
         accountingEntry.setDbkCode(dbkCode);
         accountingEntry.setAccount(account);
-        accountingEntry.setMatched(matchNo.isPresent());
+        accountingEntry.setMatched(matched);
         accountingEntry.setDocNumber(docNumber);
         accountingEntry.setDocNumberTypeOptional(Optional.of(documentNumberType));
         accountingEntry.setOrderingNumber(docOrder);

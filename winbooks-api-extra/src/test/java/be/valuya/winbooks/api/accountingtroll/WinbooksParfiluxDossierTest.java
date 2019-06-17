@@ -103,10 +103,10 @@ public class WinbooksParfiluxDossierTest {
         Assert.assertEquals(ATPeriodType.CLOSING, closingPeriod.getPeriodType());
 
         LocalDate startOf2017 = LocalDate.of(2017, 1, 1);
-        LocalDate endOf2017 = LocalDate.of(2017, 12, 31);
+        LocalDate startOf2018 = LocalDate.of(2018, 1, 1);
 
         Assert.assertEquals(startOf2017, openingPeriod.getStartDate());
-        Assert.assertEquals(endOf2017, closingPeriod.getStartDate());
+        Assert.assertEquals(startOf2018, closingPeriod.getStartDate());
 
         for (int monthIndex = 1; monthIndex <= 12; monthIndex++) {
             ATBookPeriod monthPeriod = periods2017.get(monthIndex);
@@ -199,6 +199,75 @@ public class WinbooksParfiluxDossierTest {
             accountIndex += 1;
         }
     }
+
+    @Test
+    public void testCustomersProvidersBalance() {
+        BigDecimal totalForAccount400000 = trollSrervice.streamAccountingEntries()
+                .filter(e -> e.getAccount().getCode().equals("400000"))
+                .map(ATAccountingEntry::getAmount)
+                .reduce(BigDecimal::add)
+                .orElse(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal expectedCustomerBalance = BigDecimal.valueOf(-35460.01)
+                .setScale(2, RoundingMode.HALF_UP);
+
+
+        Assert.assertEquals(expectedCustomerBalance, totalForAccount400000);
+
+        BigDecimal totalForAccount440000 = trollSrervice.streamAccountingEntries()
+                .filter(e -> e.getAccount().getCode().equals("440000"))
+                .map(ATAccountingEntry::getAmount)
+                .reduce(BigDecimal::add)
+                .orElse(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal expectedSupplierBalance = BigDecimal.valueOf(96344.28)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        Assert.assertEquals(expectedSupplierBalance, totalForAccount440000);
+    }
+
+
+    @Test
+    public void testGeneralBalance2017() {
+        BigDecimal totalForAccounts6 = trollSrervice.streamAccountingEntries()
+                .filter(e -> e.getAccount().getCode().startsWith("6"))
+                .filter(e->e.getBookPeriod().getBookYear().getName().equals(BOOK_YEAR_2017_NAME))
+                .map(ATAccountingEntry::getAmount)
+                .reduce(BigDecimal::add)
+                .orElse(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+
+        BigDecimal totalForAccounts7 = trollSrervice.streamAccountingEntries()
+                .filter(e -> e.getAccount().getCode().startsWith("7"))
+                .filter(e->e.getBookPeriod().getBookYear().getName().equals(BOOK_YEAR_2017_NAME))
+                .map(ATAccountingEntry::getAmount)
+                .reduce(BigDecimal::add)
+                .orElse(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal generalBalance = totalForAccounts6.add(totalForAccounts7)
+                .setScale(2, RoundingMode.HALF_UP);
+
+
+        BigDecimal expectedTotalForAccounts6 = BigDecimal.valueOf(-83727.16)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal expectedTotalForAccounts7 = BigDecimal.valueOf(26380.45)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal expectedGeneralBalance  = BigDecimal.valueOf(-57346.71)
+                .setScale(2, RoundingMode.HALF_UP);
+
+
+        Assert.assertEquals(expectedTotalForAccounts6, totalForAccounts6);
+        Assert.assertEquals(expectedTotalForAccounts7, totalForAccounts7);
+        Assert.assertEquals(expectedGeneralBalance, generalBalance);
+
+    }
+
 
     private void debug(ATAccountBalance accountBalance) {
         if (accountBalance.getAccount().getCode().equals("200009")) {
