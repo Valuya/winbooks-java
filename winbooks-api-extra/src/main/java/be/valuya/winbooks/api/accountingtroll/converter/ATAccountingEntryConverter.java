@@ -7,7 +7,11 @@ import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATTax;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.AccountingEntryDocumentNumberType;
+import be.valuya.accountingtroll.domain.AccountingEntryDocumentType;
+import be.valuya.accountingtroll.domain.AccountingEntryType;
+import be.valuya.jbooks.model.WbDbkType;
 import be.valuya.jbooks.model.WbDocOrderType;
+import be.valuya.jbooks.model.WbDocType;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
@@ -58,6 +62,12 @@ public class ATAccountingEntryConverter {
         WbDocOrderType wbDocOrderType = wbEntry.getWbDocOrderType();
         AccountingEntryDocumentNumberType documentNumberType = this.getDocNumberType(wbDocOrderType);
 
+        WbDocType wbDocType = wbEntry.getWbDocType();
+        AccountingEntryDocumentType documentType = this.getDocType(wbDocType);
+
+        WbDbkType wbDbkType = wbEntry.getWbDbkType();
+        AccountingEntryType accountingEntryType = this.getEntryType(wbDbkType);
+
         LocalDate entryLocalDate = this.convertToLocalDate(entryDate)
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not parse local date " + entryDate));
         Optional<LocalDate> documentLocalDateOptional = this.convertToLocalDate(documentDate);
@@ -74,6 +84,8 @@ public class ATAccountingEntryConverter {
         accountingEntry.setDocNumber(docNumber);
         accountingEntry.setDocNumberTypeOptional(Optional.of(documentNumberType));
         accountingEntry.setOrderingNumber(docOrder);
+        accountingEntry.setAccountingEntryDocumentType(documentType);
+        accountingEntry.setAccountingEntryType(accountingEntryType);
 
         accountingEntry.setTaxOptional(taxOptional);
         accountingEntry.setThirdPartyOptional(thirdPartyOptional);
@@ -83,6 +95,38 @@ public class ATAccountingEntryConverter {
         accountingEntry.setDocumentOptional(documentOptional);
 
         return accountingEntry;
+    }
+
+    private AccountingEntryType getEntryType(WbDbkType wbDbkType) {
+        switch (wbDbkType) {
+
+            case PURCHASE:
+                return  AccountingEntryType.PURCHASE;
+            case CREDIT_NOTE_PURCHASE:
+                return  AccountingEntryType.PURCHASE_CREDIT_NOTE;
+            case SALE:
+                return  AccountingEntryType.SALE;
+            case CREDIT_NOTE_SALE:
+                return  AccountingEntryType.SALE_CREDIT_NOTE;
+            default:
+                // TODO: finance
+                return AccountingEntryType.MISC;
+        }
+    }
+
+    private AccountingEntryDocumentType getDocType(WbDocType wbDocType) {
+        switch ( wbDocType) {
+            case IMPUT_CLIENT:
+                return AccountingEntryDocumentType.CUSTOMER_ACCOUNT_ALLOCATION;
+            case IMPUT_SUPPLIER:
+                return AccountingEntryDocumentType.SUPPLIER_ACCOUNT_ALLOCATION;
+            case IMPUT_GENERAL:
+                return AccountingEntryDocumentType.GENERAL_ACCOUNT_ALLOCATION;
+            case VAT_ZERO:
+                return AccountingEntryDocumentType.ZERO_VAT;
+            default:
+                throw new IllegalArgumentException(wbDocType.name());
+        }
     }
 
     private AccountingEntryDocumentNumberType getDocNumberType(WbDocOrderType docOrderType) {
