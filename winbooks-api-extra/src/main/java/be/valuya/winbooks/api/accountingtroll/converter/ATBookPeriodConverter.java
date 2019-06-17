@@ -26,6 +26,16 @@ public class ATBookPeriodConverter {
         LocalDate periodEndDate = wbPeriod.getEndDate();
         ATPeriodType accountingPeriodType = getAccountingPeriodType(wbPeriod);
 
+        if (accountingPeriodType == ATPeriodType.OPENING) {
+            LocalDate yearStartDate = wbYear.getStartDate();
+            periodStartDate = yearStartDate;
+            periodEndDate = yearStartDate;
+        } else if (accountingPeriodType == ATPeriodType.CLOSING) {
+            LocalDate yearEndDate = wbYear.getEndDate();
+            periodStartDate = yearEndDate;
+            periodEndDate = yearEndDate;
+        }
+
         ATBookPeriod bookPeriod = new ATBookPeriod();
         bookPeriod.setBookYear(bookYear);
         bookPeriod.setName(periodShortName);
