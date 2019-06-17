@@ -17,6 +17,7 @@ public class ATThirdPartyConverter {
         WbClientSupplierType wbClientSupplierType = wbSupplier.getWbClientSupplierType();
         ATThirdPartyType thirdPartyType = wbClientSupplierType == WbClientSupplierType.SUPPLIER ?
                 ATThirdPartyType.SUPPLIER : ATThirdPartyType.CLIENT;
+        String id = wbClientSupplierType.getValue() + number;
         String fullName = Stream.of(wbSupplier.getCivName1(), wbSupplier.getName1())
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(" "));
@@ -33,7 +34,7 @@ public class ATThirdPartyConverter {
         String lang = wbSupplier.getLang();
 
         ATThirdParty thirdParty = new ATThirdParty();
-        thirdParty.setId(number);
+        thirdParty.setId(id);
         thirdParty.setType(thirdPartyType);
         thirdParty.setFullName(fullName);
         thirdParty.setAddress(address);
