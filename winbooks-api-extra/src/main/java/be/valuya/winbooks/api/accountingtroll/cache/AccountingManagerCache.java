@@ -76,14 +76,16 @@ public class AccountingManagerCache {
 
     public Stream<ATBookYear> streamBookYears() {
         this.cacheBookYears();
-        return bookYearsByShortName.values().stream();
+        return bookYearsByShortName.values().stream()
+                .sorted();
     }
 
     public Stream<ATBookPeriod> streamPeriods() {
         this.cacheBookPeriods();
         return bookPeriodsByBookYearShortName.values()
                 .stream()
-                .flatMap(List::stream);
+                .flatMap(List::stream)
+                .sorted();
     }
 
     public Stream<ATThirdParty> streamThirdParties() {
