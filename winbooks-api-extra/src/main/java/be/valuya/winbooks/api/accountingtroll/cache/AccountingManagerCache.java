@@ -9,6 +9,7 @@ import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbClientSupplierType;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
@@ -18,6 +19,7 @@ import be.valuya.winbooks.api.accountingtroll.converter.ATBookPeriodConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATBookYearConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyConverter;
+import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyIdFactory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
@@ -132,8 +134,21 @@ public class AccountingManagerCache {
 
     public Optional<ATThirdParty> getCachedThirdPartyOptional(String accountId) {
         cacheThirdParties();
-        ATThirdParty thirdPartyNullable = thirdPartiesById.get(accountId);
-        return Optional.ofNullable(thirdPartyNullable);
+
+        return getCachedCustomerThirdPartyOptional(accountId)
+                .or(() -> getCachedSupplierThirdPartyOptional(accountId));
+    }
+
+    public Optional<ATThirdParty> getCachedCustomerThirdPartyOptional(String accountId) {
+        String id = ATThirdPartyIdFactory.getId(WbClientSupplierType.CLIENT, accountId);
+        ATThirdParty thirdParty = thirdPartiesById.get(id);
+        return Optional.ofNullable(thirdParty);
+    }
+
+    public Optional<ATThirdParty> getCachedSupplierThirdPartyOptional(String accountId) {
+        String id = ATThirdPartyIdFactory.getId(WbClientSupplierType.SUPPLIER, accountId);
+        ATThirdParty thirdParty = thirdPartiesById.get(id);
+        return Optional.ofNullable(thirdParty);
     }
 
     private void cacheAccounts() {

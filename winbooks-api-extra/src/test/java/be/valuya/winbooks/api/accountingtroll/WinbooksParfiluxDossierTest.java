@@ -7,7 +7,10 @@ import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATPeriodType;
+import be.valuya.accountingtroll.domain.ATThirdParty;
+import be.valuya.accountingtroll.domain.ATThirdPartyType;
 import be.valuya.winbooks.api.ParfiluxDossierCategory;
+import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyIdFactory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import org.junit.Assert;
@@ -233,7 +236,7 @@ public class WinbooksParfiluxDossierTest {
     public void testGeneralBalance2017() {
         BigDecimal totalForAccounts6 = trollSrervice.streamAccountingEntries()
                 .filter(e -> e.getAccount().getCode().startsWith("6"))
-                .filter(e->e.getBookPeriod().getBookYear().getName().equals(BOOK_YEAR_2017_NAME))
+                .filter(e -> e.getBookPeriod().getBookYear().getName().equals(BOOK_YEAR_2017_NAME))
                 .map(ATAccountingEntry::getAmount)
                 .reduce(BigDecimal::add)
                 .orElse(BigDecimal.ZERO)
@@ -242,7 +245,7 @@ public class WinbooksParfiluxDossierTest {
 
         BigDecimal totalForAccounts7 = trollSrervice.streamAccountingEntries()
                 .filter(e -> e.getAccount().getCode().startsWith("7"))
-                .filter(e->e.getBookPeriod().getBookYear().getName().equals(BOOK_YEAR_2017_NAME))
+                .filter(e -> e.getBookPeriod().getBookYear().getName().equals(BOOK_YEAR_2017_NAME))
                 .map(ATAccountingEntry::getAmount)
                 .reduce(BigDecimal::add)
                 .orElse(BigDecimal.ZERO)
@@ -258,7 +261,7 @@ public class WinbooksParfiluxDossierTest {
         BigDecimal expectedTotalForAccounts7 = BigDecimal.valueOf(26380.45)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal expectedGeneralBalance  = BigDecimal.valueOf(-57346.71)
+        BigDecimal expectedGeneralBalance = BigDecimal.valueOf(-57346.71)
                 .setScale(2, RoundingMode.HALF_UP);
 
 
@@ -268,6 +271,48 @@ public class WinbooksParfiluxDossierTest {
 
     }
 
+    @Test
+    public void testAccountingEntryThirdPrtiesTest() {
+        // Check some arbitrary entries are correctly linked to the correct third party type.
+        checkAccountingEntryThirdParty("Jan 2017", 2184,
+                ATThirdPartyType.CLIENT, "DELPH");
+        checkAccountingEntryThirdParty("Mar 2017", 7494,
+                ATThirdPartyType.CLIENT, "COMPTOIR");
+        checkAccountingEntryThirdParty("Fév 2017", -7720,
+                ATThirdPartyType.CLIENT, "FOXTROT");
+
+        checkAccountingEntryThirdParty("Mai 2017", -24793388,
+                ATThirdPartyType.SUPPLIER, "DUROBRIK");
+        checkAccountingEntryThirdParty("Jan 2017", -429048,
+                ATThirdPartyType.SUPPLIER, "AUDU");
+        checkAccountingEntryThirdParty("Mai 2017", -212231,
+                ATThirdPartyType.SUPPLIER, "WARMITUP");
+
+    }
+
+    private void checkAccountingEntryThirdParty(String periodName, long unscaledAmount,
+                                                ATThirdPartyType expectedThirdPartyType,
+                                                String expectedThirdPartyCode) {
+        List<ATAccountingEntry> accountingEntries = trollSrervice.streamAccountingEntries()
+                .filter(e -> e.getBookPeriod().getName().equals(periodName))
+                .filter(e -> e.getAmount().setScale(2, RoundingMode.UNNECESSARY)
+                        .equals(BigDecimal.valueOf(unscaledAmount, 2)))
+                .collect(Collectors.toList());
+        Assert.assertEquals(1, accountingEntries.size());
+        ATAccountingEntry accountingEntry = accountingEntries.get(0);
+        System.out.println(accountingEntry);
+
+        ATThirdParty thirdParty = accountingEntry.getThirdPartyOptional()
+                .orElseThrow(AssertionError::new);
+        System.out.println(thirdParty);
+
+        thirdParty.getTypeOptional()
+                .filter(type -> type == expectedThirdPartyType)
+                .orElseThrow(AssertionError::new);
+        String thirdPartyId = thirdParty.getId();
+        String code = ATThirdPartyIdFactory.getThirdPartyCodeFromId(thirdPartyId);
+        Assert.assertEquals(expectedThirdPartyCode, code);
+    }
 
     private void debug(ATAccountBalance accountBalance) {
         if (accountBalance.getAccount().getCode().equals("200009")) {
