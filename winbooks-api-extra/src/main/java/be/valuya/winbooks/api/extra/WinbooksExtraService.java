@@ -150,7 +150,8 @@ public class WinbooksExtraService {
     /**
      * Creates directory hierarchy, honoring config case-insensitive settings, and preventing ftp errors on exsting
      * directories.
-     *  @param fileConfiguration
+     *
+     * @param fileConfiguration
      * @param path
      * @return the resolved path, which might just have been created
      */
@@ -162,28 +163,31 @@ public class WinbooksExtraService {
 
         for (int nameIndex = 0; nameIndex < pathNameCount; nameIndex++) {
             Path nextName = path.getName(nameIndex);
-            Optional<Path> resolvedPathOptional = WinbooksPathUtils.resolvePath(curPath, nextName.toString(), resolveCaseInsensitiveSiblings);
-
-            if (resolvedPathOptional.isPresent()) {
-                Path resolvedPath = resolvedPathOptional.get();
-                boolean resovedPathIsDirectory = Files.isDirectory(resolvedPath);
-                if (!resovedPathIsDirectory) {
-                    throw new WinbooksException(WinbooksError.USER_FILE_ERROR,
-                            "Attempt to create directory " + resolvedPath + ", but this is already a file.");
-                }
-                curPath = resolvedPath;
-
-            } else {
-                Path pathToCreate = curPath.resolve(nextName);
-                try {
-                    Files.createDirectory(pathToCreate);
-                    curPath = pathToCreate;
-                } catch (IOException e) {
-                    throw new WinbooksException(WinbooksError.USER_FILE_ERROR, e);
-                }
-            }
+            final Path currentPathImmutable = curPath;
+            curPath = WinbooksPathUtils.resolvePath(curPath, nextName.toString(), resolveCaseInsensitiveSiblings)
+                    .map(this::ensurePathIsDirectory)
+                    .orElseGet(() -> this.createDirectory(currentPathImmutable, nextName));
         }
         return curPath;
+    }
+
+    private Path createDirectory(Path curPath, Path nextName) {
+        Path pathToCreate = curPath.resolve(nextName);
+        try {
+            Files.createDirectory(pathToCreate);
+        } catch (IOException e) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, e);
+        }
+        return pathToCreate;
+    }
+
+    private Path ensurePathIsDirectory(Path resolvedPath) {
+        boolean resovedPathIsDirectory = Files.isDirectory(resolvedPath);
+        if (!resovedPathIsDirectory) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR,
+                    "Attempt to create directory " + resolvedPath + ", but this is already a file.");
+        }
+        return resolvedPath;
     }
 
     Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
