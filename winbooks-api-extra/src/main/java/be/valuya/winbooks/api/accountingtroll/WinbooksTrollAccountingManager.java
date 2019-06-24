@@ -110,13 +110,13 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     @Override
     public void uploadDocument(String documentRelativePathName, InputStream inputStream) throws Exception {
         Path baseFolderPath = fileConfiguration.getBaseFolderPath();
-        Path documentFullPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
-                .resolve(DOCUMENT_UPLOAD_PATH_NAME)
-                .resolve(documentRelativePathName);
-        Path documentDirectoryPath = documentFullPath.getParent();
+        Path documentDirectoryPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
+                .resolve(DOCUMENT_UPLOAD_PATH_NAME);
 
-        extraService.createDirectories(fileConfiguration, documentDirectoryPath);
-        Files.copy(inputStream, documentFullPath, StandardCopyOption.REPLACE_EXISTING);
+        Path actualDirectoryPath = extraService.createDirectories(fileConfiguration, documentDirectoryPath);
+        Path documentPath = actualDirectoryPath.resolve(documentRelativePathName);
+
+        Files.copy(inputStream, documentPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
 }

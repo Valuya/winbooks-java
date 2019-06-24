@@ -150,11 +150,11 @@ public class WinbooksExtraService {
     /**
      * Creates directory hierarchy, honoring config case-insensitive settings, and preventing ftp errors on exsting
      * directories.
-     *
-     * @param fileConfiguration
+     *  @param fileConfiguration
      * @param path
+     * @return the resolved path, which might just have been created
      */
-    public void createDirectories(WinbooksFileConfiguration fileConfiguration, Path path) {
+    public Path createDirectories(WinbooksFileConfiguration fileConfiguration, Path path) {
         // To handle ftp errors, create directories at each level after checking it does not exist yet
         int pathNameCount = path.getNameCount();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
@@ -183,6 +183,7 @@ public class WinbooksExtraService {
                 }
             }
         }
+        return curPath;
     }
 
     Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
