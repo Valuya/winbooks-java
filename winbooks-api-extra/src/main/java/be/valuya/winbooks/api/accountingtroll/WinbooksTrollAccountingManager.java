@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -109,12 +110,27 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
 
     @Override
     public void uploadDocument(String documentRelativePathName, InputStream inputStream) throws Exception {
+        Path documentRelativePath = Paths.get(documentRelativePathName);
+        int documentFileNamePathCount = documentRelativePath.getNameCount();
+        if (documentFileNamePathCount < 0)  {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Invalid document path name");
+        }
+        boolean documentPathIsAbsolute = documentRelativePath.isAbsolute();
+        if (documentPathIsAbsolute) {
+            throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Document path is absolute");
+        }
+
         Path baseFolderPath = fileConfiguration.getBaseFolderPath();
         Path documentDirectoryPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
-                .resolve(DOCUMENT_UPLOAD_PATH_NAME);
+                .resolve(DOCUMENT_UPLOAD_PATH_NAME)
+                .resolve(documentRelativePathName)
+                .getParent();
+        String documentFileName = documentRelativePath
+                .getFileName()
+                .toString();
 
         Path actualDirectoryPath = extraService.createDirectories(fileConfiguration, documentDirectoryPath);
-        Path documentPath = actualDirectoryPath.resolve(documentRelativePathName);
+        Path documentPath = actualDirectoryPath.resolve(documentFileName);
 
         Files.copy(inputStream, documentPath, StandardCopyOption.REPLACE_EXISTING);
     }
