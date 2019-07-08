@@ -99,23 +99,23 @@ public class ATAccountingEntryConverter {
 
     private AccountingEntryType getEntryType(WbDbkType wbDbkType) {
         switch (wbDbkType) {
-
             case PURCHASE:
-                return  AccountingEntryType.PURCHASE;
+                return AccountingEntryType.PURCHASE;
             case CREDIT_NOTE_PURCHASE:
-                return  AccountingEntryType.PURCHASE_CREDIT_NOTE;
+                return AccountingEntryType.PURCHASE_CREDIT_NOTE;
             case SALE:
-                return  AccountingEntryType.SALE;
+                return AccountingEntryType.SALE;
             case CREDIT_NOTE_SALE:
-                return  AccountingEntryType.SALE_CREDIT_NOTE;
+                return AccountingEntryType.SALE_CREDIT_NOTE;
+            case FINANCE:
+                return AccountingEntryType.FINANCIAL;
             default:
-                // TODO: finance
                 return AccountingEntryType.MISC;
         }
     }
 
     private AccountingEntryDocumentType getDocType(WbDocType wbDocType) {
-        switch ( wbDocType) {
+        switch (wbDocType) {
             case IMPUT_CLIENT:
                 return AccountingEntryDocumentType.CUSTOMER_ACCOUNT_ALLOCATION;
             case IMPUT_SUPPLIER:
