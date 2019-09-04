@@ -4,15 +4,20 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class WinbooksFileConfiguration {
 
     private String username;
     private String password;
-    private Path baseFolderPath;
-    private String baseName;
+    private Path rootPath;
+    private String basePathName;
+    private String winbooksCompanyName;
     private Charset charset = StandardCharsets.ISO_8859_1;
+    // Maps path across filesystems.
+    private Map<Path, Path> pathMappings = new HashMap<>();
 
     private boolean ignoreConversionErrors = true;
     private boolean ignoreMissingArchives = true;
@@ -41,20 +46,47 @@ public class WinbooksFileConfiguration {
         this.password = password;
     }
 
-    public Path getBaseFolderPath() {
-        return baseFolderPath;
+    public Path getRootPath() {
+        return rootPath;
     }
 
-    public void setBaseFolderPath(Path baseFolderPath) {
-        this.baseFolderPath = baseFolderPath;
+    /**
+     * The root path under which winbooks dossier directories are located.
+     *
+     * @param rootPath
+     * @see WinbooksFileConfiguration#setBasePathName(String) setBasePathName
+     * @see WinbooksFileConfiguration#setPathMappings(Map) setPathMappings
+     */
+    public void setRootPath(Path rootPath) {
+        this.rootPath = rootPath;
     }
 
-    public String getBaseName() {
-        return baseName;
+    public String getBasePathName() {
+        return basePathName;
     }
 
-    public void setBaseName(String baseName) {
-        this.baseName = baseName;
+    /**
+     * This path name will be resolved from the root path, and tables are expected to be found there under.
+     *
+     * @param basePathName
+     */
+    public void setBasePathName(String basePathName) {
+        this.basePathName = basePathName;
+    }
+
+    public String getWinbooksCompanyName() {
+        return winbooksCompanyName;
+    }
+
+
+    /**
+     * The company name that is used in winbooks references.
+     * Tables file names are expected to start with this string.
+     *
+     * @return
+     */
+    public void setWinbooksCompanyName(String winbooksCompanyName) {
+        this.winbooksCompanyName = winbooksCompanyName;
     }
 
     public Charset getCharset() {
@@ -143,5 +175,40 @@ public class WinbooksFileConfiguration {
 
     public void setIgnoreConversionErrors(boolean ignoreConversionErrors) {
         this.ignoreConversionErrors = ignoreConversionErrors;
+    }
+
+    public Map<Path, Path> getPathMappings() {
+        return pathMappings;
+    }
+
+    /**
+     * Specify path mappings to resolve absolute paths encountered in winbooks tables.
+     * <p></p>
+     * The tables may contain references to some filesystem paths. For instance,
+     * the book year table may contains a path for the archived folder location,
+     * such as {@code 'C:\winbooks_archives\DOSSIER-2013'}.
+     * <p></p>
+     * This maps can be used to resolve those paths on provided filesystems. For instance, the following snippet maps
+     * the archive directory from the above example to an ftp filesystem:
+     *
+     * <pre>{@code
+     *   Path archivePath = Paths.get("C:\\winbooks_archives");
+     *   Path ftpArchivePath = Paths.get("ftp://archives.winbooks.local");
+     *   Map<Path, Path> mappings = Map.of(archivePath, ftpArchivePath);
+     * }</pre>
+     *
+     * <p></p>
+     * When winbooks-java encounters a path, it will iterate over this map to resolve the path from the
+     * correct filesystem. If a key of this map happens to be a parent of the encoutered path, this later
+     * path will be relativized, then resolved against the map value Path. Paths will be normalized to
+     * forward-slash separators beforehand, so a Path with a single name like 'C:\some\windows\path' or
+     * '\\some-smb-host\some-path' is a valid map key.
+     *
+     * @param pathMappings A map used to resolve paths present in the winbooks tables.
+     *                     Keys contain the path expected to be present in the tables.
+     *                     Values contain the path from which resolution will be performed.
+     */
+    public void setPathMappings(Map<Path, Path> pathMappings) {
+        this.pathMappings = pathMappings;
     }
 }

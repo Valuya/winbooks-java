@@ -5,6 +5,7 @@ import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
+import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
 import com.github.robtimus.filesystems.ftp.ConnectionMode;
 import com.github.robtimus.filesystems.ftp.FTPEnvironment;
 import org.junit.AfterClass;
@@ -70,15 +71,14 @@ public class WinbooksTrollAccountingManagerFtpTest {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws WinbooksConfigurationException {
         WinbooksExtraService winbooksExtraService = new WinbooksExtraService();
 
         String uriStr = MessageFormat.format("{0}://{1}@{2}", PROTOCOL, FTP_USER_NAME, FTP_HOST_NAME);
         URI uri = URI.create(uriStr);
         Path ftpBasePath = Paths.get(uri)
                 .resolve(FTP_PATH_NAME);
-        WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME)
-                .orElseThrow(AssertionError::new);
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
         winbooksFileConfiguration.setResolveDocumentTimes(false);

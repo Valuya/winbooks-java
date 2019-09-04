@@ -6,6 +6,7 @@ import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
+import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -28,7 +29,7 @@ public class WinbooksTrollAccountingManagerLocalTest {
     private AccountingEventListener eventListener;
 
     @Before
-    public void setup() {
+    public void setup() throws WinbooksConfigurationException {
         WinbooksExtraService extraService = new WinbooksExtraService();
 
         String baseFolderLocation = System.getProperty("winbooks.test.folder");
@@ -36,8 +37,7 @@ public class WinbooksTrollAccountingManagerLocalTest {
 
         Path baseFolderPath = Paths.get(baseFolderLocation)
                 .resolve(baseName);
-        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
-                .orElseThrow(AssertionError::new);
+        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
 

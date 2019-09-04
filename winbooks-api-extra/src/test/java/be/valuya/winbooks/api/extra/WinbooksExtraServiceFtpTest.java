@@ -1,6 +1,5 @@
 package be.valuya.winbooks.api.extra;
 
-import be.valuya.accountingtroll.AccountingEventListener;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbDocOrderType;
@@ -8,8 +7,8 @@ import be.valuya.jbooks.model.WbDocStatus;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.FtpWinbooksDossierCategory;
-import be.valuya.winbooks.api.accountingtroll.TestAccountingEventListener;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
+import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.github.robtimus.filesystems.ftp.ConnectionMode;
@@ -19,7 +18,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -34,8 +32,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
@@ -54,6 +54,7 @@ public class WinbooksExtraServiceFtpTest {
     private static String PROTOCOL;
     private static String FTP_PATH_NAME;
     private static String BASE_NAME;
+    private static String ROOT_PATH_MAPPINGS;
     private static FileSystem FILESYSTEM;
 
     private WinbooksExtraService winbooksExtraService;
@@ -70,6 +71,7 @@ public class WinbooksExtraServiceFtpTest {
         boolean FTP_SSL_ENABLED = Boolean.parseBoolean(sslEnabledStr);
         PROTOCOL = FTP_SSL_ENABLED ? "ftps" : "ftp";
         FTP_PATH_NAME = System.getProperty("winbooks.test.ftp.path");
+        ROOT_PATH_MAPPINGS = System.getProperty("winbooks.test.ftp.path.mappings");
         BASE_NAME = System.getProperty("winbooks.test.base.name");
 
         char[] passwordChars = FTP_PASSWORD.toCharArray();
@@ -89,21 +91,29 @@ public class WinbooksExtraServiceFtpTest {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws WinbooksConfigurationException {
         winbooksExtraService = new WinbooksExtraService();
 
         String uriStr = MessageFormat.format("{0}://{1}@{2}", PROTOCOL, FTP_USER_NAME, FTP_HOST_NAME);
         URI uri = URI.create(uriStr);
         Path ftpBasePath = Paths.get(uri)
                 .resolve(FTP_PATH_NAME);
-        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME)
-                .orElseThrow(AssertionError::new);
+        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME);
         winbooksFileConfiguration.setReadTablesToMemory(true);
+        winbooksFileConfiguration.setResolveArchivedBookYears(true);
+
+
+        Map<Path, Path> pathMappings = Arrays.stream(ROOT_PATH_MAPPINGS.split(","))
+                .collect(Collectors.toMap(
+                        mappingName -> Paths.get(mappingName),
+                        mappingName -> ftpBasePath
+                ));
+        winbooksFileConfiguration.setPathMappings(pathMappings);
     }
 
     @Test
     public void testGuessBaseName() {
-        String baseName = winbooksFileConfiguration.getBaseName();
+        String baseName = winbooksFileConfiguration.getWinbooksCompanyName();
         Assert.assertTrue(baseName.equalsIgnoreCase(BASE_NAME));
     }
 
@@ -123,10 +133,14 @@ public class WinbooksExtraServiceFtpTest {
     @Test
     public void testStreamEntries() {
         winbooksExtraService.streamAct(winbooksFileConfiguration)
+//                .filter(e -> {
+//                    if (e.getAmount() == null) return false;
+//                    BigDecimal remaining = e.getAmount().subtract(BigDecimal.valueOf(109.3)).abs();
+//                    return remaining.compareTo(BigDecimal.valueOf(0.01d)) < 0;
+//                })
                 .filter(e -> {
-                    if (e.getAmount() == null) return false;
-                    BigDecimal remaining = e.getAmount().subtract(BigDecimal.valueOf(109.3)).abs();
-                    return remaining.compareTo(BigDecimal.valueOf(0.01d)) < 0;
+                    WbBookYearFull wbBookYearFull = e.getWbBookYearFull();
+                    return wbBookYearFull.getArchivePathNameOptional().isPresent();
                 })
                 .map(WbEntry::toString)
                 .forEach(logger::info);

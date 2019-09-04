@@ -10,6 +10,7 @@ import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
 import be.valuya.winbooks.api.LocalWinbooksDossierCategory;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
+import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import com.lowagie.text.pdf.PdfReader;
@@ -45,18 +46,16 @@ public class WinbooksExtraServiceLocalTest {
 
 
     @Before
-    public void setup() {
+    public void setup() throws WinbooksConfigurationException {
         winbooksExtraService = new WinbooksExtraService();
 
-        String baseFolderLocation = System.getProperty("winbooks.test.folder");
+        String rootPath = System.getProperty("winbooks.test.folder");
+//        String basePath = System.getProperty("winbooks.test.base.path");
         String baseName = System.getProperty("winbooks.test.base.name");
 
-        Path baseFolderPath = Paths.get(baseFolderLocation)
-                .resolve(baseName);
-        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
-                .orElseThrow(AssertionError::new);
+        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(
+                Paths.get(rootPath), baseName, Map.of());
         winbooksFileConfiguration.setReadTablesToMemory(true);
-
     }
 
     @Test
@@ -71,7 +70,7 @@ public class WinbooksExtraServiceLocalTest {
     public void testStreamDocumentPageData() throws Exception {
         WbDocument testDocument = winbooksExtraService.streamBookYears(winbooksFileConfiguration)
                 .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year))
-                .filter(doc -> doc.getPageCount() > 1)
+                .filter(doc -> doc.getPageCount() > 0)
                 .findAny()
                 .orElseThrow(AssertionError::new);
 

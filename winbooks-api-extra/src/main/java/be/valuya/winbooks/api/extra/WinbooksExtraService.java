@@ -16,6 +16,7 @@ import be.valuya.winbooks.api.extra.reader.WbBookYearFullDbfReader;
 import be.valuya.winbooks.api.extra.reader.WbClientSupplierDbfReader;
 import be.valuya.winbooks.api.extra.reader.WbEntryDbfReader;
 import be.valuya.winbooks.api.extra.reader.WbParamDbfReader;
+import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
@@ -63,33 +64,57 @@ public class WinbooksExtraService {
 
     private final WinbooksDocumentsService documentService = new WinbooksDocumentsService();
 
-    public Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path parentPath, String baseName) {
-        return WinbooksPathUtils.resolvePath(parentPath, baseName, true)
-                .flatMap(this::createWinbooksFileConfigurationOptional);
+    /**
+     * Create a new winbooks file configuration
+     *
+     * @param rootPath The path under which dossier directories are located
+     * @param baseName The company base name, which is the dossier directory name as well as the reference used in winbooks.
+     */
+    public WinbooksFileConfiguration createWinbooksFileConfigurationOptional(Path rootPath, String baseName) throws WinbooksConfigurationException {
+        return createWinbooksFileConfigurationOptional(rootPath, baseName, Map.of());
     }
 
-    private Optional<WinbooksFileConfiguration> createWinbooksFileConfigurationOptional(Path basePath) {
-        Optional<String> customerWinbooksPathNameOptional = Optional.ofNullable(basePath.getFileName())
-                .map(Path::toString);
-        if (!customerWinbooksPathNameOptional.isPresent()) {
-            return Optional.empty();
-        }
-        String baseName = customerWinbooksPathNameOptional.get();
+    /**
+     * Create a new winbooks file configuration
+     *
+     * @param rootPath     The path under which dossier directories are located
+     * @param baseName     The company base name, which is the dossier directory name as well as the reference used in winbooks.
+     * @param pathMappings Path mappings. See {@link WinbooksFileConfiguration#setPathMappings(Map)}.
+     */
+    public WinbooksFileConfiguration createWinbooksFileConfigurationOptional(Path rootPath, String baseName, Map<Path, Path> pathMappings) throws WinbooksConfigurationException {
+        return createWinbooksFileConfigurationOptional(rootPath, baseName, baseName, pathMappings);
+    }
 
+    /**
+     * Create a new winbooks file configuration
+     *
+     * @param rootPath     The path under which dossier directories are located
+     * @param basePathName The dossier directory name.
+     * @param companyName  The company name, as used in winbooks reference.
+     * @param pathMappings Path mappings. See {@link WinbooksFileConfiguration#setPathMappings(Map)}.
+     */
+    public WinbooksFileConfiguration createWinbooksFileConfigurationOptional(Path rootPath, String basePathName, String companyName, Map<Path, Path> pathMappings) throws WinbooksConfigurationException {
         WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
-        winbooksFileConfiguration.setBaseFolderPath(basePath);
-        winbooksFileConfiguration.setBaseName(baseName);
+        winbooksFileConfiguration.setRootPath(rootPath);
+        winbooksFileConfiguration.setBasePathName(basePathName);
+        winbooksFileConfiguration.setWinbooksCompanyName(companyName);
+        winbooksFileConfiguration.setPathMappings(pathMappings);
         winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
 
-        if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
-            return Optional.empty();
+        Path dossierBasePath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
+        if (!Files.exists(dossierBasePath)) {
+            throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Winbooks dossier path does not exist: " + dossierBasePath.toString());
         }
 
-        return Optional.of(winbooksFileConfiguration);
+        if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
+            throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Winbooks dossier does not contain any entry");
+        }
+
+        return winbooksFileConfiguration;
     }
 
     public LocalDateTime getActModificationDateTime(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         Path actPath = resolveTablePathOrThrow(winbooksFileConfiguration, baseFolderPath, ACCOUNTING_ENTRY_TABLE_NAME);
         return WinbooksPathUtils.getLastModifiedTime(actPath);
     }
@@ -109,14 +134,14 @@ public class WinbooksExtraService {
     }
 
     public Stream<WbAccount> streamAcf(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         WbAccountDbfReader wbAccountDbfReader = new WbAccountDbfReader();
         return streamTable(winbooksFileConfiguration, baseFolderPath, ACCOUNT_TABLE_NAME)
                 .map(wbAccountDbfReader::readWbAccountFromAcfDbfRecord);
     }
 
     public Stream<WbClientSupplier> streamCsf(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         WbClientSupplierDbfReader wbClientSupplierDbfReader = new WbClientSupplierDbfReader();
         return streamTable(winbooksFileConfiguration, baseFolderPath, CUSTOMER_SUPPLIER_TABLE_NAME)
                 .map(wbClientSupplierDbfReader::readWbClientSupplierFromAcfDbfRecord);
@@ -132,9 +157,11 @@ public class WinbooksExtraService {
 
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
-        if (false && tableExistsForCurrentBookYear(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) { //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
-            return streamBookYearsFromBookYearsTable(winbooksFileConfiguration);
-        }
+        //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
+//        if (tableExistsForCurrentBookYear(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) {
+//            return streamBookYearsFromBookYearsTable(winbooksFileConfiguration);
+//        }
+
         // fall-back: a lot of customers seem not to have table above
         return listBookYearsFromParamTable(winbooksFileConfiguration).stream();
     }
@@ -157,12 +184,19 @@ public class WinbooksExtraService {
      */
     public Path createDirectories(WinbooksFileConfiguration fileConfiguration, Path path) {
         // To handle ftp errors, create directories at each level after checking it does not exist yet
-        int pathNameCount = path.getNameCount();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-        Path curPath = path.getFileSystem().getRootDirectories().iterator().next();
+        Path rootPath = fileConfiguration.getRootPath();
+
+        Path relativePath = path;
+        if (path.isAbsolute()) {
+            relativePath = rootPath.relativize(path);
+        }
+
+        Path curPath = rootPath;
+        int pathNameCount = relativePath.getNameCount();
 
         for (int nameIndex = 0; nameIndex < pathNameCount; nameIndex++) {
-            Path nextName = path.getName(nameIndex);
+            Path nextName = relativePath.getName(nameIndex);
             final Path currentPathImmutable = curPath;
             curPath = WinbooksPathUtils.resolvePath(curPath, nextName.toString(), resolveCaseInsensitiveSiblings)
                     .map(this::ensurePathIsDirectory)
@@ -182,8 +216,8 @@ public class WinbooksExtraService {
     }
 
     private Path ensurePathIsDirectory(Path resolvedPath) {
-        boolean resovedPathIsDirectory = Files.isDirectory(resolvedPath);
-        if (!resovedPathIsDirectory) {
+        boolean resolvedPathIsDirectory = Files.isDirectory(resolvedPath);
+        if (!resolvedPathIsDirectory) {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR,
                     "Attempt to create directory " + resolvedPath + ", but this is already a file.");
         }
@@ -191,7 +225,7 @@ public class WinbooksExtraService {
     }
 
     Stream<DbfRecord> streamTable(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         InputStream tableInputStream = getTableInputStream(winbooksFileConfiguration, baseFolderPath, tableName);
         Charset charset = winbooksFileConfiguration.getCharset();
         return DbfUtils.streamDbf(tableInputStream, charset);
@@ -234,7 +268,7 @@ public class WinbooksExtraService {
             String bookYearLongLabel = paramMap.get(bookYearParamPrefix + "." + "LONGLABEL");
             String bookYearShortLabel = paramMap.get(bookYearParamPrefix + "." + "SHORTLABEL");
             String archivePathName = paramMap.get(bookYearParamPrefix + "." + "PATHARCH");
-            Optional<String> archivePathNameNullable = Optional.ofNullable(archivePathName);
+            Optional<String> archivePathNameOptional = Optional.ofNullable(archivePathName);
 
             String perDatesStr = paramMap.get(bookYearParamPrefix + "." + "PERDATE");
             List<LocalDate> periodDates = parsePeriodDates(perDatesStr);
@@ -272,7 +306,7 @@ public class WinbooksExtraService {
             WbBookYearFull wbBookYearFull = new WbBookYearFull();
             wbBookYearFull.setLongName(bookYearLongLabel);
             wbBookYearFull.setShortName(bookYearShortLabel);
-            wbBookYearFull.setArchivePathNameOptional(archivePathNameNullable);
+            wbBookYearFull.setArchivePathNameOptional(archivePathNameOptional);
             wbBookYearFull.setIndex(i);
             wbBookYearFull.setStartDate(startDate);
             wbBookYearFull.setEndDate(endDate);
@@ -306,7 +340,7 @@ public class WinbooksExtraService {
     }
 
     private Stream<WbBookYearFull> streamBookYearsFromBookYearsTable(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         WbBookYearFullDbfReader wbBookYearFullDbfReader = new WbBookYearFullDbfReader();
         return streamTable(winbooksFileConfiguration, baseFolderPath, BOOKYEARS_TABLE_NAME)
                 .map(wbBookYearFullDbfReader::readWbBookYearFromSlbkyDbfRecord);
@@ -324,7 +358,7 @@ public class WinbooksExtraService {
     }
 
     private Map<String, String> getParamMap(WinbooksFileConfiguration winbooksFileConfiguration) {
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         return streamTable(winbooksFileConfiguration, baseFolderPath, PARAM_TABLE_NAME)
                 .map(new WbParamDbfReader()::readWbParamFromDbfRecord)
                 .filter(wbParam -> wbParam.getValue() != null)
@@ -438,26 +472,43 @@ public class WinbooksExtraService {
     }
 
     private boolean tableExistsForCurrentBookYear(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {
-        String baseName = winbooksFileConfiguration.getBaseName();
+        String baseName = winbooksFileConfiguration.getWinbooksCompanyName();
         String tableFileName = getTableFileName(baseName, tableName);
-        Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
         Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(baseFolderPath, tableFileName, resolveCaseInsensitiveSiblings);
         return tablePathOptional.isPresent();
     }
 
-    private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+    private Optional<Path> resolveTablePathWithCompanyBaseNameOptional(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+        String baseName = winbooksFileConfiguration.getWinbooksCompanyName();
+        String tableFileName = getTableFileName(baseName, tableName);
+        boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+        Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(basePath, tableFileName, resolveCaseInsensitiveSiblings);
+        return tablePathOptional;
+    }
+
+    private Optional<Path> resolveTablePathWithPathFilenameAsBaseNameOptional(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
         String baseName = basePath.getFileName().toString();
         String tableFileName = getTableFileName(baseName, tableName);
         boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
         Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(basePath, tableFileName, resolveCaseInsensitiveSiblings);
-        return tablePathOptional.orElseThrow(() -> {
-            Path baseFolderPath = winbooksFileConfiguration.getBaseFolderPath();
-            String baseFolderPathName = getPathFileNameString(baseFolderPath);
+        return tablePathOptional;
+    }
 
-            String message = MessageFormat.format("Could not find file {0} in folder {1}", tableFileName, baseFolderPathName);
-            return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
-        });
+    private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+        // With a basePath COMPANY-2013, a company base name COMPANY, and a table name 'table',
+        // try to resolve /COMPANY-2013/COMPANY-2013_table.dbf,
+        // then try to resolve /COMPANY-2013/COMPANY_table.dbf,
+        // otherwise throw.
+        return resolveTablePathWithPathFilenameAsBaseNameOptional(winbooksFileConfiguration, basePath, tableName)
+                .or(() -> resolveTablePathWithCompanyBaseNameOptional(winbooksFileConfiguration, basePath, tableName))
+                .orElseThrow(() -> {
+                    String baseFolderPathName = getPathFileNameString(basePath);
+
+                    String message = MessageFormat.format("Could not find table {0} in folder {1}", tableName, baseFolderPathName);
+                    return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
+                });
     }
 
 
