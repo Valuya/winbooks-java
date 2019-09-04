@@ -70,8 +70,8 @@ public class WinbooksExtraService {
      * @param rootPath The path under which dossier directories are located
      * @param baseName The company base name, which is the dossier directory name as well as the reference used in winbooks.
      */
-    public WinbooksFileConfiguration createWinbooksFileConfigurationOptional(Path rootPath, String baseName) throws WinbooksConfigurationException {
-        return createWinbooksFileConfigurationOptional(rootPath, baseName, Map.of());
+    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String baseName) throws WinbooksConfigurationException {
+        return createWinbooksFileConfiguration(rootPath, baseName, Map.of());
     }
 
     /**
@@ -81,8 +81,8 @@ public class WinbooksExtraService {
      * @param baseName     The company base name, which is the dossier directory name as well as the reference used in winbooks.
      * @param pathMappings Path mappings. See {@link WinbooksFileConfiguration#setPathMappings(Map)}.
      */
-    public WinbooksFileConfiguration createWinbooksFileConfigurationOptional(Path rootPath, String baseName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
-        return createWinbooksFileConfigurationOptional(rootPath, baseName, baseName, pathMappings);
+    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String baseName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
+        return createWinbooksFileConfiguration(rootPath, baseName, baseName, pathMappings);
     }
 
     /**
@@ -93,7 +93,7 @@ public class WinbooksExtraService {
      * @param companyName  The company name, as used in winbooks reference.
      * @param pathMappings Path mappings. See {@link WinbooksFileConfiguration#setPathMappings(Map)}.
      */
-    public WinbooksFileConfiguration createWinbooksFileConfigurationOptional(Path rootPath, String basePathName, String companyName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
+    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String basePathName, String companyName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
         WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setRootPath(rootPath);
         winbooksFileConfiguration.setBasePathName(basePathName);

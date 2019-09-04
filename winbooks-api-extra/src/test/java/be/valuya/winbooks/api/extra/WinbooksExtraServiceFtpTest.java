@@ -98,7 +98,7 @@ public class WinbooksExtraServiceFtpTest {
         URI uri = URI.create(uriStr);
         Path ftpBasePath = Paths.get(uri)
                 .resolve(FTP_PATH_NAME);
-        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME);
+        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfiguration(ftpBasePath, BASE_NAME);
         winbooksFileConfiguration.setReadTablesToMemory(true);
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
 

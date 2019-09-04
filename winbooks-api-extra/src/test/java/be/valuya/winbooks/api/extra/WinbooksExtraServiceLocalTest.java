@@ -23,7 +23,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.text.ParseException;
@@ -53,7 +52,7 @@ public class WinbooksExtraServiceLocalTest {
 //        String basePath = System.getProperty("winbooks.test.base.path");
         String baseName = System.getProperty("winbooks.test.base.name");
 
-        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(
+        winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfiguration(
                 Paths.get(rootPath), baseName, Map.of());
         winbooksFileConfiguration.setReadTablesToMemory(true);
     }

@@ -78,7 +78,7 @@ public class WinbooksTrollAccountingManagerFtpTest {
         URI uri = URI.create(uriStr);
         Path ftpBasePath = Paths.get(uri)
                 .resolve(FTP_PATH_NAME);
-        WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfigurationOptional(ftpBasePath, BASE_NAME);
+        WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfiguration(ftpBasePath, BASE_NAME);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
         winbooksFileConfiguration.setResolveDocumentTimes(false);

@@ -63,7 +63,7 @@ public class WinbooksParfiluxDossierTest {
         String baseName = System.getProperty("winbooks.test.base.name");
 
         Path baseFolderPath = Paths.get(baseFolderLocation);
-        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName);
+        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfiguration(baseFolderPath, baseName);
         winbooksFileConfiguration.setReadTablesToMemory(true);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);

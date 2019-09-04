@@ -37,7 +37,7 @@ public class WinbooksTrollAccountingManagerLocalTest {
 
         Path baseFolderPath = Paths.get(baseFolderLocation)
                 .resolve(baseName);
-        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName);
+        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfiguration(baseFolderPath, baseName);
         winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
 
