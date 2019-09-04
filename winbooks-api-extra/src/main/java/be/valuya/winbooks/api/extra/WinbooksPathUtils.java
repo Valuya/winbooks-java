@@ -34,7 +34,7 @@ class WinbooksPathUtils {
         boolean resolveArchivedBookYears = fileConfiguration.isResolveArchivedBookYears();
         boolean ignoreMissingArchives = fileConfiguration.isIgnoreMissingArchives();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
-        Map<Path, Path> pathMappings = getPathMappingsIncludingRootPath(fileConfiguration);
+        Map<String, Path> pathMappings = getPathMappingsIncludingRootPath(fileConfiguration);
         Path baseFolderPath = getDossierBasePath(fileConfiguration);
 
         try {
@@ -58,14 +58,13 @@ class WinbooksPathUtils {
         }
     }
 
-    static Map<Path, Path> getPathMappingsIncludingRootPath(WinbooksFileConfiguration fileConfiguration) {
+    static Map<String, Path> getPathMappingsIncludingRootPath(WinbooksFileConfiguration fileConfiguration) {
         Path configurationRootPath = fileConfiguration.getRootPath();
-        Map<Path, Path> configurationMappings = fileConfiguration.getPathMappings();
+        Map<String, Path> configurationMappings = fileConfiguration.getPathMappings();
 
-        Path rootPath = Paths.get("/");
-        Map<Path, Path> allMappings = new HashMap<>();
+        Map<String, Path> allMappings = new HashMap<>();
 
-        allMappings.put(rootPath, configurationRootPath);
+        allMappings.put("/", configurationRootPath);
         allMappings.putAll(configurationMappings);
         return allMappings;
     }
@@ -79,7 +78,7 @@ class WinbooksPathUtils {
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve dossier base path " + baseName));
     }
 
-    static Optional<Path> resolvePathNameWithMappings(String absolutePathName, Map<Path, Path> pathMappings, boolean resolveCaseInsensitiveSiblings) {
+    static Optional<Path> resolvePathNameWithMappings(String absolutePathName, Map<String, Path> pathMappings, boolean resolveCaseInsensitiveSiblings) {
         Optional<Path> resolvedPath = pathMappings.entrySet().stream()
                 .map(mappingKeyPath -> resolvePathMapping(mappingKeyPath, absolutePathName, resolveCaseInsensitiveSiblings))
                 .flatMap(Optional::stream)
@@ -199,12 +198,12 @@ class WinbooksPathUtils {
         return archivePathNameOptional.isPresent();
     }
 
-    private static Path resolveArchivePathOrThrow(WbBookYearFull wbBookYearFull, boolean resolveCaseInsitiveSiblings, Map<Path, Path> pathMappings) throws ArchivePathNotFoundException {
+    private static Path resolveArchivePathOrThrow(WbBookYearFull wbBookYearFull, boolean resolveCaseInsitiveSiblings, Map<String, Path> pathMappings) throws ArchivePathNotFoundException {
         return resolveBookYearArchivePath(wbBookYearFull, resolveCaseInsitiveSiblings, pathMappings)
                 .orElseThrow(() -> new ArchivePathNotFoundException(wbBookYearFull));
     }
 
-    private static Optional<Path> resolveBookYearArchivePath(WbBookYearFull wbBookYearFull, boolean resolveCaseInsitiveSiblings, Map<Path, Path> pathMappings) {
+    private static Optional<Path> resolveBookYearArchivePath(WbBookYearFull wbBookYearFull, boolean resolveCaseInsitiveSiblings, Map<String, Path> pathMappings) {
         if (!isArchivedBookYear(wbBookYearFull)) {
             return Optional.empty();
         }
@@ -232,13 +231,13 @@ class WinbooksPathUtils {
         }
     }
 
-    private static Optional<Path> resolvePathMapping(Map.Entry<Path, Path> pathMapping, String absoluteChildPath, boolean resolveCaseInsensitiveSiblings) {
+    private static Optional<Path> resolvePathMapping(Map.Entry<String, Path> pathMapping, String absoluteChildPath, boolean resolveCaseInsensitiveSiblings) {
         try {
-            Path key = pathMapping.getKey();
-            Path value = pathMapping.getValue();
+            String mappingKey = pathMapping.getKey();
+            Path mappingValue = pathMapping.getValue();
 
             Path unixChildPath = convertToUnixPath(absoluteChildPath);
-            Path unixKeyPath = convertToUnixPath(key.toString());
+            Path unixKeyPath = convertToUnixPath(mappingKey);
             Path relativized = unixKeyPath.relativize(unixChildPath).normalize();
 
             // We expect fewer names for the relativized path, otherwise we might have a path with '../' prefixes.
@@ -249,12 +248,12 @@ class WinbooksPathUtils {
             }
 
             Iterator<Path> relativizedNamesIterator = relativized.iterator();
-            Path resolved = value;
+            Path resolved = mappingValue;
             // Resolve each path 1 by 1 to account for case-incensitive siblings flag
             while (relativizedNamesIterator.hasNext()) {
                 String nextName = relativizedNamesIterator.next().toString();
                 resolved = resolvePath(resolved, nextName, resolveCaseInsensitiveSiblings)
-                        .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve path " + relativizedNamesIterator + " from " + value));
+                        .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve path " + relativizedNamesIterator + " from " + mappingValue));
             }
 
             return Optional.of(resolved);

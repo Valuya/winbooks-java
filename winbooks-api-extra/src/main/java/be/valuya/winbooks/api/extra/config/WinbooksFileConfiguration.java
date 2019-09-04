@@ -17,7 +17,7 @@ public class WinbooksFileConfiguration {
     private String winbooksCompanyName;
     private Charset charset = StandardCharsets.ISO_8859_1;
     // Maps path across filesystems.
-    private Map<Path, Path> pathMappings = new HashMap<>();
+    private Map<String, Path> pathMappings = new HashMap<>();
 
     private boolean ignoreConversionErrors = true;
     private boolean ignoreMissingArchives = true;
@@ -177,7 +177,7 @@ public class WinbooksFileConfiguration {
         this.ignoreConversionErrors = ignoreConversionErrors;
     }
 
-    public Map<Path, Path> getPathMappings() {
+    public Map<String, Path> getPathMappings() {
         return pathMappings;
     }
 
@@ -192,23 +192,22 @@ public class WinbooksFileConfiguration {
      * the archive directory from the above example to an ftp filesystem:
      *
      * <pre>{@code
-     *   Path archivePath = Paths.get("C:\\winbooks_archives");
+     *   String archivePath = "C:\\winbooks_archives";
      *   Path ftpArchivePath = Paths.get("ftp://archives.winbooks.local");
-     *   Map<Path, Path> mappings = Map.of(archivePath, ftpArchivePath);
+     *   Map<String, Path> mappings = Map.of(archivePath, ftpArchivePath);
      * }</pre>
      *
      * <p></p>
      * When winbooks-java encounters a path, it will iterate over this map to resolve the path from the
      * correct filesystem. If a key of this map happens to be a parent of the encoutered path, this later
      * path will be relativized, then resolved against the map value Path. Paths will be normalized to
-     * forward-slash separators beforehand, so a Path with a single name like 'C:\some\windows\path' or
-     * '\\some-smb-host\some-path' is a valid map key.
+     * forward-slash unix-filesystem paths before comparison.
      *
      * @param pathMappings A map used to resolve paths present in the winbooks tables.
-     *                     Keys contain the path expected to be present in the tables.
+     *                     Keys contain the path expected to be present in the tables, as string.
      *                     Values contain the path from which resolution will be performed.
      */
-    public void setPathMappings(Map<Path, Path> pathMappings) {
+    public void setPathMappings(Map<String, Path> pathMappings) {
         this.pathMappings = pathMappings;
     }
 }

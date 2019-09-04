@@ -35,9 +35,9 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -103,9 +103,9 @@ public class WinbooksExtraServiceFtpTest {
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
 
 
-        Map<Path, Path> pathMappings = Arrays.stream(ROOT_PATH_MAPPINGS.split(","))
+        Map<String, Path> pathMappings = Arrays.stream(ROOT_PATH_MAPPINGS.split(","))
                 .collect(Collectors.toMap(
-                        mappingName -> Paths.get(mappingName),
+                        Function.identity(),
                         mappingName -> ftpBasePath
                 ));
         winbooksFileConfiguration.setPathMappings(pathMappings);
