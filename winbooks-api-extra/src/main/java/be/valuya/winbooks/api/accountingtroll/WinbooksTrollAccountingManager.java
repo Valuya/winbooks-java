@@ -18,7 +18,6 @@ import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,7 +119,10 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Document path is absolute");
         }
 
-        Path baseFolderPath = fileConfiguration.getBaseFolderPath();
+        Path rootPath = fileConfiguration.getRootPath();
+        String basePathName = fileConfiguration.getBasePathName();
+        Path baseFolderPath = rootPath.resolve(basePathName);
+
         Path documentDirectoryPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
                 .resolve(DOCUMENT_UPLOAD_PATH_NAME)
                 .resolve(documentRelativePathName)

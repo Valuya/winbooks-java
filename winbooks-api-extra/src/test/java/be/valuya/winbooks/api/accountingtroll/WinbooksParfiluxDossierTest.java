@@ -13,6 +13,7 @@ import be.valuya.winbooks.api.ParfiluxDossierCategory;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyIdFactory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
+import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -55,15 +56,14 @@ public class WinbooksParfiluxDossierTest {
     }
 
     @Before
-    public void before() {
+    public void before() throws WinbooksConfigurationException {
         WinbooksExtraService extraService = new WinbooksExtraService();
 
         String baseFolderLocation = System.getProperty("winbooks.test.folder");
         String baseName = System.getProperty("winbooks.test.base.name");
 
         Path baseFolderPath = Paths.get(baseFolderLocation);
-        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfigurationOptional(baseFolderPath, baseName)
-                .orElseThrow(AssertionError::new);
+        WinbooksFileConfiguration winbooksFileConfiguration = extraService.createWinbooksFileConfiguration(baseFolderPath, baseName);
         winbooksFileConfiguration.setReadTablesToMemory(true);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
