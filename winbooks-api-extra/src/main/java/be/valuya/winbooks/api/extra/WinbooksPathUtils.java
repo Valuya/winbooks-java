@@ -253,7 +253,7 @@ class WinbooksPathUtils {
             while (relativizedNamesIterator.hasNext()) {
                 String nextName = relativizedNamesIterator.next().toString();
                 resolved = resolvePath(resolved, nextName, resolveCaseInsensitiveSiblings)
-                        .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve path " + relativizedNamesIterator + " from " + mappingValue));
+                        .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve path " + relativized.toString() + " from " + mappingValue));
             }
 
             return Optional.of(resolved);
