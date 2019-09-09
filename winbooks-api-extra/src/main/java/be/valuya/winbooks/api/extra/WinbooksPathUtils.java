@@ -71,10 +71,12 @@ class WinbooksPathUtils {
 
     static Path getDossierBasePath(WinbooksFileConfiguration fileConfiguration) {
         Path configurationRootPath = fileConfiguration.getRootPath();
-        String baseName = fileConfiguration.getWinbooksCompanyName();
+        String baseName = fileConfiguration.getBasePathName();
+        String winbooksCompanyName = fileConfiguration.getWinbooksCompanyName();
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
 
         return resolvePath(configurationRootPath, baseName, resolveCaseInsensitiveSiblings)
+                .or(() -> resolvePath(configurationRootPath, winbooksCompanyName, resolveCaseInsensitiveSiblings))
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve dossier base path " + baseName));
     }
 
