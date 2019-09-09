@@ -123,6 +123,10 @@ public class WinbooksExtraService {
         return WinbooksPathUtils.getLastModifiedTime(actPath);
     }
 
+    public Path getDossierBasePath(WinbooksFileConfiguration fileConfiguration) {
+        return WinbooksPathUtils.getDossierBasePath(fileConfiguration);
+    }
+
     public Stream<WbEntry> streamAct(WinbooksFileConfiguration winbooksFileConfiguration) {
         List<WbBookYearFull> wbBookYearFullList = streamBookYears(winbooksFileConfiguration)
                 .collect(Collectors.toList());

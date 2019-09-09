@@ -119,9 +119,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Document path is absolute");
         }
 
-        Path rootPath = fileConfiguration.getRootPath();
-        String basePathName = fileConfiguration.getBasePathName();
-        Path baseFolderPath = rootPath.resolve(basePathName);
+        Path baseFolderPath = extraService.getDossierBasePath(fileConfiguration);
 
         Path documentDirectoryPath = baseFolderPath.resolve(DOCUMENTS_PATH_NAME)
                 .resolve(DOCUMENT_UPLOAD_PATH_NAME)
