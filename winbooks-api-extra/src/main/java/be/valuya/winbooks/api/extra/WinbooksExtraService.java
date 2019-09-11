@@ -107,7 +107,7 @@ public class WinbooksExtraService {
                 throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Winbooks dossier path does not exist: " + dossierBasePath.toString());
             }
         } catch (WinbooksException e) {
-            throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Cannot open dossier", e);
+            throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Cannot open dossier: " + e.getMessage(), e);
         }
 
         if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, ACCOUNTING_ENTRY_TABLE_NAME)) {
