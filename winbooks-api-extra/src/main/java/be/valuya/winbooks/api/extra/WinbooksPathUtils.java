@@ -251,11 +251,15 @@ class WinbooksPathUtils {
 
             Iterator<Path> relativizedNamesIterator = relativized.iterator();
             Path resolved = mappingValue;
-            // Resolve each path 1 by 1 to account for case-incensitive siblings flag
+            // Resolve each path 1 by 1 to account for case-insensitive siblings flag
             while (relativizedNamesIterator.hasNext()) {
                 String nextName = relativizedNamesIterator.next().toString();
-                resolved = resolvePath(resolved, nextName, resolveCaseInsensitiveSiblings)
-                        .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not resolve path " + relativized.toString() + " from " + mappingValue));
+                Optional<Path> nextResolvedPathOptional = resolvePath(resolved, nextName, resolveCaseInsensitiveSiblings);
+                if (nextResolvedPathOptional.isPresent()) {
+                    resolved = nextResolvedPathOptional.get();
+                } else {
+                    return Optional.empty(); // Attempt next mappings
+                }
             }
 
             return Optional.of(resolved);
