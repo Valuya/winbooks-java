@@ -31,7 +31,11 @@ class WinbooksDocumentsService {
     private static Logger LOGGER = Logger.getLogger(WinbooksDocumentsService.class.getName());
 
     // Documents path: /<book year>/<dbk>/<file_name>
-    private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d+).pdf$");
+    // First (legacy?) file pattern: 'LEDGER_PERIODINDEX_DOCNUMBER_PAGETWODIGITS.pdf' (ACHATS_01_200084_00.pdf)
+    private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_1 = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d{2}).pdf$");
+    // New file pattern: 'LEDGER_PERIODINDEX_DOCNUMBER___PAGEFOURDIGITS_FLAG.pdf' (ACHATS_01_200083___00000_B.pdf)
+    // Flag may be A or B at least
+    private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_2 = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)___(\\d{5})_([A-Z]).pdf$");
 
 
     Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear) {
@@ -114,23 +118,38 @@ class WinbooksDocumentsService {
 
     private boolean isDocument(Path documentPath) {
         String fileName = documentPath.getFileName().toString();
-        Matcher matcher = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN.matcher(fileName);
-        return matcher.matches();
+        Matcher matcher1 = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_1.matcher(fileName);
+        Matcher matcher2 = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_2.matcher(fileName);
+        return matcher1.matches() || matcher2.matches();
     }
-
 
     private Optional<WbDocument> getDocumentOptional(Path documentPath, WbBookYearFull bookYear, boolean resolveAccessTimes) {
         String fileName = documentPath.getFileName().toString();
-        Matcher matcher = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN.matcher(fileName);
-        if (!matcher.matches()) {
+        Matcher matcher1 = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_1.matcher(fileName);
+        Matcher matcher2 = BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_2.matcher(fileName);
+
+        String actualDbkCode;
+        String periodName;
+        String documentNumber;
+        String pageNrStr;
+        int pageNr;
+        if (matcher1.matches()) {
+            actualDbkCode = matcher1.group(1);
+            periodName = matcher1.group(2);
+            documentNumber = matcher1.group(3);
+            pageNrStr = matcher1.group(4);
+            pageNr = Integer.valueOf(pageNrStr);
+        } else if (matcher2.matches()) {
+            actualDbkCode = matcher2.group(1);
+            periodName = matcher2.group(2);
+            documentNumber = matcher2.group(3);
+            pageNrStr = matcher2.group(4);
+            // TODO
+            String unknownFlag = matcher2.group(5);
+            pageNr = Integer.valueOf(pageNrStr);
+        } else {
             return Optional.empty();
         }
-
-        String actualDbkCode = matcher.group(1);
-        String periodName = matcher.group(2);
-        String documentNumber = matcher.group(3);
-        String pageNrStr = matcher.group(4);
-        int pageNr = Integer.valueOf(pageNrStr);
 
         WbDocument wbDocument = new WbDocument();
         wbDocument.setDbkCode(actualDbkCode);
