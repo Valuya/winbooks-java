@@ -20,7 +20,10 @@ pipeline {
                     }
                 }
                 withMaven(maven: 'maven', mavenSettingsConfig: 'ossrh-settings-xml') {
-                    sh "mvn $MVN_ARGS -Pwinbooks-parfilux-test -DskipTests=${params.SKIP_TESTS} clean compile install"
+                    lock ('download-maven-plugin') {
+                        sh "rm -rf ~/.m2/repository/.cache/download-maven-plugin"
+                        sh "mvn $MVN_ARGS -Pwinbooks-parfilux-test -DskipTests=${params.SKIP_TESTS} clean compile install"
+                    }
                 }
             }
         }
