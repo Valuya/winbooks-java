@@ -10,6 +10,7 @@ import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;
+import be.valuya.jbooks.model.WbDocType;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
@@ -132,11 +133,17 @@ public class AccountingManagerCache {
     }
 
 
-    public Optional<ATThirdParty> getCachedThirdPartyOptional(String accountId) {
+    public Optional<ATThirdParty> getCachedThirdPartyOptional(String accountId, WbDocType wbDocType) {
         cacheThirdParties();
-
-        return getCachedCustomerThirdPartyOptional(accountId)
-                .or(() -> getCachedSupplierThirdPartyOptional(accountId));
+        switch (wbDocType) {
+            case IMPUT_CLIENT:
+                return getCachedCustomerThirdPartyOptional(accountId);
+            case IMPUT_SUPPLIER:
+                return getCachedSupplierThirdPartyOptional(accountId);
+            default:
+                return getCachedCustomerThirdPartyOptional(accountId)
+                        .or(() -> getCachedSupplierThirdPartyOptional(accountId));
+        }
     }
 
     public Optional<ATThirdParty> getCachedCustomerThirdPartyOptional(String accountId) {
@@ -224,7 +231,10 @@ public class AccountingManagerCache {
                 .collect(Collectors.toMap(
                         ATThirdParty::getId,
                         Function.identity(),
-                        (a, b) -> b // OVerwrite in case of duplicates
+                        (a, b) -> {
+                            System.out.println("Multiple third party with same id " + a.getId() + " : " + a + " and " + b);
+                            return b; // OVerwrite in case of duplicates
+                        }
                 ));
     }
 

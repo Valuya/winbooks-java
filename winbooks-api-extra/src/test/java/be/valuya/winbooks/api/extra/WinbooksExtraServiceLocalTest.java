@@ -200,6 +200,15 @@ public class WinbooksExtraServiceLocalTest {
         try {
             int recordNumber = dbfRecord.getRecordNumber();
             Map<String, Object> valueMap = dbfRecord.toMap();
+//
+//            boolean van = valueMap.entrySet().stream()
+//                    .anyMatch(e -> e.getKey().equalsIgnoreCase("accountrp") && e.getValue() != null && e.getValue().toString().equalsIgnoreCase("004"));
+////                    .map(e->e.getValue())
+////                    .anyMatch(v -> v instanceof String && ((String) v).equalsIgnoreCase("004"));
+////            .anyMatch(v -> v instanceof BigDecimal && ((BigDecimal) v).compareTo(BigDecimal.valueOf(26323, 2)) == 0);
+//            if (!van) {
+//                return;
+//            }
 
             logger.info("Record #" + recordNumber + ": " + valueMap);
         } catch (ParseException parseException) {

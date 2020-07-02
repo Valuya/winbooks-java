@@ -19,9 +19,9 @@ public class ATThirdPartyConverter {
                 ATThirdPartyType.SUPPLIER : ATThirdPartyType.CLIENT;
         String id = ATThirdPartyIdFactory.getId(wbClientSupplierType, number);
 
-        String fullName = Stream.of(wbSupplier.getCivName1(), wbSupplier.getName1())
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining(" "));
+        // Previously prefixed with title (civName1), it appears they are not present in the winbooks-exported
+        // listings, so using name1 exclusively
+        String fullName = wbSupplier.getName1();
         String address = Stream.of(wbSupplier.getAddress1(), wbSupplier.getAddress2())
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(" "));
