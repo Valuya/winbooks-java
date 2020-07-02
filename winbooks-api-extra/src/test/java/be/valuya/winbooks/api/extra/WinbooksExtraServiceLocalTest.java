@@ -69,7 +69,7 @@ public class WinbooksExtraServiceLocalTest {
     public void testStreamDocumentPageData() throws Exception {
         WbDocument testDocument = winbooksExtraService.streamBookYears(winbooksFileConfiguration)
                 .flatMap(year -> winbooksExtraService.streamBookYearDocuments(winbooksFileConfiguration, year))
-                .filter(doc -> doc.getPageCount() > 0)
+                .filter(doc -> doc.getPartCount() > 0)
                 .findAny()
                 .orElseThrow(AssertionError::new);
 
@@ -79,8 +79,8 @@ public class WinbooksExtraServiceLocalTest {
 
         PdfReader pdfReader = new PdfReader(documentData);
         int pageCount = pdfReader.getNumberOfPages();
-        int expectedPageCount = testDocument.getPageCount();
-        Assert.assertEquals(expectedPageCount, pageCount);
+        int expectedMinPageCount = testDocument.getPartCount();
+        Assert.assertTrue(pageCount >= expectedMinPageCount);
         Map<?, ?> infoMap = pdfReader.getInfo();
         infoMap.forEach((key, value) -> logger.info(key + " = " + value));
         int fileLength = pdfReader.getFileLength();
@@ -178,7 +178,7 @@ public class WinbooksExtraServiceLocalTest {
     }
 
     private void checkDocument(WbDocument wbDocument) {
-        int pageCount = wbDocument.getPageCount();
+        int pageCount = wbDocument.getPartCount();
         Assert.assertFalse(pageCount == 0);
     }
 
@@ -210,10 +210,12 @@ public class WinbooksExtraServiceLocalTest {
     private void printDocument(WbDocument wbDocument) {
         String name = wbDocument.getDocumentNumber();
         String dbCode = wbDocument.getDbkCode();
-        int pageCount = wbDocument.getPageCount();
+        int partCount = wbDocument.getPartCount();
+        String fileNameTemplate = wbDocument.getFileNameTemplate();
         WbPeriod wbPeriod = wbDocument.getWbPeriod();
         String periodName = wbPeriod.getShortName();
-        String message = MessageFormat.format("Document: {0}, dbk = {1}, period = {2}, page count = {3}", name, dbCode, periodName, pageCount);
+        String message = MessageFormat.format("Document: {0}, dbk = {1}, period = {2}, part count = {3}, fileName = {4}",
+                name, dbCode, periodName, partCount, fileNameTemplate);
         logger.info(message);
     }
 }

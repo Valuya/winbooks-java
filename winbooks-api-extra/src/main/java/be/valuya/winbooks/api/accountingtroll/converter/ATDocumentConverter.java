@@ -28,21 +28,23 @@ public class ATDocumentConverter {
         String documentNumber = wbDocument.getDocumentNumber();
         String dbkCode = wbDocument.getDbkCode();
         WbPeriod wbPeriod = wbDocument.getWbPeriod();
-        int pageCount = wbDocument.getPageCount();
+        int partCount = wbDocument.getPartCount();
         LocalDateTime creationTime = wbDocument.getCreationTime();
         LocalDateTime updatedTime = wbDocument.getUpdatedTime();
+        String fileName = wbDocument.getFileNameTemplate();
 
         ATBookPeriod bookPeriod = accountingManagerCache.getCachedBookPeriodOrThrow(wbPeriod);
         String documentId = this.createDocumentId(dbkCode, bookPeriod, documentNumber);
 
         ATDocument atDocument = new ATDocument();
         atDocument.setId(documentId);
-        atDocument.setDocumentNumnber(documentNumber);
+        atDocument.setDocumentNumber(documentNumber);
         atDocument.setDbkCode(dbkCode);
         atDocument.setBookPeriod(bookPeriod);
-        atDocument.setPageCountOptional(Optional.of(pageCount));
+        atDocument.setPartCountOptional(Optional.of(partCount));
         atDocument.setCreationTimeOptional(Optional.ofNullable(creationTime));
         atDocument.setUpdateTimeOptional(Optional.ofNullable(updatedTime));
+        atDocument.setProviderReference(Optional.of(fileName));
         return atDocument;
     }
 
@@ -58,10 +60,12 @@ public class ATDocumentConverter {
     public WbDocument convertWbDocument(ATDocument atDocument) {
         ATBookPeriod bookPeriod = atDocument.getBookPeriod();
         String dbkCode = atDocument.getDbkCode();
-        String documentNumber = atDocument.getDocumentNumnber();
+        String documentNumber = atDocument.getDocumentNumber();
         Optional<Integer> pageCountOptional = atDocument.getPageCountOptional();
         Optional<LocalDateTime> creationTimeOptional = atDocument.getCreationTimeOptional();
         Optional<LocalDateTime> updateTimeOptional = atDocument.getUpdateTimeOptional();
+        Optional<String> providerReference = atDocument.getProviderReference();
+        Optional<Integer> partCountOptional = atDocument.getPartCountOptional();
 
         List<WbBookYearFull> wbBookYearFulls = accountingManagerCache.streamWbBookYearFulls()
                 .collect(Collectors.toList());
@@ -73,7 +77,8 @@ public class ATDocumentConverter {
         wbDocument.setWbPeriod(wbPeriod);
         wbDocument.setUpdatedTime(updateTimeOptional.orElse(null));
         wbDocument.setCreationTime(creationTimeOptional.orElse(null));
-        wbDocument.setPageCount(pageCountOptional.orElse(0));
+        wbDocument.setPartCount(partCountOptional.orElse(0));
+        wbDocument.setFileNameTemplate(providerReference.orElse(null));
         return wbDocument;
     }
 
