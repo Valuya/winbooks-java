@@ -36,6 +36,7 @@ public class ATAccountingEntryConverter {
     public ATAccountingEntry convertToTrollAccountingEntry(WbEntry wbEntry) {
         WbPeriod wbPeriod = wbEntry.getWbPeriod();
         ATBookPeriod bookPeriod = accountingManagerCache.getCachedBookPeriodOrThrow(wbPeriod);
+        WbDocType wbDocType = wbEntry.getWbDocType();
 
         BigDecimal amount = wbEntry.getAmountEur().negate();
         String dbkCode = wbEntry.getDbkCode();
@@ -48,7 +49,7 @@ public class ATAccountingEntryConverter {
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "No account found for number " + accountFromNumber));
 
         String accountToId = wbEntry.getAccountRp();
-        Optional<ATThirdParty> thirdPartyOptional = accountingManagerCache.getCachedThirdPartyOptional(accountToId);
+        Optional<ATThirdParty> thirdPartyOptional = accountingManagerCache.getCachedThirdPartyOptional(accountToId, wbDocType);
 
         Optional<ATTax> taxOptional = Optional.empty(); // TODO
         // Matching is done post-conversion
@@ -62,7 +63,6 @@ public class ATAccountingEntryConverter {
         WbDocOrderType wbDocOrderType = wbEntry.getWbDocOrderType();
         AccountingEntryDocumentNumberType documentNumberType = this.getDocNumberType(wbDocOrderType);
 
-        WbDocType wbDocType = wbEntry.getWbDocType();
         AccountingEntryDocumentType documentType = this.getDocType(wbDocType);
 
         WbDbkType wbDbkType = wbEntry.getWbDbkType();
