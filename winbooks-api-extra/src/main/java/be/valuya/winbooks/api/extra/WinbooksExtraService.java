@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -496,6 +497,23 @@ public class WinbooksExtraService {
         return tablePathOptional;
     }
 
+    private Optional<Path> resolveTablePathWithCompanyBaseNameButKeepingYearSuffixOptional(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+        String pathName = basePath.getFileName().toString();
+        String baseName = winbooksFileConfiguration.getWinbooksCompanyName();
+        Pattern yearPattern = Pattern.compile(".*-([0-9]{4})");
+        Matcher matcher = yearPattern.matcher(pathName);
+        if (matcher.matches()) {
+            String yearPart = matcher.group(1);
+            String baseNameWithYearSufix = baseName + "-" + yearPart;
+            String tableFileName = getTableFileName(baseNameWithYearSufix, tableName);
+            boolean resolveCaseInsensitiveSiblings = winbooksFileConfiguration.isResolveCaseInsensitiveSiblings();
+            Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(basePath, tableFileName, resolveCaseInsensitiveSiblings);
+            return tablePathOptional;
+        } else {
+            return Optional.empty();
+        }
+    }
+
     private Optional<Path> resolveTablePathWithPathFilenameAsBaseNameOptional(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
         String baseName = basePath.getFileName().toString();
         String tableFileName = getTableFileName(baseName, tableName);
@@ -505,12 +523,14 @@ public class WinbooksExtraService {
     }
 
     private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
-        // With a basePath COMPANY-2013, a company base name COMPANY, and a table name 'table',
-        // try to resolve /COMPANY-2013/COMPANY-2013_table.dbf,
-        // then try to resolve /COMPANY-2013/COMPANY_table.dbf,
+        // With a basePath COMPANY-SOMETHING-2013, a company base name COMPANY, and a table name 'table',
+        // try to resolve /COMPANY-SOMETHING-2013/COMPANY-SOMETHING-2013_table.dbf,
+        // then try to resolve /COMPANY-SOMETHING-2013/COMPANY_table.dbf,
+        // then try to resolve /COMPANY-SOMETHING-2013/COMPANY-2013_table.dbf, (Seems like a workaround for dossier not properly named)
         // otherwise throw.
         return resolveTablePathWithPathFilenameAsBaseNameOptional(winbooksFileConfiguration, basePath, tableName)
                 .or(() -> resolveTablePathWithCompanyBaseNameOptional(winbooksFileConfiguration, basePath, tableName))
+                .or(() -> resolveTablePathWithCompanyBaseNameButKeepingYearSuffixOptional(winbooksFileConfiguration, basePath, tableName))
                 .orElseThrow(() -> {
                     String baseFolderPathName = getPathFileNameString(basePath);
 
