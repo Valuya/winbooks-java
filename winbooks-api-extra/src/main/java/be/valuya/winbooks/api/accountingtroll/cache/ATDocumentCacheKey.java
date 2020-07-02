@@ -18,7 +18,7 @@ public class ATDocumentCacheKey {
     }
 
     public ATDocumentCacheKey(ATDocument document) {
-        String documentNumnber = document.getDocumentNumnber();
+        String documentNumnber = document.getDocumentNumber();
         ATBookPeriod bookPeriod = document.getBookPeriod();
         String dbkCode = document.getDbkCode();
 

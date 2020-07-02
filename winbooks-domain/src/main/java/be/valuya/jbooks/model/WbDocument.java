@@ -8,9 +8,11 @@ public class WbDocument {
     private String documentNumber;
     private String dbkCode;
     private WbPeriod wbPeriod;
-    private int pageCount;
+    private int partCount;
     private LocalDateTime creationTime;
     private LocalDateTime updatedTime;
+    // Filename with a {0} placeholder for the page number
+    private String fileNameTemplate;
 
     public String getDocumentNumber() {
         return documentNumber;
@@ -36,12 +38,12 @@ public class WbDocument {
         this.wbPeriod = wbPeriod;
     }
 
-    public int getPageCount() {
-        return pageCount;
+    public int getPartCount() {
+        return partCount;
     }
 
-    public void setPageCount(int pageCount) {
-        this.pageCount = pageCount;
+    public void setPartCount(int partCount) {
+        this.partCount = partCount;
     }
 
     public LocalDateTime getCreationTime() {
@@ -58,6 +60,14 @@ public class WbDocument {
 
     public void setUpdatedTime(LocalDateTime updatedTime) {
         this.updatedTime = updatedTime;
+    }
+
+    public String getFileNameTemplate() {
+        return fileNameTemplate;
+    }
+
+    public void setFileNameTemplate(String fileNameTemplate) {
+        this.fileNameTemplate = fileNameTemplate;
     }
 
     @Override

@@ -54,7 +54,7 @@ class WinbooksDocumentsService {
     Optional<byte[]> getDocumentData(WinbooksFileConfiguration fileConfiguration, WbDocument document) {
         boolean resolveCaseInsensitiveSiblings = fileConfiguration.isResolveCaseInsensitiveSiblings();
         return getDocumentAbsolutePath(fileConfiguration, document)
-                .flatMap(docPath -> getDocumentAllPagesPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
+                .flatMap(docPath -> getDocumentAllPartsPdfContent(docPath, document, resolveCaseInsensitiveSiblings));
     }
 
     private Stream<WbDocument> streamBookYearDocuments(Path bookYearDocumentFolderPath, WbBookYearFull bookYear, boolean resolveAccessTimes) {
@@ -67,33 +67,35 @@ class WinbooksDocumentsService {
     }
 
     private Stream<WbDocument> streamDbkBookYearDocuments(Path path, WbBookYearFull bookYear, boolean resolveAccessTime) {
-        Collector<WbDocument, ?, Optional<WbDocument>> maxPageNrComparator = Collectors.maxBy(Comparator.comparing(WbDocument::getPageCount));
+        Collector<WbDocument, ?, Optional<WbDocument>> maxPartNumberCompoarator = Collectors.maxBy(Comparator.comparing(WbDocument::getPartCount));
         return WinbooksPathUtils.streamDirectoryFiles(path, this::isDocument)
                 .map(documentPath -> getDocumentOptional(documentPath, bookYear, resolveAccessTime))
                 .flatMap(this::streamOptional)
-                .collect(Collectors.groupingBy(Function.identity(), maxPageNrComparator))
+                .collect(Collectors.groupingBy(Function.identity(), maxPartNumberCompoarator))
                 .values()
                 .stream()
                 .flatMap(this::streamOptional)
-                .map(this::getPageNumberDocument);
+                .map(this::getDocumentWithCorrectPartCount);
     }
 
 
-    private WbDocument getPageNumberDocument(WbDocument pageIndexDocument) {
-        WbPeriod wbPeriod = pageIndexDocument.getWbPeriod();
-        int pageCount = pageIndexDocument.getPageCount() + 1;
-        String documentNumber = pageIndexDocument.getDocumentNumber();
-        LocalDateTime creationTime = pageIndexDocument.getCreationTime();
-        LocalDateTime updatedTime = pageIndexDocument.getUpdatedTime();
-        String dbkCode = pageIndexDocument.getDbkCode();
+    private WbDocument getDocumentWithCorrectPartCount(WbDocument lastPartWbDocument) {
+        WbPeriod wbPeriod = lastPartWbDocument.getWbPeriod();
+        int partCount = lastPartWbDocument.getPartCount() + 1;
+        String documentNumber = lastPartWbDocument.getDocumentNumber();
+        LocalDateTime creationTime = lastPartWbDocument.getCreationTime();
+        LocalDateTime updatedTime = lastPartWbDocument.getUpdatedTime();
+        String dbkCode = lastPartWbDocument.getDbkCode();
+        String fileNameTemplate = lastPartWbDocument.getFileNameTemplate();
 
         WbDocument pageNumberDocument = new WbDocument();
         pageNumberDocument.setWbPeriod(wbPeriod);
-        pageNumberDocument.setPageCount(pageCount);
+        pageNumberDocument.setPartCount(partCount);
         pageNumberDocument.setDocumentNumber(documentNumber);
         pageNumberDocument.setCreationTime(creationTime);
         pageNumberDocument.setUpdatedTime(updatedTime);
         pageNumberDocument.setDbkCode(dbkCode);
+        pageNumberDocument.setFileNameTemplate(fileNameTemplate);
 
         return pageNumberDocument;
     }
@@ -131,22 +133,27 @@ class WinbooksDocumentsService {
         String actualDbkCode;
         String periodName;
         String documentNumber;
-        String pageNrStr;
-        int pageNr;
+        String partNrString;
+        String fileNameTemplate;
+        int partNumber;
         if (matcher1.matches()) {
             actualDbkCode = matcher1.group(1);
             periodName = matcher1.group(2);
             documentNumber = matcher1.group(3);
-            pageNrStr = matcher1.group(4);
-            pageNr = Integer.valueOf(pageNrStr);
+            partNrString = matcher1.group(4);
+            partNumber = Integer.valueOf(partNrString);
+            fileNameTemplate = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
+                    actualDbkCode, periodName, documentNumber, "{0,number,00}");
         } else if (matcher2.matches()) {
             actualDbkCode = matcher2.group(1);
             periodName = matcher2.group(2);
             documentNumber = matcher2.group(3);
-            pageNrStr = matcher2.group(4);
+            partNrString = matcher2.group(4);
             // TODO
             String unknownFlag = matcher2.group(5);
-            pageNr = Integer.valueOf(pageNrStr);
+            partNumber = Integer.valueOf(partNrString);
+            fileNameTemplate = MessageFormat.format("{0}_{1}_{2}___{3}_{4}.pdf",
+                    actualDbkCode, periodName, documentNumber, "{0,number,00000}", unknownFlag);
         } else {
             return Optional.empty();
         }
@@ -154,8 +161,9 @@ class WinbooksDocumentsService {
         WbDocument wbDocument = new WbDocument();
         wbDocument.setDbkCode(actualDbkCode);
         wbDocument.setDocumentNumber(documentNumber);
-        wbDocument.setPageCount(pageNr);
+        wbDocument.setPartCount(partNumber);
         wbDocument.setWbPeriod(getWbPeriod(bookYear, periodName));
+        wbDocument.setFileNameTemplate(fileNameTemplate);
 
         if (resolveAccessTimes) {
             long time0 = System.currentTimeMillis();
@@ -205,34 +213,25 @@ class WinbooksDocumentsService {
     }
 
 
-    private Optional<byte[]> getDocumentAllPagesPdfContent(Path documentPath, WbDocument document, boolean resolveCaseInsitiveSiblings) {
-        return streamDocumentPagesPaths(documentPath, document, resolveCaseInsitiveSiblings)
+    private Optional<byte[]> getDocumentAllPartsPdfContent(Path documentPath, WbDocument document, boolean resolveCaseInsitiveSiblings) {
+        return streamDocumentPartsPaths(documentPath, document, resolveCaseInsitiveSiblings)
                 .map(this::readAllBytes)
                 .reduce(this::mergePdf);
     }
 
-    private Stream<Path> streamDocumentPagesPaths(Path basePath, WbDocument document, boolean resolveCaseInsensitiveSiblings) {
-        int pageCount = document.getPageCount();
+    private Stream<Path> streamDocumentPartsPaths(Path basePath, WbDocument document, boolean resolveCaseInsensitiveSiblings) {
+        int partCount = document.getPartCount();
 
-        return IntStream.range(0, pageCount)
-                .mapToObj(pageIndex -> getDocumentPagePathName(pageIndex, document))
+        return IntStream.range(0, partCount)
+                .mapToObj(partIndex -> getDocumentPartPathName(partIndex, document))
                 .map(pagePathName -> WinbooksPathUtils.resolvePath(basePath, pagePathName, resolveCaseInsensitiveSiblings))
                 .flatMap(this::streamOptional);
     }
 
 
-    private String getDocumentPagePathName(int pageIndex, WbDocument document) {
-        WbPeriod wbPeriod = document.getWbPeriod();
-        int wbPeriodIndex = wbPeriod.getIndex();
-        String periodIndexName = String.format("%02d", wbPeriodIndex);
-        String pageIndexName = String.format("%02d", pageIndex);
-
-        String fileName = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
-                document.getDbkCode(),
-                periodIndexName,
-                document.getDocumentNumber(),
-                pageIndexName
-        );
+    private String getDocumentPartPathName(int partIndex, WbDocument document) {
+        String fileNameTemplate = document.getFileNameTemplate();
+        String fileName = MessageFormat.format(fileNameTemplate, partIndex);
         return fileName;
     }
 
