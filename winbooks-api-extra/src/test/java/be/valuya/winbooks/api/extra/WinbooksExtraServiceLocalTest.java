@@ -90,9 +90,9 @@ public class WinbooksExtraServiceLocalTest {
 
     @Test
     public void testReadDBF() {
-        dumpDbf(winbooksFileConfiguration, "act");
+//        dumpDbf(winbooksFileConfiguration, "act");
         dumpDbf(winbooksFileConfiguration, "acf");
-        dumpDbf(winbooksFileConfiguration, "csf");
+//        dumpDbf(winbooksFileConfiguration, "csf");
     }
 
     @Test
