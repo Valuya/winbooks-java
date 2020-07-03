@@ -14,6 +14,7 @@ import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ATDocumentConverter {
@@ -61,10 +62,11 @@ public class ATDocumentConverter {
         ATBookPeriod bookPeriod = atDocument.getBookPeriod();
         String dbkCode = atDocument.getDbkCode();
         String documentNumber = atDocument.getDocumentNumber();
-        Optional<Integer> pageCountOptional = atDocument.getPageCountOptional();
         Optional<LocalDateTime> creationTimeOptional = atDocument.getCreationTimeOptional();
         Optional<LocalDateTime> updateTimeOptional = atDocument.getUpdateTimeOptional();
-        Optional<String> providerReference = atDocument.getProviderReference();
+        // FIXME: wrap Optional in the getters in accountingtroll!
+        Optional<String> providerReference = Optional.ofNullable(atDocument.getProviderReference())
+                .flatMap(Function.identity());
         Optional<Integer> partCountOptional = atDocument.getPartCountOptional();
 
         List<WbBookYearFull> wbBookYearFulls = accountingManagerCache.streamWbBookYearFulls()
