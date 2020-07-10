@@ -29,4 +29,5 @@ public enum WbClientSupplierType implements WbValue {
 
     public boolean hasCode(String code) {
         return value.equals(code);
-    }}
+    }
+}

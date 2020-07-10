@@ -1,16 +1,24 @@
 package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingEventListener;
+import be.valuya.accountingtroll.event.AccountBalanceChangeEvent;
 import be.valuya.accountingtroll.event.ArchiveFileNotFoundIgnoredEvent;
 import be.valuya.accountingtroll.event.ArchiveFolderNotFoundIgnoredEvent;
-import be.valuya.accountingtroll.event.BalanceChangeEvent;
+import be.valuya.accountingtroll.event.ThirdPartyBalanceChangeEvent;
 
 public class TestAccountingEventListener implements AccountingEventListener {
 
+
     @Override
-    public void handleBalanceChangeEvent(BalanceChangeEvent balanceChangeEvent) {
-        System.out.print("BALANCE CHANGE ");
-        System.out.println(balanceChangeEvent);
+    public void handleAccountBalanceChangeEvent(AccountBalanceChangeEvent accountBalanceChangeEvent) {
+        System.out.print("ACCOUNT BALANCE CHANGE ");
+        System.out.println(accountBalanceChangeEvent);
+    }
+
+    @Override
+    public void handleThirdPartyBalanceChangeEvent(ThirdPartyBalanceChangeEvent thirdPartyBalanceChangeEvent) {
+        System.out.print("THIRD PARTY BALANCE CHANGE ");
+        System.out.println(thirdPartyBalanceChangeEvent);
     }
 
     @Override

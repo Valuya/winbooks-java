@@ -82,17 +82,17 @@ public class ATAccountingEntryConverter {
         accountingEntry.setAccount(account);
         accountingEntry.setMatched(matched);
         accountingEntry.setDocNumber(docNumber);
-        accountingEntry.setDocNumberTypeOptional(Optional.of(documentNumberType));
+        accountingEntry.setDocNumberType(documentNumberType);
         accountingEntry.setOrderingNumber(docOrder);
         accountingEntry.setAccountingEntryDocumentType(documentType);
         accountingEntry.setAccountingEntryType(accountingEntryType);
 
-        accountingEntry.setTaxOptional(taxOptional);
-        accountingEntry.setThirdPartyOptional(thirdPartyOptional);
-        accountingEntry.setDocumentDateOptional(documentLocalDateOptional);
-        accountingEntry.setDueDateOptional(dueDateOptional);
-        accountingEntry.setCommentOptional(Optional.ofNullable(comment));
-        accountingEntry.setDocumentOptional(documentOptional);
+//        accountingEntry.setTaxOptional(taxOptional);
+        thirdPartyOptional.ifPresent(accountingEntry::setThirdParty);
+        documentLocalDateOptional.ifPresent(accountingEntry::setDocumentDate);
+        dueDateOptional.ifPresent(accountingEntry::setDueDate);
+        accountingEntry.setComment(comment);
+        documentOptional.ifPresent(accountingEntry::setDocument);
 
         return accountingEntry;
     }

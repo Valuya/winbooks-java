@@ -2,6 +2,7 @@ package be.valuya.winbooks.api.accountingtroll;
 
 import be.valuya.accountingtroll.AccountingManager;
 import be.valuya.accountingtroll.cache.AccountBalanceSpliterator;
+import be.valuya.accountingtroll.cache.ThirdPartyBalanceSpliterator;
 import be.valuya.accountingtroll.domain.ATAccount;
 import be.valuya.accountingtroll.domain.ATAccountBalance;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
@@ -9,6 +10,7 @@ import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATThirdParty;
+import be.valuya.accountingtroll.domain.ATThirdPartyBalance;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
@@ -74,6 +76,18 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     }
 
     @Override
+    public Stream<ATThirdPartyBalance> streamThirdPartyBalances() {
+        List<ATBookPeriod> allPeriods = streamPeriods().collect(Collectors.toList());
+        Stream<ATAccountingEntry> entryStream = streamAccountingEntries();
+        ThirdPartyBalanceSpliterator balanceSpliterator = new ThirdPartyBalanceSpliterator(entryStream, allPeriods);
+
+        balanceSpliterator.setResetOnBookYearOpening(true);
+        balanceSpliterator.setIgnoreIntermediatePeriodOpeningEntry(true);
+
+        return StreamSupport.stream(balanceSpliterator, false);
+    }
+
+    @Override
     public Stream<ATAccountingEntry> streamAccountingEntries() {
         return accountingManagerCache.streamAccountingEntries()
                 .sorted();
@@ -111,7 +125,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     public void uploadDocument(String documentRelativePathName, InputStream inputStream) throws Exception {
         Path documentRelativePath = Paths.get(documentRelativePathName);
         int documentFileNamePathCount = documentRelativePath.getNameCount();
-        if (documentFileNamePathCount < 0)  {
+        if (documentFileNamePathCount < 0) {
             throw new WinbooksException(WinbooksError.USER_FILE_ERROR, "Invalid document path name");
         }
         boolean documentPathIsAbsolute = documentRelativePath.isAbsolute();

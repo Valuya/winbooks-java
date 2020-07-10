@@ -42,10 +42,10 @@ public class ATDocumentConverter {
         atDocument.setDocumentNumber(documentNumber);
         atDocument.setDbkCode(dbkCode);
         atDocument.setBookPeriod(bookPeriod);
-        atDocument.setPartCountOptional(Optional.of(partCount));
-        atDocument.setCreationTimeOptional(Optional.ofNullable(creationTime));
-        atDocument.setUpdateTimeOptional(Optional.ofNullable(updatedTime));
-        atDocument.setProviderReference(Optional.of(fileName));
+        atDocument.setPartCount(partCount);
+        atDocument.setCreationTime(creationTime);
+        atDocument.setUpdateTime(updatedTime);
+        atDocument.setProviderReference(fileName);
         return atDocument;
     }
 
@@ -64,9 +64,7 @@ public class ATDocumentConverter {
         String documentNumber = atDocument.getDocumentNumber();
         Optional<LocalDateTime> creationTimeOptional = atDocument.getCreationTimeOptional();
         Optional<LocalDateTime> updateTimeOptional = atDocument.getUpdateTimeOptional();
-        // FIXME: wrap Optional in the getters in accountingtroll!
-        Optional<String> providerReference = Optional.ofNullable(atDocument.getProviderReference())
-                .flatMap(Function.identity());
+        Optional<String> providerReferenceOptional = atDocument.getProviderReferenceOptional();
         Optional<Integer> partCountOptional = atDocument.getPartCountOptional();
 
         List<WbBookYearFull> wbBookYearFulls = accountingManagerCache.streamWbBookYearFulls()
@@ -77,10 +75,10 @@ public class ATDocumentConverter {
         wbDocument.setDocumentNumber(documentNumber);
         wbDocument.setDbkCode(dbkCode);
         wbDocument.setWbPeriod(wbPeriod);
-        wbDocument.setUpdatedTime(updateTimeOptional.orElse(null));
-        wbDocument.setCreationTime(creationTimeOptional.orElse(null));
-        wbDocument.setPartCount(partCountOptional.orElse(0));
-        wbDocument.setFileNameTemplate(providerReference.orElse(null));
+        updateTimeOptional.ifPresent(wbDocument::setUpdatedTime);
+        creationTimeOptional.ifPresent(wbDocument::setCreationTime);
+        partCountOptional.ifPresent(wbDocument::setPartCount);
+        providerReferenceOptional.ifPresent(wbDocument::setFileNameTemplate);
         return wbDocument;
     }
 
