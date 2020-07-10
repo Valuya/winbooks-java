@@ -119,9 +119,10 @@ public class WinbooksExtraServiceFtpTest {
 
     @Test
     public void testReadDBF() {
-        dumpDbf(winbooksFileConfiguration, "act");
-        dumpDbf(winbooksFileConfiguration, "acf");
-        dumpDbf(winbooksFileConfiguration, "csf");
+//        dumpDbf(winbooksFileConfiguration, "act");
+//        dumpDbf(winbooksFileConfiguration, "acf");
+        dumpDbf(winbooksFileConfiguration, "logbook");
+//        dumpDbf(winbooksFileConfiguration, "csf");
     }
 
     @Test
@@ -139,8 +140,9 @@ public class WinbooksExtraServiceFtpTest {
 //                    return remaining.compareTo(BigDecimal.valueOf(0.01d)) < 0;
 //                })
                 .filter(e -> {
-                    WbBookYearFull wbBookYearFull = e.getWbBookYearFull();
-                    return wbBookYearFull.getArchivePathNameOptional().isPresent();
+//                    WbBookYearFull wbBookYearFull = e.getWbBookYearFull();
+                    boolean testAccount = e.getAccountRp() != null && e.getAccountRp().equalsIgnoreCase("MCOTELECOM");
+                    return testAccount;
                 })
                 .map(WbEntry::toString)
                 .forEach(logger::info);
@@ -209,10 +211,10 @@ public class WinbooksExtraServiceFtpTest {
 
     private void printBookYear(WbBookYearFull wbBookYearFull) {
         System.out.println(wbBookYearFull);
-        wbBookYearFull.getPeriodList()
-                .stream()
-                .map(WbPeriod::toString)
-                .forEach(logger::info);
+//        wbBookYearFull.getPeriodList()
+//                .stream()
+//                .map(WbPeriod::toString)
+//                .forEach(logger::info);
     }
 
     private void dumpDbf(WinbooksFileConfiguration winbooksFileConfiguration, String tableName) {

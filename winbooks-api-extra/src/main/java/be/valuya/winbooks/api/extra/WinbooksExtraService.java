@@ -167,12 +167,16 @@ public class WinbooksExtraService {
 
     public Stream<WbBookYearFull> streamBookYears(WinbooksFileConfiguration winbooksFileConfiguration) {
         //TODO: currently, we can findWbBookYearFull more info out of the badly structured param table
-//        if (tableExistsForCurrentBookYear(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) {
-//            return streamBookYearsFromBookYearsTable(winbooksFileConfiguration);
-//        }
 
         // fall-back: a lot of customers seem not to have table above
-        return listBookYearsFromParamTable(winbooksFileConfiguration).stream();
+        Stream<WbBookYearFull> bookYearsFromParamsTables = listBookYearsFromParamTable(winbooksFileConfiguration).stream();
+//        if (tableExistsForCurrentBookYear(winbooksFileConfiguration, BOOKYEARS_TABLE_NAME)) {
+//            Stream<WbBookYearFull> bookyearStream = streamBookYearsFromBookYearsTable(winbooksFileConfiguration);
+//            return Stream.concat(bookYearsFromParamsTables, bookyearStream)
+//                    .distinct();
+//        } else {
+        return bookYearsFromParamsTables;
+//        }
     }
 
     public int getAccountNumberLengthFromParamsTable(WinbooksFileConfiguration winbooksFileConfiguration) {

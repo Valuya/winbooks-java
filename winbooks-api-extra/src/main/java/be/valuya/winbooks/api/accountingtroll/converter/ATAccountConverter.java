@@ -16,14 +16,12 @@ public class ATAccountConverter {
         boolean yearlyBalanceReset = this.isYearResetAccount(accountNumber);
         boolean titleAccount = accountNumber.length() < acountNumberLength;
 
-        Optional<String> currencyOptional = Optional.ofNullable(currency);
-
         ATAccount account = new ATAccount();
         account.setCode(accountNumber);
         account.setName(name);
         account.setAnalytics(analyt);
         account.setYearlyBalanceReset(yearlyBalanceReset);
-        account.setCurrencyOptional(currencyOptional);
+        account.setCurrency(currency);
         account.setTitle(titleAccount);
         return account;
     }

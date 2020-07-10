@@ -96,6 +96,7 @@ public class AccountingManagerCache {
         return thirdPartiesById.values().stream();
     }
 
+
     public Stream<ATAccountingEntry> streamAccountingEntries() {
         this.cacheAccountingEntries();
         return accountingEntries.stream();
@@ -265,6 +266,7 @@ public class AccountingManagerCache {
             ATAccountingEntry atAccountingEntry = atAccountingEntryConverter.convertToTrollAccountingEntry(wbEntry);
             return Optional.of(atAccountingEntry);
         } catch (WinbooksException e) {
+            System.err.println(e);
             return Optional.empty();
         }
     }
@@ -317,11 +319,9 @@ public class AccountingManagerCache {
     private ATAccountingEntry linkEntryDocument(ATAccountingEntry accountingEntry, DocumentMatchingMode documentMatchingMode) {
         if (documentMatchingMode == DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS) {
             Optional<ATDocument> documentOptional = this.findAccountingEntryDocument(accountingEntry);
-            accountingEntry.setDocumentOptional(documentOptional);
-            return accountingEntry;
-        } else {
-            return accountingEntry;
+            documentOptional.ifPresent(accountingEntry::setDocument);
         }
+        return accountingEntry;
     }
 
     private Optional<ATDocument> findAccountingEntryDocument(ATAccountingEntry accountingEntry) {

@@ -8,7 +8,10 @@ import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATPeriodType;
 import be.valuya.accountingtroll.domain.ATThirdParty;
+import be.valuya.accountingtroll.domain.ATThirdPartyBalance;
 import be.valuya.accountingtroll.domain.ATThirdPartyType;
+import be.valuya.jbooks.model.WbClientSupplier;
+import be.valuya.jbooks.model.WbClientSupplierType;
 import be.valuya.winbooks.api.ParfiluxDossierCategory;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyIdFactory;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
@@ -32,8 +35,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -45,6 +50,8 @@ public class WinbooksParfiluxDossierTest {
     private static final String BOOK_YEAR_2016_NAME = "Ex. 2016";
     private static final BigDecimal ZERO = BigDecimal.valueOf(0).setScale(3, RoundingMode.UNNECESSARY);
     private static List<String> GENERAL_BALANCES_CSV_LINES;
+    private static List<String> CLIENTS_BALANCES_CSV_LINES;
+    private static List<String> SUPPLIERS_BALANCES_CSV_LINES;
 
     private WinbooksTrollAccountingManager trollSrervice;
     private AccountingEventListener eventListener;
@@ -53,6 +60,8 @@ public class WinbooksParfiluxDossierTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         GENERAL_BALANCES_CSV_LINES = readGeneralBalanceCSV();
+        CLIENTS_BALANCES_CSV_LINES = readClientsBalanceCSV();
+        SUPPLIERS_BALANCES_CSV_LINES = readSuppliersBalanceCSV();
     }
 
     @Before
@@ -204,6 +213,62 @@ public class WinbooksParfiluxDossierTest {
     }
 
     @Test
+    public void testThirdPartyBalances() {
+        Map<String, BigDecimal> openingBalances2017 = trollSrervice.streamThirdPartyBalances()
+                .filter(b -> b.getPeriod().getBookYear().getName().equals("Ex. 2017")
+                        && b.getPeriod().getPeriodType() == ATPeriodType.OPENING)
+                .collect(Collectors.groupingBy(balance -> balance.getThirdParty().getId()))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().stream().max(Comparator.comparing(ATThirdPartyBalance::getPeriod))
+                                .map(ATThirdPartyBalance::getPeriodEndBalance)
+                                .orElse(BigDecimal.ZERO)
+                ));
+        Map<String, BigDecimal> closingBalance2017 = trollSrervice.streamThirdPartyBalances()
+                .filter(b -> b.getPeriod().getBookYear().getName().equals("Ex. 2017"))
+//                .peek(this::debug)
+                .collect(Collectors.groupingBy(balance -> balance.getThirdParty().getId()))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().stream().max(Comparator.comparing(ATThirdPartyBalance::getPeriod))
+                                .map(ATThirdPartyBalance::getPeriodEndBalance)
+                                .orElse(BigDecimal.ZERO)
+                ));
+
+
+        List<String> clientsCSVLines = new ArrayList<>(CLIENTS_BALANCES_CSV_LINES).stream()
+                .skip(1) // header
+                .filter(s -> !s.trim().isEmpty())
+                .sorted()
+                .collect(Collectors.toList());
+        int clientsLineCOunt = clientsCSVLines.size();
+
+        int lineIndex = 0;
+        while (lineIndex < clientsLineCOunt) {
+            String csvLine = clientsCSVLines.get(lineIndex);
+            lineIndex = testThirdPartyBalanceLine(openingBalances2017, closingBalance2017, lineIndex, csvLine, WbClientSupplierType.CLIENT);
+        }
+
+        List<String> suppliersCSVLines = new ArrayList<>(SUPPLIERS_BALANCES_CSV_LINES).stream()
+                .skip(1) // header
+                .filter(s -> !s.trim().isEmpty())
+                .sorted()
+                .collect(Collectors.toList());
+        int suppliersLineCOunt = suppliersCSVLines.size();
+
+        lineIndex = 0;
+        while (lineIndex < suppliersLineCOunt) {
+            String csvLine = suppliersCSVLines.get(lineIndex);
+            lineIndex = testThirdPartyBalanceLine(openingBalances2017, closingBalance2017, lineIndex, csvLine, WbClientSupplierType.SUPPLIER);
+        }
+
+    }
+
+    @Test
     public void testCustomersProvidersBalance() {
         BigDecimal totalForAccount400000 = trollSrervice.streamAccountingEntries()
                 .filter(e -> e.getAccount().getCode().equals("400000"))
@@ -315,12 +380,23 @@ public class WinbooksParfiluxDossierTest {
     }
 
     private void debug(ATAccountBalance accountBalance) {
-        if (accountBalance.getAccount().getCode().equals("200009")) {
+        String code = accountBalance.getAccount().getCode();
+        if (code.equals("200009")) {
             String periodName = accountBalance.getPeriod().getName();
             BigDecimal periodStartBalance = accountBalance.getPeriodStartBalance();
             BigDecimal periodEndBalance = accountBalance.getPeriodEndBalance();
-            System.out.println(periodName + " : " + periodStartBalance + " -> " + periodEndBalance);
+            System.out.println(code + " " + periodName + " : " + periodStartBalance + " -> " + periodEndBalance);
         }
+    }
+
+    private void debug(ATThirdPartyBalance thirdPartyBalance) {
+        String thirdPartyId = thirdPartyBalance.getThirdParty().getId();
+//        if (thirdPartyId.equals("1ALPHA")) {
+        String periodName = thirdPartyBalance.getPeriod().getName();
+        BigDecimal periodStartBalance = thirdPartyBalance.getPeriodStartBalance();
+        BigDecimal periodEndBalance = thirdPartyBalance.getPeriodEndBalance();
+        System.out.println(thirdPartyId + " " + periodName + " : " + periodStartBalance + " -> " + periodEndBalance);
+//        }
     }
 
     private boolean isTestableAccount(String csvAccountNumber) {
@@ -338,4 +414,74 @@ public class WinbooksParfiluxDossierTest {
         }
     }
 
+    private static List<String> readClientsBalanceCSV() throws IOException {
+        try (InputStream csvStream = WinbooksParfiluxDossierTest.class.getClassLoader()
+                .getResourceAsStream("PARFILUX Balance courante clients.csv")) {
+            InputStreamReader streamReader = new InputStreamReader(csvStream);
+            BufferedReader bufferedReader = new BufferedReader(streamReader);
+            List<String> allLines = bufferedReader.lines().collect(Collectors.toList());
+            return allLines;
+        }
+    }
+
+    private static List<String> readSuppliersBalanceCSV() throws IOException {
+        try (InputStream csvStream = WinbooksParfiluxDossierTest.class.getClassLoader()
+                .getResourceAsStream("PARFILUX Balance courante fournisseurs.csv")) {
+            InputStreamReader streamReader = new InputStreamReader(csvStream);
+            BufferedReader bufferedReader = new BufferedReader(streamReader);
+            List<String> allLines = bufferedReader.lines().collect(Collectors.toList());
+            return allLines;
+        }
+    }
+
+    private int testThirdPartyBalanceLine(Map<String, BigDecimal> openingBalances2017, Map<String, BigDecimal> closingBalance2017,
+                                          int lineIndex, String csvLine, WbClientSupplierType supplierType) {
+        String[] csvColumns = csvLine.split("\t");
+        String thirdPartyRef = csvColumns[0].trim();
+        String thirdPartyName = csvColumns[1];
+        String reportedAmountString = csvColumns[2];
+        String negativeAmountString = csvColumns[3];
+        String positiveAmountString = csvColumns[4];
+        String endBalanceAmountString = csvColumns[5];
+
+        double reportedAmountDouble = Double.parseDouble(reportedAmountString.replaceAll(",", ""));
+        BigDecimal reportedAmount = BigDecimal.valueOf(reportedAmountDouble)
+                .negate()
+                .setScale(3, RoundingMode.HALF_UP);
+
+        double negativeAmountDouble = Double.parseDouble(negativeAmountString.replaceAll(",", ""));
+        BigDecimal negativeAmount = BigDecimal.valueOf(negativeAmountDouble)
+                .negate()
+                .setScale(3, RoundingMode.HALF_UP);
+
+        double positiveAmountDouble = Double.parseDouble(positiveAmountString.replaceAll(",", ""));
+        BigDecimal positiveAmount = BigDecimal.valueOf(positiveAmountDouble)
+                .setScale(3, RoundingMode.HALF_UP);
+
+        double endBalanceAmountDouble = Double.parseDouble(endBalanceAmountString.replaceAll(",", ""));
+        BigDecimal endBalanceAmount = BigDecimal.valueOf(endBalanceAmountDouble)
+                .negate()
+                .setScale(3, RoundingMode.HALF_UP);
+
+        Optional<BigDecimal> actualOpeningBalanceOptional =
+                Optional.ofNullable(openingBalances2017.get(supplierType.getValue() + thirdPartyRef))
+                        .map(b -> b.setScale(3, RoundingMode.HALF_UP));
+        BigDecimal actualClosingBalance =
+                Optional.ofNullable(closingBalance2017.get(supplierType.getValue() + thirdPartyRef))
+                        .orElse(BigDecimal.ZERO)
+                        .setScale(3, RoundingMode.HALF_UP);
+
+
+        int finalIndex = lineIndex;
+        actualOpeningBalanceOptional.ifPresent(openingBalance -> {
+            Assert.assertEquals("Opening balance mismatch at index " + finalIndex,
+                    reportedAmount, openingBalance);
+        });
+
+        Assert.assertEquals("Closing balance mismatch at index " + lineIndex,
+                endBalanceAmount, actualClosingBalance);
+
+        lineIndex += 1;
+        return lineIndex;
+    }
 }
