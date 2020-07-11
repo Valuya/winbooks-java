@@ -1,9 +1,8 @@
 package be.valuya.winbooks.api.accountingtroll.converter;
 
 import be.valuya.accountingtroll.domain.ATAccount;
+import be.valuya.accountingtroll.domain.ATAccountImputationType;
 import be.valuya.jbooks.model.WbAccount;
-
-import java.util.Optional;
 
 public class ATAccountConverter {
 
@@ -23,6 +22,7 @@ public class ATAccountConverter {
         account.setYearlyBalanceReset(yearlyBalanceReset);
         account.setCurrency(currency);
         account.setTitle(titleAccount);
+        account.setImputationType(ATAccountImputationType.UNKNOWN);
         return account;
     }
 
