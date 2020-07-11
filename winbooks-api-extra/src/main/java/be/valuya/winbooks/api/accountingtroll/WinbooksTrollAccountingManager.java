@@ -82,7 +82,7 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
         ThirdPartyBalanceSpliterator balanceSpliterator = new ThirdPartyBalanceSpliterator(entryStream, allPeriods);
 
         balanceSpliterator.setResetOnBookYearOpening(true);
-        balanceSpliterator.setIgnoreIntermediatePeriodOpeningEntry(true);
+        balanceSpliterator.setIgnoreIntermediatePeriodOpeningEntry(false);
 
         return StreamSupport.stream(balanceSpliterator, false);
     }
