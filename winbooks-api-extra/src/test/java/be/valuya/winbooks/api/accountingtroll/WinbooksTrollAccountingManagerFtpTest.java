@@ -79,9 +79,11 @@ public class WinbooksTrollAccountingManagerFtpTest {
         Path ftpBasePath = Paths.get(uri)
                 .resolve(FTP_PATH_NAME);
         WinbooksFileConfiguration winbooksFileConfiguration = winbooksExtraService.createWinbooksFileConfiguration(ftpBasePath, BASE_NAME);
-        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
+//        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.EAGERLY_CACHE_ALL_DOCUMENTS);
+        winbooksFileConfiguration.setDocumentMatchingMode(DocumentMatchingMode.SKIP);
         winbooksFileConfiguration.setResolveArchivedBookYears(true);
         winbooksFileConfiguration.setResolveDocumentTimes(false);
+//        winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(false);
 
         trollSrervice = new WinbooksTrollAccountingManager(winbooksFileConfiguration);
     }
@@ -143,6 +145,12 @@ public class WinbooksTrollAccountingManagerFtpTest {
     @Test
     public void testStreamBalances() {
         trollSrervice.streamAccountingEntries()
+                .forEach(this::debug);
+    }
+
+    @Test
+    public void testStreamThirdPartyBalances() {
+        trollSrervice.streamThirdPartyBalances()
                 .forEach(this::debug);
     }
 
