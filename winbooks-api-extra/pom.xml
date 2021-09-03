@@ -111,7 +111,8 @@
                                 <winbooks.test.ftp.user.name>${winbooks.test.ftp.user.name}
                                 </winbooks.test.ftp.user.name>
                                 <winbooks.test.ftp.password>${winbooks.test.ftp.password}</winbooks.test.ftp.password>
-                                <winbooks.test.ftp.path.mappings>${winbooks.test.ftp.path.mappings}</winbooks.test.ftp.path.mappings>
+                                <winbooks.test.ftp.path.mappings>${winbooks.test.ftp.path.mappings}
+                                </winbooks.test.ftp.path.mappings>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>

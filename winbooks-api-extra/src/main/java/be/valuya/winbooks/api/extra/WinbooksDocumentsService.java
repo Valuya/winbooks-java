@@ -36,7 +36,9 @@ class WinbooksDocumentsService {
     private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_1 = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)_(\\d{2}).pdf$");
     // New file pattern: 'LEDGER_PERIODINDEX_DOCNUMBER___PAGEFOURDIGITS_FLAG.pdf' (ACHATS_01_200083___00000_B.pdf)
     // Flag may be A or B at least
-    private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_2 = Pattern.compile("^(\\w+)_(\\d+)_(\\d+)___(\\d{5})_([A-Z]).pdf$");
+    private static final Pattern BOOK_YEAR_DOCUMENT_FILENAME_PATTERN_2 = Pattern.compile(
+            "^(?<dbcode>[^_]+)_(?<periodid>\\d+)_(?<docnumber>\\d+)(?<unknown1>(_(\\d+))*)___(?<partnumber>\\d{5})_(?<flag>[A-Z]).pdf$"
+    );
 
 
     Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear) {
@@ -155,15 +157,16 @@ class WinbooksDocumentsService {
             fileNameTemplate = MessageFormat.format("{0}_{1}_{2}_{3}.pdf",
                     actualDbkCode, periodName, documentNumber, "{0,number,00}");
         } else if (matcher2.matches()) {
-            actualDbkCode = matcher2.group(1);
-            periodName = matcher2.group(2);
-            documentNumber = matcher2.group(3);
-            partNrString = matcher2.group(4);
+            actualDbkCode = matcher2.group("dbcode");
+            periodName = matcher2.group("periodid");
+            documentNumber = matcher2.group("docnumber");
+            partNrString = matcher2.group("partnumber");
+            String unknown1String = matcher2.group("unknown1");
             // TODO
-            String unknownFlag = matcher2.group(5);
+            String unknownFlag = matcher2.group("flag");
             partNumber = Integer.valueOf(partNrString);
-            fileNameTemplate = MessageFormat.format("{0}_{1}_{2}___{3}_{4}.pdf",
-                    actualDbkCode, periodName, documentNumber, "{0,number,00000}", unknownFlag);
+            fileNameTemplate = MessageFormat.format("{0}_{1}_{2}{5}___{3}_{4}.pdf",
+                    actualDbkCode, periodName, documentNumber, "{0,number,00000}", unknownFlag, unknown1String);
         } else {
             return Optional.empty();
         }
