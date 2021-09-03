@@ -54,7 +54,7 @@
 
 
     <properties>
-        <accountingtroll.version>4.0.1-SNAPSHOT</accountingtroll.version>
+        <accountingtroll.version>5.0.0</accountingtroll.version>
     </properties>
 
     <dependencyManagement>
