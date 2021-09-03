@@ -10,7 +10,6 @@ import be.valuya.accountingtroll.domain.ATPeriodType;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.ATThirdPartyBalance;
 import be.valuya.accountingtroll.domain.ATThirdPartyType;
-import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;
 import be.valuya.winbooks.api.ParfiluxDossierCategory;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyIdFactory;
