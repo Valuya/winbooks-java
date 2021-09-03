@@ -5,6 +5,10 @@ pipeline {
         booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Force deploy on feature branches')
         string(name: 'ALT_DEPLOYMENT_REPOSITORY', defaultValue: '', description: 'Alternative deployment repo')
         string(name: 'MVN_ARGS', defaultValue: '', description: 'Additional maven args')
+        string(name: 'GPG_KEY_CREDENTIAL_ID', defaultValue: 'jenkins-jenkins-valuya-maven-deploy-gpg-key',
+         description: 'Credential containing the private gpg key (pem)')
+        string(name: 'GPG_KEY_FINGERPRINT', defaultValue: '98547E57F1690E2901E74CAB04EBAAA5BAB4A4DF',
+         description: 'The fingerprint of this key to add to trust root')
     }
     options {
         disableConcurrentBuilds()
@@ -18,6 +22,10 @@ pipeline {
                     if (params.ALT_DEPLOYMENT_REPOSITORY != '') {
                         env.MVN_ARGS="${env.MVN_ARGS} -DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
                     }
+                }
+                withCredentials([file(credentialsId: "${params.GPG_KEY_CREDENTIAL_ID}", variable: 'GPGKEY')]) {
+                    sh 'gpg --allow-secret-key-import --import $GPGKEY'
+                    sh "echo \"${params.GPG_KEY_FINGERPRINT}:6:\" | gpg --import-ownertrust"
                 }
                 withMaven(maven: 'maven', mavenSettingsConfig: 'ossrh-settings-xml') {
                     lock ('download-maven-plugin') {
@@ -39,7 +47,7 @@ pipeline {
                     if (params.ALT_DEPLOYMENT_REPOSITORY != '') {
                         env.MVN_ARGS="${env.MVN_ARGS} -DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
                     }
-                    if (env.BRANCH_NAME == 'master') {
+                    if (env.BRANCH_NAME == 'master' || params.FORCE_DEPLOY == true) {
                         env.MVN_ARGS="${env.MVN_ARGS} -Possrh-deploy"
                     }
                 }
