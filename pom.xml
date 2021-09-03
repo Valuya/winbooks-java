@@ -52,12 +52,17 @@
         <url>http://github.com/ymajoros/winbooks-java/tree/master</url>
     </scm>
 
+
+    <properties>
+        <accountingtroll.version>4.0.1-SNAPSHOT</accountingtroll.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>be.valuya.accountingtroll</groupId>
                 <artifactId>accountingtroll</artifactId>
-                <version>4.0.1-SNAPSHOT</version>
+                <version>${accountingtroll.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
