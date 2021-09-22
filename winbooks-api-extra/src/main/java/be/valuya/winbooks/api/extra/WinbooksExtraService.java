@@ -54,13 +54,13 @@ public class WinbooksExtraService {
     private static final int ACCOUNT_NUMBER_DEFAULT_LENGTH = 6;
 
     // some invalid String that Winbooks likes to have
-    private static final String CHAR0_STRING = Character.toString((char) 0);
+    private static final String NULL_CHAR0_STRING = Character.toString((char) 0);
     private static final String DBF_EXTENSION = ".dbf";
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
 
 
     private final WinbooksDocumentsService documentService = new WinbooksDocumentsService();
-    private final Map<String, Path> tableFilePathMap = new HashMap<>();
+    private final Map<TableBasePath, Path> tableFilePathMap = new HashMap<>();
 
 
     /**
@@ -481,7 +481,7 @@ public class WinbooksExtraService {
     }
 
     private boolean isWbValidString(String str) {
-        return str == null || !str.startsWith(CHAR0_STRING);
+        return str == null || !str.startsWith(NULL_CHAR0_STRING);
     }
 
 
@@ -626,7 +626,8 @@ public class WinbooksExtraService {
     }
 
     private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
-        Path existingPath = tableFilePathMap.get(tableName);
+        TableBasePath tableBasePath = new TableBasePath(tableName, basePath);
+        Path existingPath = tableFilePathMap.get(tableBasePath);
         if (existingPath != null) {
             return existingPath;
         }
@@ -654,8 +655,8 @@ public class WinbooksExtraService {
                     String message = MessageFormat.format("Could not find table {0} in folder {1}", tableName, baseFolderPathName);
                     return new WinbooksException(WinbooksError.DOSSIER_NOT_FOUND, message);
                 });
-        tableFilePathMap.put(tableName, tablePath);
-        LOGGER.info("Found table " + tableName + " at " + tablePath.toString());
+        tableFilePathMap.put(tableBasePath, tablePath);
+        LOGGER.info("Found table base path " + tableBasePath + " at " + tablePath.toString());
         return tablePath;
     }
 
