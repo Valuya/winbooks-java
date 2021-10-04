@@ -526,6 +526,9 @@ public class WinbooksExtraService {
 
     private List<LocalDate> parsePeriodDates(String allPeriodDatesStr) {
         List<LocalDate> periodDates = new ArrayList<>();
+        if (allPeriodDatesStr == null || allPeriodDatesStr.isBlank()) {
+            return periodDates;
+        }
         int allPeriodLength = allPeriodDatesStr.length();
         int i = 0;
         while (i < allPeriodLength) {
