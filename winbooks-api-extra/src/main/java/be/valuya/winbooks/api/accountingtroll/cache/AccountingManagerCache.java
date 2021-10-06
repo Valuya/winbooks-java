@@ -6,6 +6,7 @@ import be.valuya.accountingtroll.domain.ATBookPeriod;
 import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATThirdParty;
+import be.valuya.accountingtroll.domain.ATVatCode;
 import be.valuya.jbooks.model.WbAccount;
 import be.valuya.jbooks.model.WbBookYearFull;
 import be.valuya.jbooks.model.WbClientSupplier;
@@ -14,6 +15,7 @@ import be.valuya.jbooks.model.WbDocType;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.jbooks.model.WbVatCodeSpec;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATAccountingEntryConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATBookPeriodConverter;
@@ -21,12 +23,14 @@ import be.valuya.winbooks.api.accountingtroll.converter.ATBookYearConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyConverter;
 import be.valuya.winbooks.api.accountingtroll.converter.ATThirdPartyIdFactory;
+import be.valuya.winbooks.api.accountingtroll.converter.ATVatCodeConverter;
 import be.valuya.winbooks.api.extra.WinbooksExtraService;
 import be.valuya.winbooks.api.extra.config.DocumentMatchingMode;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +42,7 @@ import java.util.stream.Stream;
 public class AccountingManagerCache {
 
     private List<WbBookYearFull> wbBookYearFulls;
+    private Map<String, ATVatCode> vatCodesById;
     private Map<String, ATBookYear> bookYearsByShortName;
     private Map<String, List<ATBookPeriod>> bookPeriodsByBookYearShortName;
     private Map<String, ATAccount> accountsByCode;
@@ -54,6 +59,7 @@ public class AccountingManagerCache {
     private final ATBookPeriodConverter atBookPeriodConverter;
     private final ATThirdPartyConverter atThirdPartyConverter;
     private final ATDocumentConverter atDocumentConverter;
+    private final ATVatCodeConverter atVatCodeConverter;
 
     public AccountingManagerCache(WinbooksFileConfiguration fileConfiguration) {
         this.fileConfiguration = fileConfiguration;
@@ -65,6 +71,12 @@ public class AccountingManagerCache {
         atBookPeriodConverter = new ATBookPeriodConverter(this);
         atThirdPartyConverter = new ATThirdPartyConverter();
         atDocumentConverter = new ATDocumentConverter(this);
+        atVatCodeConverter = new ATVatCodeConverter();
+    }
+
+    public Stream<ATVatCode> streamVatCodes() {
+        this.cacheVatCodes();
+        return vatCodesById.values().stream();
     }
 
     public Stream<WbBookYearFull> streamWbBookYearFulls() {
@@ -127,6 +139,13 @@ public class AccountingManagerCache {
                 .orElseThrow(() -> new WinbooksException(WinbooksError.FATAL_ERRORS, "Could not find period for wbperiod " + wbPeriod));
     }
 
+    public Optional<ATVatCode> getCachedVatCodeById(String id) {
+        cacheVatCodes();
+        ATVatCode atVatCode = vatCodesById.get(id);
+        return Optional.ofNullable(atVatCode);
+    }
+
+
     public Optional<ATAccount> getCachedAccountByCodeOptional(String accountCode) {
         cacheAccounts();
         ATAccount accountNullable = accountsByCode.get(accountCode);
@@ -158,6 +177,24 @@ public class AccountingManagerCache {
         ATThirdParty thirdParty = thirdPartiesById.get(id);
         return Optional.ofNullable(thirdParty);
     }
+
+    private void cacheVatCodes() {
+        if (vatCodesById != null) {
+            return;
+        }
+
+        vatCodesById = extraService.streamVatCodes(fileConfiguration)
+                .filter(this::isValidVatCode)
+                .map(wbSpec -> this.safeConvertToTrollVatCode(wbSpec))
+                .peek(e -> this.checkThrowOnConversion(e, WinbooksError.CANNOT_OPEN_DOSSIER))
+                .flatMap(this::streamOptional)
+                .collect(Collectors.toMap(
+                        at -> at.getIdOptional().orElseThrow(),
+                        Function.identity(),
+                        (t1, t2) -> t1)// Override in case of dupplicates
+                );
+    }
+
 
     private void cacheAccounts() {
         if (accountsByCode != null) {
@@ -298,6 +335,15 @@ public class AccountingManagerCache {
         }
     }
 
+    private Optional<ATVatCode> safeConvertToTrollVatCode(WbVatCodeSpec wbSpec) {
+        try {
+            ATVatCode atVatCode = atVatCodeConverter.convertToTrollVatCode(wbSpec);
+            return Optional.of(atVatCode);
+        } catch (WinbooksException e) {
+            return Optional.empty();
+        }
+    }
+
     private Optional<ATBookPeriod> safeConvertToTrollPeriod(WbPeriod wbPeriod, WbBookYearFull bookYearFull) {
         try {
             ATBookPeriod atBookPeriod = atBookPeriodConverter.convertToTrollPeriod(bookYearFull, wbPeriod);
@@ -386,4 +432,12 @@ public class AccountingManagerCache {
                 .filter(Objects::nonNull);
     }
 
+    private boolean isValidVatCode(WbVatCodeSpec wbVatCodeSpec) {
+        String wbCode = wbVatCodeSpec.getWbCode();
+        String frCode = wbVatCodeSpec.getFrCode();
+        BigDecimal ratePercent = wbVatCodeSpec.getRatePercent();
+        return wbCode != null && !wbCode.isBlank()
+                && frCode != null && !frCode.isBlank()
+                && ratePercent != null;
+    }
 }

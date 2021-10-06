@@ -7,5 +7,6 @@ public class WinbooksTableName {
     public static final String BOOKYEARS_TABLE_NAME = "slbky";
     public static final String PARAM_TABLE_NAME = "param";
     public static final String PERIOD_TABLE_NAME = "slprd";
+    public static final String VAT_CODES = "codevat";
 
 }

@@ -6,27 +6,21 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Winbooks doc:<br/>
- * 1 : Liable<br/>
- * 2: Zero-rated<br/>
- * 3: Non liable<br/>
- * 0: Indeterminate<br/>
- * WinBooks only manages VAT if VATCAT = ‘1’ (liable)
- *
- * @author Yannick Majoros
- * <yannick@valuya.be>
+ * From what appears in the dbf:<br/>
+ * 0: fully deducible<br/>
+ * 1: not deducible<br/>
+ * 2: Partially deducible<br/>
  */
-public enum WbVatCat implements WbValue {
+public enum WbVatDeducibility implements WbValue {
 
-    UNKNOWN("0", "-"),
-    LIABLE("1"),
-    ZERO_RATED("2"),
-    NON_LIABLE("3");
+    DEDUCIBLE("0"),
+    NO_DEDUCIBLE("1"),
+    PARTIALLY_DEDUCIBLE("2");
 
     private final List<String> allCodes;
     private String value;
 
-    WbVatCat(String value, String... otherCodeArray) {
+    WbVatDeducibility(String value, String... otherCodeArray) {
         this.value = value;
         List<String> otherCodes = Arrays.asList(otherCodeArray);
         List<String> allCodes = new ArrayList<>();
@@ -40,11 +34,11 @@ public enum WbVatCat implements WbValue {
         return value;
     }
 
-    public static WbVatCat fromCode(String code) {
+    public static WbVatDeducibility fromCode(String code) {
         return Stream.of(values())
                 .filter(wbVatCat -> wbVatCat.hasCode(code))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Invalid vat cat: " + code));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid vat deducibilty: " + code));
     }
 
     public boolean hasCode(String code) {
