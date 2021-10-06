@@ -8,6 +8,7 @@ import be.valuya.jbooks.model.WbDocument;
 import be.valuya.jbooks.model.WbEntry;
 import be.valuya.jbooks.model.WbParam;
 import be.valuya.jbooks.model.WbPeriod;
+import be.valuya.jbooks.model.WbVatCodeSpec;
 import be.valuya.winbooks.api.extra.config.WinbooksFileConfiguration;
 import be.valuya.winbooks.api.extra.reader.DbfUtils;
 import be.valuya.winbooks.api.extra.reader.PeriodResolver;
@@ -16,6 +17,7 @@ import be.valuya.winbooks.api.extra.reader.WbBookYearFullDbfReader;
 import be.valuya.winbooks.api.extra.reader.WbClientSupplierDbfReader;
 import be.valuya.winbooks.api.extra.reader.WbEntryDbfReader;
 import be.valuya.winbooks.api.extra.reader.WbParamDbfReader;
+import be.valuya.winbooks.api.extra.reader.WbVatCodeSpecDbfReader;
 import be.valuya.winbooks.domain.WinbooksDossierThirdParty;
 import be.valuya.winbooks.domain.WinbooksParamNames;
 import be.valuya.winbooks.domain.error.WinbooksConfigurationException;
@@ -209,6 +211,14 @@ public class WinbooksExtraService {
         return streamTable(winbooksFileConfiguration, baseFolderPath, WinbooksTableName.CUSTOMER_SUPPLIERS)
                 .map(wbClientSupplierDbfReader::readWbClientSupplierFromAcfDbfRecord);
     }
+
+    public Stream<WbVatCodeSpec> streamVatCodes(WinbooksFileConfiguration winbooksFileConfiguration) {
+        Path baseFolderPath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
+        WbVatCodeSpecDbfReader vatCodeSpecDbfReader = new WbVatCodeSpecDbfReader();
+        return streamTable(winbooksFileConfiguration, baseFolderPath, WinbooksTableName.VAT_CODES)
+                .map(vatCodeSpecDbfReader::readWbVatCodeSpecFromDbf);
+    }
+
 
     public Stream<WbDocument> streamBookYearDocuments(WinbooksFileConfiguration fileConfiguration, WbBookYearFull bookYear) {
         return documentService.streamBookYearDocuments(fileConfiguration, bookYear);

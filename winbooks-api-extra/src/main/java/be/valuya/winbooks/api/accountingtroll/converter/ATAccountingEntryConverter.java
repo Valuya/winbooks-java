@@ -3,6 +3,7 @@ package be.valuya.winbooks.api.accountingtroll.converter;
 import be.valuya.accountingtroll.domain.ATAccount;
 import be.valuya.accountingtroll.domain.ATAccountingEntry;
 import be.valuya.accountingtroll.domain.ATBookPeriod;
+import be.valuya.accountingtroll.domain.ATCurrencyAmount;
 import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATTax;
 import be.valuya.accountingtroll.domain.ATThirdParty;
@@ -51,7 +52,9 @@ public class ATAccountingEntryConverter {
         String accountToId = wbEntry.getAccountRp();
         Optional<ATThirdParty> thirdPartyOptional = accountingManagerCache.getCachedThirdPartyOptional(accountToId, wbDocType);
 
-        Optional<ATTax> taxOptional = Optional.empty(); // TODO
+        Optional<ATTax> taxOptional = convertTaxOptional(wbEntry);
+        Optional<ATCurrencyAmount> currencyAmountOptional = convertCurrencyAmountOtional(wbEntry);
+
         // Matching is done post-conversion
         Optional<ATDocument> documentOptional = Optional.empty();
 
@@ -87,7 +90,9 @@ public class ATAccountingEntryConverter {
         accountingEntry.setAccountingEntryDocumentType(documentType);
         accountingEntry.setAccountingEntryType(accountingEntryType);
 
-//        accountingEntry.setTaxOptional(taxOptional);
+        taxOptional.ifPresent(accountingEntry::setTax);
+        currencyAmountOptional.ifPresent(accountingEntry::setCurrencyAmount);
+
         thirdPartyOptional.ifPresent(accountingEntry::setThirdParty);
         documentLocalDateOptional.ifPresent(accountingEntry::setDocumentDate);
         dueDateOptional.ifPresent(accountingEntry::setDueDate);
@@ -95,6 +100,44 @@ public class ATAccountingEntryConverter {
         documentOptional.ifPresent(accountingEntry::setDocument);
 
         return accountingEntry;
+    }
+
+    private Optional<ATCurrencyAmount> convertCurrencyAmountOtional(WbEntry wbEntry) {
+        BigDecimal currAmount = wbEntry.getCurrAmount();
+        String currCode = wbEntry.getCurrCode();
+        BigDecimal curRate = wbEntry.getCurRate();
+        BigDecimal curEurBase = wbEntry.getCurEurBase();
+        if (currAmount == null || currCode == null || currCode.isBlank()) {
+            return Optional.empty();
+        }
+
+        ATCurrencyAmount currencyAmount = new ATCurrencyAmount();
+
+        currencyAmount.setAmount(currAmount);
+
+        currencyAmount.setCurrencyCode(currCode);
+
+        currencyAmount.setRate(curRate);
+
+        currencyAmount.setEuroBase(curEurBase);
+
+        return Optional.of(currencyAmount);
+    }
+
+    private Optional<ATTax> convertTaxOptional(WbEntry wbEntry) {
+
+        ATTax atTax = new ATTax();
+
+        String wbVatCode = wbEntry.getVatCode();
+        Optional.ofNullable(wbVatCode)
+                .flatMap(accountingManagerCache::getCachedVatCodeById)
+                .ifPresent(atTax::setVatCode);
+
+        atTax.setVatBase(wbEntry.getVatBase());
+        atTax.setVatAmount(wbEntry.getVatTax());
+        atTax.setVatImputation(wbEntry.getVatImput());
+
+        return Optional.of(atTax);
     }
 
     private AccountingEntryType getEntryType(WbDbkType wbDbkType) {

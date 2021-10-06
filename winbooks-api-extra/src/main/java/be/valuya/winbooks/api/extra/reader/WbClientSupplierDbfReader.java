@@ -86,7 +86,8 @@ public class WbClientSupplierDbfReader {
                     .ifPresent(wbClientSupplier::setWbClientSupplierType);
 
             Optional.ofNullable(vatCatNullable)
-                    .map(WbVatCat::fromCode);
+                    .map(WbVatCat::fromCode)
+                    .ifPresent(wbClientSupplier::setWbVatCat);
 
             return wbClientSupplier;
         } catch (ParseException parseException) {

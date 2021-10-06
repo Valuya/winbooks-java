@@ -11,6 +11,7 @@ import be.valuya.accountingtroll.domain.ATBookYear;
 import be.valuya.accountingtroll.domain.ATDocument;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.ATThirdPartyBalance;
+import be.valuya.accountingtroll.domain.ATVatCode;
 import be.valuya.jbooks.model.WbDocument;
 import be.valuya.winbooks.api.accountingtroll.cache.AccountingManagerCache;
 import be.valuya.winbooks.api.accountingtroll.converter.ATDocumentConverter;
@@ -63,6 +64,11 @@ public class WinbooksTrollAccountingManager implements AccountingManager {
     public Optional<LocalDateTime> getLastAccountModificationTime() {
         LocalDateTime modificationDateTime = extraService.getActModificationDateTime(fileConfiguration);
         return Optional.of(modificationDateTime);
+    }
+
+    @Override
+    public Stream<ATVatCode> streamVatCodes() {
+        return accountingManagerCache.streamVatCodes();
     }
 
     @Override
