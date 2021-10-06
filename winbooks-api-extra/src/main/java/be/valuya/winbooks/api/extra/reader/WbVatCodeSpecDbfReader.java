@@ -65,9 +65,9 @@ public class WbVatCodeSpecDbfReader {
             wbVatCodeSpec.setFrLabel(labelFr);
             wbVatCodeSpec.setFrDescription(resumeFr);
 
-            wbVatCodeSpec.setFrHeader(headerNl);
-            wbVatCodeSpec.setFrLabel(labelNl);
-            wbVatCodeSpec.setFrDescription(resumeNl);
+            wbVatCodeSpec.setNlHeader(headerNl);
+            wbVatCodeSpec.setNlLabel(labelNl);
+            wbVatCodeSpec.setNlDescription(resumeNl);
 
             wbVatCodeSpec.setAccountInvCode1(invCode1);
             wbVatCodeSpec.setAccountInvCode2(invCode2);
