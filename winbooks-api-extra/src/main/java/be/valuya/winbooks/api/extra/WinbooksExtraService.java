@@ -390,6 +390,9 @@ public class WinbooksExtraService {
 
             String perDatesStr = paramMap.get(bookYearParamPrefix + "." + "PERDATE");
             List<LocalDate> periodDates = parsePeriodDates(perDatesStr);
+            if (periodDates.isEmpty()) {
+                continue;
+            }
 
             int periodCount = periodDates.size() - 2;
             int durationInMonths = 12 / periodCount;
@@ -524,6 +527,9 @@ public class WinbooksExtraService {
 
     private List<String> parsePeriodNames(String concatenatedPeriodNames) {
         List<String> periodNames = new ArrayList<>();
+        if (concatenatedPeriodNames == null || concatenatedPeriodNames.isBlank()) {
+            return periodNames;
+        }
 
         int length = concatenatedPeriodNames.length();
         for (int i = 0; i + 8 <= length; i += 8) {
