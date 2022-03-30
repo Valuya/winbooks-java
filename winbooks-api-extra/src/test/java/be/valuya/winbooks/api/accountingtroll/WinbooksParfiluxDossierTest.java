@@ -370,7 +370,7 @@ public class WinbooksParfiluxDossierTest {
                 .orElseThrow(AssertionError::new);
         System.out.println(thirdParty);
 
-        thirdParty.getTypeOptional()
+        Optional.ofNullable(thirdParty.getType())
                 .filter(type -> type == expectedThirdPartyType)
                 .orElseThrow(AssertionError::new);
         String thirdPartyId = thirdParty.getId();

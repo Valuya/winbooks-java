@@ -55,7 +55,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <accountingtroll.version>6.0.0</accountingtroll.version>
+        <accountingtroll.version>7.0.0-SNAPSHOT</accountingtroll.version>
     </properties>
 
     <dependencyManagement>
