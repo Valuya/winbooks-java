@@ -92,10 +92,10 @@ public class WinbooksTrollAccountingManagerLocalTest {
                 .filter(e -> e.getBookPeriod().getStartDate().getYear() == 2017)
                 .collect(Collectors.toList());
         long withDocumentCount = allEntries.stream()
-                .filter(e -> e.getDocumentOptional().isPresent())
+                .filter(e -> e.getDocument() != null)
                 .count();
         long withoutDocumentCount = allEntries.stream()
-                .filter(e -> !e.getDocumentOptional().isPresent())
+                .filter(e -> e.getDocument() == null)
                 .count();
         long endTime = System.currentTimeMillis();
 

@@ -62,6 +62,7 @@ public class ATAccountingEntryConverter {
         Date documentDate = wbEntry.getDateDoc();
         Date dueDate = wbEntry.getDueDate();
         boolean matched = wbEntry.isMatched();
+        String matchNo = wbEntry.getMatchNo();
 
         WbDocOrderType wbDocOrderType = wbEntry.getWbDocOrderType();
         AccountingEntryDocumentNumberType documentNumberType = this.getDocNumberType(wbDocOrderType);
@@ -84,6 +85,7 @@ public class ATAccountingEntryConverter {
         accountingEntry.setDbkCode(dbkCode);
         accountingEntry.setAccount(account);
         accountingEntry.setMatched(matched);
+        accountingEntry.setMatchNumber(matchNo);
         accountingEntry.setDocNumber(docNumber);
         accountingEntry.setDocNumberType(documentNumberType);
         accountingEntry.setOrderingNumber(docOrder);

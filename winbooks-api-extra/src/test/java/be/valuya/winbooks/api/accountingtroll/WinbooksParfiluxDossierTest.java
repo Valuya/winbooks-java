@@ -366,7 +366,7 @@ public class WinbooksParfiluxDossierTest {
         ATAccountingEntry accountingEntry = accountingEntries.get(0);
         System.out.println(accountingEntry);
 
-        ATThirdParty thirdParty = accountingEntry.getThirdPartyOptional()
+        ATThirdParty thirdParty = Optional.ofNullable(accountingEntry.getThirdParty())
                 .orElseThrow(AssertionError::new);
         System.out.println(thirdParty);
 
