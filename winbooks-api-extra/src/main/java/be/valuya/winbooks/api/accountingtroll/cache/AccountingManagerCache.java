@@ -261,6 +261,7 @@ public class AccountingManagerCache {
         if (thirdPartiesById != null) {
             return;
         }
+        cacheVatCodes();
         thirdPartiesById = extraService.streamCsf(fileConfiguration)
                 .filter(this::isValidClientSupplier)
                 .map(this::safeConvertToTrollThirdParty)
@@ -275,7 +276,6 @@ public class AccountingManagerCache {
                         }
                 ));
     }
-
 
     private void cacheAccountingEntries() {
         if (accountingEntries != null) {
@@ -310,7 +310,9 @@ public class AccountingManagerCache {
 
     private Optional<ATThirdParty> safeConvertToTrollThirdParty(WbClientSupplier wbSupplier) {
         try {
-            ATThirdParty aThirdParty = atThirdPartyConverter.convertToTrollThirdParty(wbSupplier);
+            String vatCodeId = wbSupplier.getVatCode();
+            Optional<ATVatCode> vatCodeOptional = Optional.ofNullable(this.vatCodesById.get(vatCodeId));
+            ATThirdParty aThirdParty = atThirdPartyConverter.convertToTrollThirdParty(wbSupplier, vatCodeOptional);
             return Optional.of(aThirdParty);
         } catch (WinbooksException e) {
             return Optional.empty();

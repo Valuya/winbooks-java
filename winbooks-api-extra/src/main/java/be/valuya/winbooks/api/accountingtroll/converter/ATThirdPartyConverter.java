@@ -2,6 +2,7 @@ package be.valuya.winbooks.api.accountingtroll.converter;
 
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.ATThirdPartyType;
+import be.valuya.accountingtroll.domain.ATVatCode;
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;
 import be.valuya.winbooks.domain.WinbooksDossierThirdParty;
@@ -14,7 +15,7 @@ import java.util.stream.Stream;
 public class ATThirdPartyConverter {
 
 
-    public ATThirdParty convertToTrollThirdParty(WbClientSupplier wbSupplier) {
+    public ATThirdParty convertToTrollThirdParty(WbClientSupplier wbSupplier, Optional<ATVatCode> vatCodeOptional) {
         String number = wbSupplier.getNumber();
         WbClientSupplierType wbClientSupplierType = wbSupplier.getWbClientSupplierType();
         ATThirdPartyType thirdPartyType = wbClientSupplierType == WbClientSupplierType.SUPPLIER ?
@@ -36,8 +37,13 @@ public class ATThirdPartyConverter {
         String bankAccount = wbSupplier.getBankAccount();
         String lang = wbSupplier.getLang();
 
+        String defaultGlAccount = wbSupplier.getDefltPost();
+        String central = wbSupplier.getCentral();
+
+
         ATThirdParty thirdParty = new ATThirdParty();
         thirdParty.setId(id);
+        thirdParty.setAccountingReference(number);
         thirdParty.setType(thirdPartyType);
         thirdParty.setFullName(fullName);
         thirdParty.setAddress(address);
@@ -48,6 +54,11 @@ public class ATThirdPartyConverter {
         thirdParty.setPhoneNumber(phoneNumber);
         thirdParty.setBankAccountNumber(bankAccount);
         thirdParty.setLanguage(lang);
+
+        thirdParty.setDefaultGlAccount(defaultGlAccount);
+        thirdParty.setCentral(central);
+        vatCodeOptional.ifPresent(thirdParty::setVatCode);
+
         return thirdParty;
     }
 
