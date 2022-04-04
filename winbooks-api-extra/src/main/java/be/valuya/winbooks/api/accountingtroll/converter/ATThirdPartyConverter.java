@@ -69,6 +69,9 @@ public class ATThirdPartyConverter {
         Optional.ofNullable(dossierThirdParty.getName())
                 .ifPresent(thirdParty::setFullName);
 
+        Optional.ofNullable(dossierThirdParty.getCode())
+                .ifPresent(thirdParty::setAccountingReference);
+
         String fullAddress = Stream.of(dossierThirdParty.getAddress1(), dossierThirdParty.getAddress2())
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.joining("\n"));
@@ -84,6 +87,8 @@ public class ATThirdPartyConverter {
                 .ifPresent(thirdParty::setCountryCode);
         Optional.ofNullable(dossierThirdParty.getVatNumber())
                 .ifPresent(thirdParty::setVatNumber);
+
+        // TODO: needs to read more from the params table to fill other fields
 
         return thirdParty;
     }
