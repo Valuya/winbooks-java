@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -154,21 +153,16 @@ public class WinbooksExtraService {
             if (thirdPartyName.isBlank()) {
                 return false;
             }
-//            if (!thirdPartyName.equals(pathName)) {
-//                return false;
-//            }
 
-            // in a directory <PATHNAME>, we expect a dbf table <PATHNAME>_ACT.DBF
-            String tableFileName = getTableFileName(pathName, WinbooksTableName.ACCOUNTS);
-            Optional<Path> tablePathOptional = WinbooksPathUtils.resolvePath(path, tableFileName, false);
-            if (tablePathOptional.isPresent()) {
-                return true;
+            // If we are in a winbooks dossier, we should have the ACCOUNTS table
+            try {
+                Path accountsTable = resolveTablePathOrThrow(winbooksFileConfiguration, path, WinbooksTableName.ACCOUNTS);
+                // File exists
+            } catch (Exception e) {
+                return false;
             }
-            Optional<Path> upperTablePathOptional = WinbooksPathUtils.resolvePath(path, tableFileName.toUpperCase(Locale.ROOT), false);
-            if (upperTablePathOptional.isPresent()) {
-                return true;
-            }
-            return false;
+
+            return true;
         } catch (Exception e) {
             return false;
         }
@@ -644,7 +638,20 @@ public class WinbooksExtraService {
         return tablePathOptional;
     }
 
-    private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) {
+    /**
+     * Resolve table `tableName`  file path from basePath. If basePath is an archived forlder, will strip the archive suffix.
+     * Then the base path name will be used to look for <basename>.<tableName>.dbf, matching path mappings, case sensistivity
+     * accoding to the winbooks file configuration.
+     * If the file cannot be found, a WinbooksException is thrown.
+     * The lookups are cached within this service, so subsequent calls to this method will not trigger any filesystem operation.
+     *
+     * @param winbooksFileConfiguration the configuration dictating how to resolve path
+     * @param basePath                  the base path, which should be a winbooks dossier, and contains the dbf file.
+     * @param tableName                 the dbf table file to look for
+     * @return the table dbf file path
+     * @throws WinbooksException if no file could be found for that table name.
+     */
+    private Path resolveTablePathOrThrow(WinbooksFileConfiguration winbooksFileConfiguration, Path basePath, String tableName) throws WinbooksException {
         TableBasePath tableBasePath = new TableBasePath(tableName, basePath);
         Path existingPath = tableFilePathMap.get(tableBasePath);
         if (existingPath != null) {
