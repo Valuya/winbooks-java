@@ -25,6 +25,7 @@ import be.valuya.winbooks.domain.error.WinbooksError;
 import be.valuya.winbooks.domain.error.WinbooksException;
 import net.iryndin.jdbf.core.DbfRecord;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,41 +90,51 @@ public class WinbooksExtraService {
      * Create a new winbooks file configuration
      *
      * @param rootPath The path under which dossier directories are located
-     * @param baseName The company base name, which is the dossier directory name as well as the reference used in winbooks.
+     * @param pathName The dossier path name
      */
-    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String baseName) throws WinbooksConfigurationException {
-        return createWinbooksFileConfiguration(rootPath, baseName, Map.of());
+    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String pathName) throws WinbooksConfigurationException {
+        return createWinbooksFileConfiguration(rootPath, pathName, Map.of());
     }
 
     /**
      * Create a new winbooks file configuration
      *
      * @param rootPath     The path under which dossier directories are located
-     * @param baseName     The company base name, which is the dossier directory name as well as the reference used in winbooks.
+     * @param pathName     The dossier path name
      * @param pathMappings Path mappings. See {@link WinbooksFileConfiguration#setPathMappings(Map)}.
      */
-    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String baseName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
-        return createWinbooksFileConfiguration(rootPath, baseName, baseName, pathMappings);
+    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String pathName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
+        return createWinbooksFileConfiguration(rootPath, pathName, null, pathMappings);
     }
 
     /**
      * Create a new winbooks file configuration
      *
      * @param rootPath     The path under which dossier directories are located
-     * @param basePathName The dossier directory name.
-     * @param companyName  The company name, as used in winbooks reference.
+     * @param basePathName The dossier path name, which is the company name, or the company name suffixed with -YYYY for archive folder
+     * @param companyName  The company name, as used in winbooks reference, or null if it is to be resolved from the basePathName.
      * @param pathMappings Path mappings. See {@link WinbooksFileConfiguration#setPathMappings(Map)}.
      */
-    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String basePathName, String companyName, Map<String, Path> pathMappings) throws WinbooksConfigurationException {
+    public WinbooksFileConfiguration createWinbooksFileConfiguration(Path rootPath, String basePathName,
+                                                                     @Nullable String companyName,
+                                                                     Map<String, Path> pathMappings) throws WinbooksConfigurationException {
+
         WinbooksFileConfiguration winbooksFileConfiguration = new WinbooksFileConfiguration();
         winbooksFileConfiguration.setRootPath(rootPath);
         winbooksFileConfiguration.setBasePathName(basePathName);
-        winbooksFileConfiguration.setWinbooksCompanyName(companyName);
         winbooksFileConfiguration.setPathMappings(pathMappings);
         winbooksFileConfiguration.setResolveCaseInsensitiveSiblings(true);
 
+        Path dossierBasePath;
         try {
-            Path dossierBasePath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
+            dossierBasePath = WinbooksPathUtils.getDossierBasePath(winbooksFileConfiguration);
+            String dossierBasePathName = dossierBasePath.getFileName().toString();
+            String safeCompanyName = Optional.ofNullable(companyName)
+                    .or(() -> WinbooksPathUtils.tryGetBaseNameFromPathName(dossierBasePathName))
+                    .orElse(dossierBasePathName);
+            winbooksFileConfiguration.setWinbooksCompanyName(safeCompanyName);
+
+
             if (!Files.exists(dossierBasePath)) {
                 throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Winbooks dossier path does not exist: " + dossierBasePath.toString());
             }
@@ -131,9 +142,8 @@ public class WinbooksExtraService {
             throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Cannot open dossier: " + e.getMessage(), e);
         }
 
-        if (!tableExistsForCurrentBookYear(winbooksFileConfiguration, WinbooksTableName.ACCOUNTING_ENTRIES)) {
-            throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Winbooks dossier does not contain any entry");
-        }
+        // Ensure we can load the accounting entries table
+        resolveTablePathOrThrow(winbooksFileConfiguration, dossierBasePath, WinbooksTableName.ACCOUNTING_ENTRIES);
 
         return winbooksFileConfiguration;
     }
