@@ -142,8 +142,12 @@ public class WinbooksExtraService {
             throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Cannot open dossier: " + e.getMessage(), e);
         }
 
-        // Ensure we can load the accounting entries table
-        resolveTablePathOrThrow(winbooksFileConfiguration, dossierBasePath, WinbooksTableName.ACCOUNTING_ENTRIES);
+        // Ensure we can load the accounting entries table. Wrap any error into WinbooksConfigurationException
+        try {
+            resolveTablePathOrThrow(winbooksFileConfiguration, dossierBasePath, WinbooksTableName.ACCOUNTING_ENTRIES);
+        } catch (WinbooksException e) {
+            throw new WinbooksConfigurationException(WinbooksError.CANNOT_OPEN_DOSSIER, "Cannot open dossier: " + e.getMessage(), e);
+        }
 
         return winbooksFileConfiguration;
     }
