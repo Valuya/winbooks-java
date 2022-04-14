@@ -3,6 +3,7 @@ package be.valuya.winbooks.api.accountingtroll.converter;
 import be.valuya.accountingtroll.domain.ATThirdParty;
 import be.valuya.accountingtroll.domain.ATThirdPartyType;
 import be.valuya.accountingtroll.domain.ATVatCode;
+import be.valuya.accountingtroll.domain.VatLiability;
 import be.valuya.jbooks.model.WbClientSupplier;
 import be.valuya.jbooks.model.WbClientSupplierType;
 import be.valuya.winbooks.domain.WinbooksDossierThirdParty;
@@ -39,6 +40,9 @@ public class ATThirdPartyConverter {
 
         String defaultGlAccount = wbSupplier.getDefltPost();
         String central = wbSupplier.getCentral();
+        VatLiability vatLiability = Optional.ofNullable(wbSupplier.getWbVatCat())
+                .flatMap(ATVatCodeConverter::convertCategory)
+                .orElse(null);
 
 
         ATThirdParty thirdParty = new ATThirdParty();
@@ -51,6 +55,7 @@ public class ATThirdPartyConverter {
         thirdParty.setCity(city);
         thirdParty.setCountryCode(countryCode);
         thirdParty.setVatNumber(vatNumber);
+        thirdParty.setVatLiability(vatLiability);
         thirdParty.setPhoneNumber(phoneNumber);
         thirdParty.setBankAccountNumber(bankAccount);
         thirdParty.setLanguage(lang);
