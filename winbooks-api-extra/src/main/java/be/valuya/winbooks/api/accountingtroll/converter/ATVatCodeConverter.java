@@ -12,6 +12,22 @@ import java.math.RoundingMode;
 import java.util.Optional;
 
 public class ATVatCodeConverter {
+
+    public static Optional<VatLiability> convertCategory(WbVatCat wbVatCat) {
+        switch (wbVatCat) {
+            case UNKNOWN:
+                return Optional.empty();
+            case LIABLE:
+                return Optional.of(VatLiability.LIABLE);
+            case ZERO_RATED:
+                return Optional.of(VatLiability.ZERO_RATED);
+            case NON_LIABLE:
+                return Optional.of(VatLiability.NON_LIABLE);
+            default:
+                throw new IllegalArgumentException(wbVatCat.name());
+        }
+    }
+
     public ATVatCode convertToTrollVatCode(WbVatCodeSpec wbSpec) {
         ATVatCode atVatCode = new ATVatCode();
 
@@ -24,7 +40,7 @@ public class ATVatCodeConverter {
                 .divide(BigDecimal.valueOf(100L), 6, RoundingMode.UNNECESSARY));
 
         Optional.ofNullable(wbSpec.getCategory())
-                .flatMap(this::convertCategory)
+                .flatMap(ATVatCodeConverter::convertCategory)
                 .ifPresent(atVatCode::setLiability);
 
         Optional.ofNullable(wbSpec.getDeducibility())
@@ -50,18 +66,4 @@ public class ATVatCodeConverter {
         }
     }
 
-    private Optional<VatLiability> convertCategory(WbVatCat wbVatCat) {
-        switch (wbVatCat) {
-            case UNKNOWN:
-                return Optional.empty();
-            case LIABLE:
-                return Optional.of(VatLiability.LIABLE);
-            case ZERO_RATED:
-                return Optional.of(VatLiability.ZERO_RATED);
-            case NON_LIABLE:
-                return Optional.of(VatLiability.NON_LIABLE);
-            default:
-                throw new IllegalArgumentException(wbVatCat.name());
-        }
-    }
 }
